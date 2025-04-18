@@ -1,7 +1,8 @@
-
 import { Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { TranslationIcon } from "./chat/TranslationIcon";
+import { useState } from "react";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -13,11 +14,11 @@ interface ChatMessageProps {
   sender?: {
     name: string;
     avatar?: string;
+    language?: string;
   };
   showSender?: boolean;
   isAI?: boolean;
-  aiSuggestion?: boolean;
-  translateTo?: string;
+  originalLanguage?: string;
   translatedContent?: string;
 }
 
@@ -29,8 +30,7 @@ export function ChatMessage({
   sender,
   showSender = false,
   isAI = false,
-  aiSuggestion = false,
-  translateTo,
+  originalLanguage,
   translatedContent,
 }: ChatMessageProps) {
   const getStatusIcon = () => {
@@ -48,14 +48,14 @@ export function ChatMessage({
     }
   };
 
+  const [showOriginal, setShowOriginal] = useState(false);
+  const displayContent = showOriginal ? content : (translatedContent || content);
+
   return (
-    <div
-      className={cn(
-        "flex gap-2 max-w-[85%] animate-fade-in",
-        isOwn ? "ml-auto" : "mr-auto",
-        aiSuggestion && "opacity-80"
-      )}
-    >
+    <div className={cn(
+      "flex gap-2 max-w-[85%] animate-fade-in",
+      isOwn ? "ml-auto" : "mr-auto"
+    )}>
       {!isOwn && sender && (
         <Avatar className="h-8 w-8">
           <AvatarImage src={sender.avatar} alt={sender.name} />
@@ -72,29 +72,23 @@ export function ChatMessage({
           </span>
         )}
         
-        <div
-          className={cn(
-            "rounded-2xl py-3 px-4",
-            isOwn
-              ? "bg-primary text-primary-foreground"
-              : isAI
-              ? "bg-accent/10 border border-accent/20"
-              : "bg-secondary",
-            aiSuggestion && "border border-dashed"
-          )}
-        >
-          <div>{content}</div>
-          
-          {translateTo && translatedContent && (
-            <div className="mt-2 pt-2 border-t border-primary-foreground/20 text-primary-foreground/80 text-sm">
-              <div className="text-xs mb-1 text-primary-foreground/60">
-                Translated to {translateTo}:
-              </div>
-              {translatedContent}
-            </div>
-          )}
+        <div className={cn(
+          "rounded-2xl py-3 px-4 relative",
+          isOwn
+            ? "bg-primary text-primary-foreground"
+            : isAI
+            ? "bg-accent/10 border border-accent/20"
+            : "bg-secondary"
+        )}>
+          <div>{displayContent}</div>
           
           <div className="flex justify-end items-center gap-1 mt-1">
+            {translatedContent && !isOwn && (
+              <TranslationIcon 
+                originalLanguage={originalLanguage || 'unknown'}
+                onClick={() => setShowOriginal(!showOriginal)}
+              />
+            )}
             <span className="text-[10px] opacity-70">
               {timestamp}
             </span>
