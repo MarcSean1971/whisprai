@@ -1,12 +1,13 @@
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { useAdmin } from "@/hooks/use-admin";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAdmin } from '@/hooks/use-admin';
-import { AdminHeader } from '@/components/admin/AdminHeader';
-import { AdminTabs } from '@/components/admin/AdminTabs';
-import { BottomNavigation } from '@/components/home/BottomNavigation';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+// Components
+import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminTabs } from "@/components/admin/AdminTabs";
+import { BottomNavigation } from "@/components/home/BottomNavigation";
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -49,10 +50,12 @@ export default function Admin() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-full">
-      <div className="max-w-2xl mx-auto space-y-6 relative flex-1 overflow-y-auto p-4 no-scrollbar">
-        <AdminHeader onExit={handleExit} />
-        <AdminTabs />
+    <div className="flex flex-col h-screen bg-background w-full">
+      <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
+        <div className="mx-auto w-full">
+          <AdminHeader onExit={handleExit} />
+          <AdminTabs />
+        </div>
       </div>
       
       <BottomNavigation 
