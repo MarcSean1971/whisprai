@@ -29,39 +29,57 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
   const [isCreating, setIsCreating] = useState(false);
 
   const handleContactSelect = async (contact: Contact) => {
+    if (isCreating) return; // Prevent multiple clicks
+    
     try {
       setIsCreating(true);
       
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) {
+        toast.error('You must be logged in to start a conversation');
+        return;
+      }
 
-      // Create new conversation
+      console.log('Creating conversation between:', user.id, 'and', contact.contact.id);
+
+      // First create the conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
-        .insert({ is_group: false })
+        .insert({
+          is_group: false,
+          updated_at: new Date().toISOString()
+        })
         .select()
         .single();
 
-      if (conversationError) throw conversationError;
+      if (conversationError) {
+        console.error('Error creating conversation:', conversationError);
+        throw new Error('Failed to create conversation');
+      }
 
-      // Add both users as participants
-      const participants = [
-        { conversation_id: conversation.id, user_id: user.id },
-        { conversation_id: conversation.id, user_id: contact.contact.id }
-      ];
+      console.log('Created conversation:', conversation.id);
 
+      // Then add both users as participants
       const { error: participantsError } = await supabase
         .from('conversation_participants')
-        .insert(participants);
+        .insert([
+          { conversation_id: conversation.id, user_id: user.id },
+          { conversation_id: conversation.id, user_id: contact.contact.id }
+        ]);
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error('Error adding participants:', participantsError);
+        throw new Error('Failed to add participants');
+      }
 
       // Close dialog and navigate to chat
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
+      
     } catch (error) {
       console.error('Error creating conversation:', error);
-      toast.error('Failed to create conversation');
+      toast.error('Failed to create conversation. Please try again.');
     } finally {
       setIsCreating(false);
     }
