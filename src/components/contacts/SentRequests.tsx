@@ -59,7 +59,7 @@ export function SentRequests() {
         .eq('sender_id', user.id);
 
       if (error) throw error;
-      return data || [];
+      return data as ContactRequest[];
     },
   });
 

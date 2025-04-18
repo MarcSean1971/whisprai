@@ -54,6 +54,7 @@ export function SentRequestListItem({
           variant="ghost"
           size="icon"
           onClick={onViewProfile}
+          title="View profile"
         >
           <UserRound className="h-4 w-4" />
         </Button>
@@ -63,6 +64,7 @@ export function SentRequestListItem({
           onClick={() => onWithdraw(id)}
           disabled={isProcessing}
         >
+          <Undo2 className="mr-1 h-4 w-4" />
           Withdraw
         </Button>
       </div>
