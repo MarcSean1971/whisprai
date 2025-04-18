@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,6 @@ import { BottomNavigation } from "@/components/home/BottomNavigation";
 export default function Admin() {
   const navigate = useNavigate();
   const { isAdmin, loading } = useAdmin();
-  const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
 
   useEffect(() => {
     if (!loading && !isAdmin) {
@@ -54,7 +54,7 @@ export default function Admin() {
       </div>
       
       <BottomNavigation 
-        activeTab={activeTab}
+        activeTab="admin"
         onLogout={handleLogout}
         isAdmin={isAdmin}
       />
