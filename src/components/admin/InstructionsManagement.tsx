@@ -17,6 +17,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useAdmin } from '@/hooks/use-admin';
 
 // Define the Instruction interface to match the database schema
 interface Instruction {
@@ -34,8 +35,10 @@ const instructionSchema = z.object({
 });
 
 export function InstructionsManagement() {
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const [instructions, setInstructions] = useState<Instruction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize form with react-hook-form and zod validation
   const form = useForm<z.infer<typeof instructionSchema>>({
@@ -47,10 +50,18 @@ export function InstructionsManagement() {
   });
 
   useEffect(() => {
+    if (!adminLoading && !isAdmin) {
+      setError('You do not have permission to access this page.');
+      setLoading(false);
+      return;
+    }
+
     loadInstructions();
-  }, []);
+  }, [isAdmin, adminLoading]);
 
   const loadInstructions = async () => {
+    if (!isAdmin) return;
+
     try {
       const { data, error } = await supabase
         .from('ai_instructions')
@@ -58,16 +69,22 @@ export function InstructionsManagement() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setInstructions(data);
+      setInstructions(data || []);
     } catch (error) {
       console.error('Error loading instructions:', error);
       toast.error('Failed to load AI instructions');
+      setError('Could not load instructions. Please try again later.');
     } finally {
       setLoading(false);
     }
   };
 
   const onSubmit = async (values: z.infer<typeof instructionSchema>) => {
+    if (!isAdmin) {
+      toast.error('You do not have permission to add instructions.');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('ai_instructions')
@@ -88,6 +105,11 @@ export function InstructionsManagement() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isAdmin) {
+      toast.error('You do not have permission to delete instructions.');
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('ai_instructions')
@@ -104,8 +126,20 @@ export function InstructionsManagement() {
     }
   };
 
-  if (loading) {
+  if (adminLoading) {
     return <div>Loading...</div>;
+  }
+
+  if (!isAdmin) {
+    return <div className="text-red-500">Access Denied: Admin privileges required.</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
+  }
+
+  if (loading) {
+    return <div>Loading instructions...</div>;
   }
 
   return (
@@ -152,32 +186,36 @@ export function InstructionsManagement() {
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Existing Instructions</h3>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Content</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {instructions.map((instruction) => (
-              <TableRow key={instruction.id}>
-                <TableCell>{instruction.name}</TableCell>
-                <TableCell className="max-w-md truncate">{instruction.content}</TableCell>
-                <TableCell>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => handleDelete(instruction.id)}
-                  >
-                    Delete
-                  </Button>
-                </TableCell>
+        {instructions.length === 0 ? (
+          <p className="text-muted-foreground">No instructions found.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Content</TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {instructions.map((instruction) => (
+                <TableRow key={instruction.id}>
+                  <TableCell>{instruction.name}</TableCell>
+                  <TableCell className="max-w-md truncate">{instruction.content}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(instruction.id)}
+                    >
+                      Delete
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );
