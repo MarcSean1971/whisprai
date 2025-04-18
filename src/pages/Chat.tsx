@@ -15,9 +15,19 @@ export default function Chat() {
   const [suggestions, setSuggestions] = useState<Array<{ id: string; text: string }>>([]);
   const { data: messages, isLoading } = useMessages(id!);
   const { profile } = useProfile();
+  const [userId, setUserId] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || null);
+    };
+    
+    fetchUserId();
+  }, []);
   
   const handleSendMessage = async (content: string) => {
-    if (!id || !content.trim()) return;
+    if (!id || !content.trim() || !userId) return;
     
     try {
       const detectedLanguage = await detectLanguage(content);
@@ -28,7 +38,7 @@ export default function Chat() {
           conversation_id: id,
           content,
           original_language: detectedLanguage,
-          sender_id: await supabase.auth.getUser().then(res => res.data.user?.id)
+          sender_id: userId
         });
 
       if (error) throw error;
@@ -49,7 +59,7 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
       <ChatHeader conversationId={id} />
-      <ChatMessages messages={messages} userLanguage={profile?.language} />
+      <ChatMessages messages={messages || []} userLanguage={profile?.language} />
       <ChatInput
         onSendMessage={handleSendMessage}
         onStartRecording={handleStartRecording}
