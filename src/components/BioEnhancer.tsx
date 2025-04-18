@@ -22,13 +22,18 @@ export function BioEnhancer({ currentBio, onEnhance }: BioEnhancerProps) {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('enhance-bio', {
-        body: { bio: currentBio }
+        body: { bio: currentBio.trim() }
       });
 
       if (error) throw error;
       if (!data?.enhancedBio) throw new Error('No enhanced bio received');
 
-      onEnhance(data.enhancedBio);
+      // Clean up any remaining quotes and extra whitespace
+      const cleanedBio = data.enhancedBio
+        .trim()
+        .replace(/^["']|["']$/g, '');
+      
+      onEnhance(cleanedBio);
       toast.success("Bio enhanced successfully!");
     } catch (error) {
       console.error('Error enhancing bio:', error);

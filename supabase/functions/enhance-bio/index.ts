@@ -51,11 +51,11 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: 'You are a helpful assistant specialized in improving and polishing user bios or profile descriptions. Make the text more professional, engaging, and clear while keeping the original meaning intact. Do not add fictional details or make it too verbose. Keep a similar length to the original.'
+            content: 'You are a helpful assistant specialized in improving and polishing user bios or profile descriptions. Make the text more professional, engaging, and clear while keeping the original meaning intact. Do not add fictional details or make it too verbose. Keep a similar length to the original. DO NOT add any quotation marks to your response.'
           },
           {
             role: 'user',
-            content: `Please improve this bio: "${bio}"`
+            content: `Please improve this bio text: ${bio}`
           }
         ],
       }),
@@ -68,7 +68,11 @@ serve(async (req) => {
     }
 
     const data = await openAIResponse.json();
-    const enhancedBio = data.choices[0].message.content.trim();
+    // Clean up the response: remove quotes and trim whitespace
+    const enhancedBio = data.choices[0].message.content
+      .trim()
+      .replace(/^["']|["']$/g, ''); // Remove quotes at start/end if present
+    
     console.log('Bio enhanced successfully');
 
     return new Response(
