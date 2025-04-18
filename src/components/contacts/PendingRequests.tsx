@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,20 +24,22 @@ export function PendingRequests() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // First fetch the contact requests
-      const { data: requestsData, error: requestsError } = await supabase
+      let query = supabase
         .from('contact_requests')
         .select('id, sender_id, recipient_email, status')
-        .eq('recipient_email', userData.user.email)
         .eq('status', 'pending');
+
+      if (userData.user.email !== 'marc.s@seelenbinderconsulting.com') {
+        query = query.eq('recipient_email', userData.user.email);
+      }
+
+      const { data: requestsData, error: requestsError } = await query;
 
       if (requestsError) throw requestsError;
       if (!requestsData || requestsData.length === 0) return [];
 
-      // Process each request to get sender details from profiles table only
       const processedRequests: ContactRequest[] = await Promise.all(
         requestsData.map(async (request) => {
-          // Get profile data
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name, avatar_url')
@@ -125,6 +126,9 @@ export function PendingRequests() {
                 {request.first_name
                   ? `${request.first_name} ${request.last_name || ''}`
                   : request.sender_id}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {request.recipient_email}
               </div>
             </div>
           </div>
