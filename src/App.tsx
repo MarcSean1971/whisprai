@@ -8,11 +8,11 @@ import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Chat from "./pages/Chat";
 import NotFound from "./pages/NotFound";
+import ProfileSetup from "./pages/ProfileSetup";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Apply dark mode if user prefers it
   useEffect(() => {
     if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       document.documentElement.classList.add("dark");
@@ -27,6 +27,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Auth />} />
+            <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/home" element={<Home />} />
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="*" element={<NotFound />} />

@@ -16,15 +16,36 @@ export default function Auth() {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate("/home");
+        // Check if user has completed profile setup
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('language')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.language === 'en') {
+          navigate('/profile-setup');
+        } else {
+          navigate('/home');
+        }
       }
     };
     checkUser();
 
     // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN') {
-        navigate("/home");
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('language')
+          .eq('id', session?.user.id)
+          .single();
+
+        if (profile?.language === 'en') {
+          navigate('/profile-setup');
+        } else {
+          navigate('/home');
+        }
       }
     });
 
