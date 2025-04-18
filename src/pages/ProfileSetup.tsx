@@ -8,7 +8,6 @@ import { ProfileFormValues } from '@/components/profile-setup/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { profileSetupSchema } from './ProfileSetupSchema';
 import { Form } from '@/components/ui/form';
-import { BackButton } from '@/components/ui/back-button';
 import { BottomNavigation } from '@/components/home/BottomNavigation';
 import { useAdmin } from '@/hooks/use-admin';
 import { Logo } from "@/components/Logo";
@@ -52,10 +51,8 @@ export default function ProfileSetup() {
       </div>
 
       <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto">
-        <header className="flex items-center justify-between mb-6">
-          <BackButton />
+        <header className="flex items-center justify-center mb-6">
           <h1 className="text-xl font-semibold">Profile Setup</h1>
-          <div className="w-10"></div>
         </header>
 
         <Form {...form}>
