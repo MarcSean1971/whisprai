@@ -4,6 +4,8 @@ import { useAdmin } from '@/hooks/use-admin';
 import { useInstructions } from '@/hooks/use-instructions';
 import { AddInstructionForm } from './instructions/AddInstructionForm';
 import { InstructionsTable } from './instructions/InstructionsTable';
+import { SearchInstructions } from './instructions/SearchInstructions';
+import type { Instruction } from './instructions/types';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -18,6 +20,7 @@ export function InstructionsManagement() {
   } = useInstructions();
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
@@ -42,10 +45,24 @@ export function InstructionsManagement() {
     return <div>Loading instructions...</div>;
   }
 
-  // Calculate pagination
-  const totalPages = Math.ceil(instructions.length / ITEMS_PER_PAGE);
+  // Filter instructions based on search query
+  const filteredInstructions = instructions.filter((instruction: Instruction) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      instruction.name.toLowerCase().includes(query) ||
+      instruction.content.toLowerCase().includes(query)
+    );
+  });
+
+  // Calculate pagination for filtered results
+  const totalPages = Math.ceil(filteredInstructions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedInstructions = instructions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginatedInstructions = filteredInstructions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -53,6 +70,7 @@ export function InstructionsManagement() {
       
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Existing Instructions</h3>
+        <SearchInstructions onSearch={setSearchQuery} />
         <InstructionsTable 
           instructions={paginatedInstructions}
           onDelete={deleteInstruction}
