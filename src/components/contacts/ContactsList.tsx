@@ -55,8 +55,12 @@ export function ContactsList() {
             variant="ghost"
             size="icon"
             onClick={() => setSelectedContact({
-              ...contact.profiles,
-              id: contact.id
+              id: contact.contact_id,
+              first_name: contact.profiles?.first_name,
+              last_name: contact.profiles?.last_name,
+              avatar_url: contact.profiles?.avatar_url,
+              bio: contact.profiles?.bio,
+              tagline: contact.profiles?.tagline
             })}
           >
             <UserRound className="h-4 w-4" />
