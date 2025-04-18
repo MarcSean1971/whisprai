@@ -22,8 +22,12 @@ export function ReceivedRequests() {
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
+      console.log('Fetching received requests...');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('Not authenticated');
+      }
 
       // First, get all pending requests where the current user is the recipient
       const { data: requestsData, error: requestsError } = await supabase
@@ -32,7 +36,12 @@ export function ReceivedRequests() {
         .eq('recipient_id', user.id)
         .eq('status', 'pending');
 
-      if (requestsError) throw requestsError;
+      if (requestsError) {
+        console.error('Error fetching requests:', requestsError);
+        throw requestsError;
+      }
+
+      console.log(`Found ${requestsData?.length || 0} pending requests`);
       if (!requestsData || requestsData.length === 0) return [];
 
       // For each request, fetch the sender's profile
@@ -44,6 +53,10 @@ export function ReceivedRequests() {
             .eq('id', request.sender_id)
             .single();
 
+          if (profileError) {
+            console.error('Error fetching profile for sender:', request.sender_id, profileError);
+          }
+
           return {
             id: request.id,
             sender_id: request.sender_id,
@@ -52,12 +65,15 @@ export function ReceivedRequests() {
         })
       );
 
+      console.log('Successfully fetched requests with profiles');
       return requestsWithProfiles;
     },
   });
 
   const handleRequest = async (requestId: string, accept: boolean) => {
+    console.log(`Processing request ${requestId}, action: ${accept ? 'accept' : 'reject'}`);
     setProcessingIds(prev => new Set(prev).add(requestId));
+    
     try {
       const { data: request } = await supabase
         .from('contact_requests')
@@ -65,9 +81,13 @@ export function ReceivedRequests() {
         .eq('id', requestId)
         .single();
 
-      if (!request) throw new Error('Request not found');
+      if (!request) {
+        console.error('Request not found:', requestId);
+        throw new Error('Request not found');
+      }
 
       if (accept) {
+        console.log('Creating bidirectional contact connection...');
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
@@ -77,7 +97,10 @@ export function ReceivedRequests() {
             },
           ]);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error creating contact connection:', insertError);
+          throw insertError;
+        }
       }
 
       const { error: updateError } = await supabase
@@ -85,13 +108,17 @@ export function ReceivedRequests() {
         .update({ status: accept ? 'accepted' : 'rejected' })
         .eq('id', requestId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating request status:', updateError);
+        throw updateError;
+      }
 
+      console.log(`Request ${requestId} successfully ${accept ? 'accepted' : 'rejected'}`);
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
       refetch();
     } catch (error) {
-      toast.error('Failed to process request');
       console.error('Error processing request:', error);
+      toast.error('Failed to process request');
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
