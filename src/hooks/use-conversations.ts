@@ -15,7 +15,8 @@ export function useConversations() {
         .select(`
           id,
           contact_id,
-          contacts:profiles!contacts_contact_id_fkey (
+          profiles:contact_id (
+            id,
             first_name,
             last_name,
             avatar_url,

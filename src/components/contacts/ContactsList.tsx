@@ -8,7 +8,9 @@ import { useState } from "react";
 
 interface Contact {
   id: string;
-  contacts: {
+  contact_id: string;
+  profiles: {
+    id: string;
     first_name: string | null;
     last_name: string | null;
     avatar_url: string | null;
@@ -31,20 +33,20 @@ export function ContactsList() {
         <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={contact.contacts.avatar_url || undefined} />
+              <AvatarImage src={contact.profiles?.avatar_url || undefined} />
               <AvatarFallback>
-                {contact.contacts.first_name?.[0] || '?'}
+                {contact.profiles?.first_name?.[0] || '?'}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
-                {contact.contacts.first_name && contact.contacts.last_name 
-                  ? `${contact.contacts.first_name} ${contact.contacts.last_name}`
+                {contact.profiles?.first_name && contact.profiles?.last_name 
+                  ? `${contact.profiles.first_name} ${contact.profiles.last_name}`
                   : 'Unknown Contact'}
               </div>
-              {contact.contacts.tagline && (
+              {contact.profiles?.tagline && (
                 <div className="text-sm text-muted-foreground">
-                  {contact.contacts.tagline}
+                  {contact.profiles.tagline}
                 </div>
               )}
             </div>
@@ -53,7 +55,7 @@ export function ContactsList() {
             variant="ghost"
             size="icon"
             onClick={() => setSelectedContact({
-              ...contact.contacts,
+              ...contact.profiles,
               id: contact.id
             })}
           >
