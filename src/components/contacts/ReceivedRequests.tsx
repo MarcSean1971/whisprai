@@ -35,21 +35,9 @@ export function ReceivedRequests() {
         }
 
         // Get contact requests for the current user
-        const { data: requests, error: requestsError } = await supabase
+        const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
-          .select(`
-            id,
-            sender_id,
-            recipient_id,
-            status,
-            sender:sender_id (
-              profile:profiles (
-                first_name,
-                last_name,
-                avatar_url
-              )
-            )
-          `)
+          .select('id, sender_id, recipient_id, status')
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
@@ -59,13 +47,41 @@ export function ReceivedRequests() {
           return [] as ContactRequest[];
         }
 
-        // Transform the data to match our interface
-        return requests.map(request => ({
+        if (!requestsData || requestsData.length === 0) {
+          return [] as ContactRequest[];
+        }
+
+        // Get profiles for the senders
+        const senderIds = requestsData.map(request => request.sender_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', senderIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          toast.error('Error fetching profiles');
+        }
+
+        // Create a map for quick profile lookup
+        const profilesMap = new Map();
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap.set(profile.id, {
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url
+            });
+          });
+        }
+
+        // Combine the data
+        return requestsData.map(request => ({
           id: request.id,
           sender_id: request.sender_id,
           recipient_id: request.recipient_id,
           status: request.status,
-          profile: request.sender?.profile || {
+          profile: profilesMap.get(request.sender_id) || {
             first_name: null,
             last_name: null,
             avatar_url: null
