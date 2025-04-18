@@ -35,8 +35,9 @@ export function Header({
   const headerContent = getHeaderContent();
 
   return (
-    <header className="flex flex-col p-2 border-b space-y-4">
-      <div className="flex items-center justify-between">
+    <header className="flex flex-col border-b">
+      {/* Top section with logo and search */}
+      <div className="flex items-center justify-between p-2">
         <Logo variant={isMobile ? "icon" : "full"} />
         <div className="flex items-center gap-1">
           <SearchBar
@@ -47,8 +48,10 @@ export function Header({
           />
         </div>
       </div>
+      
+      {/* Title section */}
       {headerContent && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 px-4 py-3 bg-background z-10">
           {headerContent.icon}
           <h1 className="text-xl font-semibold">{headerContent.title}</h1>
         </div>
