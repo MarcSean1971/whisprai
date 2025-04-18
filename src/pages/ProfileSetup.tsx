@@ -24,6 +24,14 @@ import { languageNames } from '@/lib/languages';
 import { BioEnhancer } from '@/components/BioEnhancer';
 
 const profileSchema = z.object({
+  firstName: z.string().min(2, 'First name must be at least 2 characters').max(50),
+  lastName: z.string().min(2, 'Last name must be at least 2 characters').max(50),
+  tagline: z.string().max(100, 'Tagline must be less than 100 characters').optional(),
+  birthdate: z.string().refine((val) => {
+    const date = new Date(val);
+    const now = new Date();
+    return date < now;
+  }, 'Birthdate must be in the past'),
   bio: z.string().optional(),
   language: z.string().min(1, 'Please select a language'),
   interests: z.array(z.string()).optional(),
@@ -41,6 +49,10 @@ export default function ProfileSetup() {
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
+      firstName: '',
+      lastName: '',
+      tagline: '',
+      birthdate: '',
       bio: '',
       language: '',
       interests: [],
@@ -66,6 +78,10 @@ export default function ProfileSetup() {
 
         if (profile) {
           form.reset({
+            firstName: profile.first_name || '',
+            lastName: profile.last_name || '',
+            tagline: profile.tagline || '',
+            birthdate: profile.birthdate ? new Date(profile.birthdate).toISOString().split('T')[0] : '',
             bio: profile.bio || '',
             language: profile.language || '',
             interests: profile.interests as string[] || [],
@@ -107,6 +123,10 @@ export default function ProfileSetup() {
       const { error } = await supabase
         .from('profiles')
         .update({
+          first_name: values.firstName,
+          last_name: values.lastName,
+          tagline: values.tagline,
+          birthdate: values.birthdate,
           bio: values.bio,
           language: values.language,
           interests: values.interests,
@@ -154,25 +174,90 @@ export default function ProfileSetup() {
             <div className="flex flex-col items-center gap-3">
               <Avatar className="w-20 h-20">
                 <AvatarImage src={avatarUrl || ''} alt="Profile" />
-                <AvatarFallback>UP</AvatarFallback>
+                <AvatarFallback>?</AvatarFallback>
               </Avatar>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                className="w-full max-w-xs text-sm"
+              <div className="flex flex-col items-center gap-1">
+                <Button variant="outline" size="sm" asChild>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarChange}
+                      className="hidden"
+                    />
+                    {avatarUrl ? 'Change Photo' : 'Upload Photo'}
+                  </label>
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="firstName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>First Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="John" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="lastName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Last Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Doe" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="tagline"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Tagline</FormLabel>
+                  <FormControl>
+                    <Input placeholder="A short description about yourself" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="birthdate"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Birthdate</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
               name="language"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm">Preferred Language *</FormLabel>
+                  <FormLabel>Preferred Language *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="text-sm">
+                      <SelectTrigger>
                         <SelectValue placeholder="Select a language" />
                       </SelectTrigger>
                     </FormControl>
@@ -195,7 +280,7 @@ export default function ProfileSetup() {
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between">
-                    <FormLabel className="text-sm">Bio</FormLabel>
+                    <FormLabel>Bio</FormLabel>
                     <BioEnhancer 
                       currentBio={field.value || ''} 
                       onEnhance={handleEnhanceBio} 
@@ -204,8 +289,8 @@ export default function ProfileSetup() {
                   <FormControl>
                     <Textarea
                       placeholder="Tell us about yourself..."
+                      className="min-h-[100px]"
                       {...field}
-                      className="text-sm"
                     />
                   </FormControl>
                   <FormMessage />
@@ -222,3 +307,4 @@ export default function ProfileSetup() {
     </div>
   );
 }
+
