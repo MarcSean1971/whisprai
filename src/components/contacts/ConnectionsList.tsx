@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,12 @@ interface Contact {
   };
 }
 
-export function ConnectionsList() {
+interface ConnectionsListProps {
+  onContactSelect?: (contact: Contact) => void;
+  isSelectable?: boolean;
+}
+
+export function ConnectionsList({ onContactSelect, isSelectable }: ConnectionsListProps) {
   const [selectedContact, setSelectedContact] = useState<Contact['contact'] | null>(null);
   
   const { data: contacts, isLoading, error, refetch } = useQuery({
@@ -123,7 +129,10 @@ export function ConnectionsList() {
     <div className="space-y-2">
       {contacts?.map((contact) => (
         <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 flex-1 cursor-pointer"
+            onClick={() => isSelectable && onContactSelect?.(contact)}
+          >
             <Avatar>
               <AvatarImage src={contact.contact.profile?.avatar_url || undefined} />
               <AvatarFallback>
@@ -143,13 +152,15 @@ export function ConnectionsList() {
               )}
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedContact(contact.contact)}
-          >
-            <UserRound className="h-4 w-4" />
-          </Button>
+          {!isSelectable && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedContact(contact.contact)}
+            >
+              <UserRound className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       ))}
       {(!contacts || contacts.length === 0) && (
