@@ -31,19 +31,28 @@ export function useUserConversations() {
   return useQuery({
     queryKey: ['user-conversations'],
     queryFn: async () => {
-      try {
-        // Get current user
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user) throw new Error('Not authenticated');
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Auth error:', userError);
+        throw userError;
+      }
+      if (!user) {
+        console.error('User not authenticated');
+        throw new Error('Not authenticated');
+      }
 
-        // Get conversations the user participates in
+      try {
+        // Get conversations the user participates in - simpler query
         const { data: participations, error: participationsError } = await supabase
           .from('conversation_participants')
           .select('conversation_id')
           .eq('user_id', user.id);
 
-        if (participationsError) throw participationsError;
+        if (participationsError) {
+          console.error('Error fetching participations:', participationsError);
+          throw participationsError;
+        }
         
         if (!participations.length) {
           return []; // User has no conversations yet
@@ -52,23 +61,17 @@ export function useUserConversations() {
         // Get the conversation IDs
         const conversationIds = participations.map(p => p.conversation_id);
 
-        // Fetch the conversations
+        // Fetch basic conversation data
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select(`
-            *,
-            messages (
-              id,
-              content,
-              sender_id,
-              created_at,
-              status
-            )
-          `)
+          .select('*')
           .in('id', conversationIds)
           .order('updated_at', { ascending: false });
 
-        if (conversationsError) throw conversationsError;
+        if (conversationsError) {
+          console.error('Error fetching conversations:', conversationsError);
+          throw conversationsError;
+        }
 
         // Get all participants for these conversations
         const { data: allParticipants, error: participantsError } = await supabase
@@ -86,7 +89,31 @@ export function useUserConversations() {
           `)
           .in('conversation_id', conversationIds);
 
-        if (participantsError) throw participantsError;
+        if (participantsError) {
+          console.error('Error fetching participants:', participantsError);
+          throw participantsError;
+        }
+
+        // Get latest message for each conversation
+        const { data: latestMessages, error: messagesError } = await supabase
+          .from('messages')
+          .select('*')
+          .in('conversation_id', conversationIds)
+          .order('created_at', { ascending: false });
+
+        if (messagesError) {
+          console.error('Error fetching messages:', messagesError);
+          throw messagesError;
+        }
+
+        // Group messages by conversation
+        const messagesByConversation = latestMessages.reduce((acc, message) => {
+          if (!acc[message.conversation_id]) {
+            acc[message.conversation_id] = [];
+          }
+          acc[message.conversation_id].push(message);
+          return acc;
+        }, {});
 
         // Group participants by conversation
         const participantsByConversation = allParticipants.reduce((acc, p) => {
@@ -100,7 +127,7 @@ export function useUserConversations() {
           return acc;
         }, {});
 
-        // Process conversations with participants
+        // Process conversations with participants and latest message
         const processedConversations: Conversation[] = conversations.map(conv => {
           const participants = participantsByConversation[conv.id] || [];
           
@@ -117,10 +144,9 @@ export function useUserConversations() {
             name = 'Conversation';
             avatar = null;
           }
-          
-          // Sort messages by date and get the latest
-          const messages = conv.messages || [];
-          messages.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+          // Get latest message
+          const messages = messagesByConversation[conv.id] || [];
           const lastMessage = messages.length > 0 ? messages[0] : null;
 
           return {
@@ -139,5 +165,6 @@ export function useUserConversations() {
       }
     },
     retry: 1,
+    staleTime: 30000 // 30 seconds cache
   });
 }

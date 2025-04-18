@@ -6,7 +6,7 @@ import { NewMessageButton } from "@/components/home/NewMessageButton";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { EmptyState } from "@/components/EmptyState";
-import { Search, AlertCircle } from "lucide-react";
+import { Search, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationItem } from "@/components/ConversationItem";
 import { useUserConversations } from "@/hooks/use-user-conversations";
@@ -18,20 +18,28 @@ export default function Chats() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isAdmin } = useAdmin();
-  const { data: conversations, isLoading, error, refetch } = useUserConversations();
+  const { data: conversations, isLoading, error, refetch, isError } = useUserConversations();
 
   // Check if user is authenticated
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate('/');
-      return;
+      return false;
     }
+    return true;
   };
 
   useEffect(() => {
-    checkAuth();
-  }, []);
+    const initPage = async () => {
+      const isAuthenticated = await checkAuth();
+      if (isAuthenticated && isError) {
+        toast.error("Failed to load conversations");
+      }
+    };
+    
+    initPage();
+  }, [isError]);
 
   const filteredConversations = searchQuery && conversations
     ? conversations.filter(convo => 
@@ -77,7 +85,10 @@ export default function Chats() {
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-0.5">
           {isLoading ? (
-            <div className="p-4 text-center">Loading conversations...</div>
+            <div className="flex flex-col items-center justify-center h-[70vh] p-4">
+              <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Loading conversations...</p>
+            </div>
           ) : error ? (
             <div className="p-4 text-center">
               <div className="flex flex-col items-center justify-center gap-2 p-4">
@@ -99,7 +110,7 @@ export default function Chats() {
                 name={conversation.name || "Conversation"}
                 avatar={conversation.avatar || undefined}
                 lastMessage={conversation.lastMessage?.content}
-                timestamp={conversation.lastMessage?.created_at ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
+                timestamp={conversation.lastMessage?.created_at ? new Date(conversation.lastMessage.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : undefined}
                 unreadCount={0}
                 isGroup={conversation.is_group}
                 onClick={() => handleConversationClick(conversation.id)}
