@@ -15,7 +15,6 @@ type SupabaseUser = {
     verification_token?: string;
     [key: string]: any;
   };
-  [key: string]: any;
 };
 
 export default function Verify() {
@@ -37,41 +36,49 @@ export default function Verify() {
       }
 
       try {
-        // Get the user data by email
-        const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
-        
-        // Filter users on the client side since we can't use the filter parameter
-        const userArray = users as SupabaseUser[] || [];
-        const user = userArray.find(u => 
-          (u.user_metadata?.email === decodeURIComponent(email)) || 
-          (u.email === decodeURIComponent(email))
-        );
+        // Get user by email
+        const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
+          filter: {
+            email: decodeURIComponent(email)
+          }
+        });
+
+        const user = users?.[0] as SupabaseUser | undefined;
         
         if (getUserError || !user) {
+          console.error("User fetch error:", getUserError);
           throw new Error("User not found");
         }
 
+        // Verify the token matches
         if (user.user_metadata?.verification_token !== token) {
+          console.error("Token mismatch");
           throw new Error("Invalid verification token");
         }
 
         // Update user metadata to mark email as confirmed
-        await supabase.auth.updateUser({
+        const { error: updateError } = await supabase.auth.updateUser({
           data: {
             email_confirmed: true,
-            verification_token: null // Clear the token
+            verification_token: null // Clear the token after successful verification
           }
         });
 
+        if (updateError) {
+          console.error("Update error:", updateError);
+          throw updateError;
+        }
+
         toast.success("Email verified successfully!");
         setIsVerifying(false);
-        // Redirect to home after a short delay
-        setTimeout(() => navigate("/home"), 2000);
+        
+        // Redirect to login after a short delay
+        setTimeout(() => navigate("/"), 2000);
       } catch (error) {
         console.error("Verification error:", error);
         setIsError(true);
         setIsVerifying(false);
-        toast.error("Failed to verify email");
+        toast.error(error instanceof Error ? error.message : "Failed to verify email");
       }
     };
 

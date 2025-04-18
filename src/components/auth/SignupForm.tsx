@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,45 +17,29 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
-      // Sign up the user without email verification
-      const { data, error: signupError } = await supabase.auth.signUp({
+      // Generate verification token before signup
+      const verificationToken = crypto.randomUUID();
+      
+      // Sign up the user with metadata containing the verification token
+      const { data: { user }, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/home`,
           data: {
-            email_confirmed: false // We'll update this after they verify
+            email_confirmed: false,
+            verification_token: verificationToken
           }
         }
       });
 
-      if (signupError) {
-        toast.error(signupError.message);
-        return;
-      }
-
-      if (!data.user) {
-        toast.error("Failed to create account");
-        return;
-      }
-
-      // Generate a sign-up token (this will be used to verify the email)
-      const token = crypto.randomUUID();
-
-      // Store the token in the user's metadata (we'll verify this later)
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: { verification_token: token }
-      });
-
-      if (updateError) {
-        toast.error("Failed to initialize account verification");
-        return;
+      if (signupError || !user) {
+        throw signupError || new Error("Failed to create account");
       }
 
       // Create the verification URL with the token
-      const verificationUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+      const verificationUrl = `${window.location.origin}/verify?token=${verificationToken}&email=${encodeURIComponent(email)}`;
 
-      // Send custom confirmation email using our edge function
+      // Send confirmation email using our edge function
       const { error: emailError } = await supabase.functions.invoke('send-email', {
         body: {
           email,
@@ -65,15 +48,14 @@ export function SignupForm() {
       });
 
       if (emailError) {
-        console.error("Email error:", emailError);
-        toast.error("Failed to send confirmation email");
-        return;
+        console.error("Email sending error:", emailError);
+        throw new Error("Failed to send confirmation email");
       }
 
-      toast.info("Please check your email to verify your account");
+      toast.success("Please check your email to verify your account");
     } catch (error) {
       console.error("Signup error:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(error instanceof Error ? error.message : "Failed to create account");
     } finally {
       setIsLoading(false);
     }
