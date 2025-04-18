@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -17,6 +16,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Switch } from "@/components/ui/switch";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { EditInstructionDialog } from './EditInstructionDialog';
 import type { Instruction } from './types';
 
@@ -47,45 +47,51 @@ export function InstructionsTable({
 
   return (
     <div className="space-y-4">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Content</TableHead>
-            <TableHead>Active</TableHead>
-            <TableHead className="w-[100px]">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {instructions.map((instruction) => (
-            <TableRow key={instruction.id} className={instruction.suspended ? 'opacity-50' : ''}>
-              <TableCell>{instruction.name}</TableCell>
-              <TableCell className="max-w-md truncate">{instruction.content}</TableCell>
-              <TableCell>
-                <Switch
-                  checked={!instruction.suspended}
-                  onCheckedChange={(checked) => onToggleSuspend(instruction.id, !checked)}
-                />
-              </TableCell>
-              <TableCell>
-                <div className="flex items-center gap-2">
-                  <EditInstructionDialog 
-                    instruction={instruction}
-                    onUpdate={onUpdate}
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => onDelete(instruction.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </TableCell>
+      <div className="border rounded-md">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[200px]">Name</TableHead>
+              <TableHead>Content</TableHead>
+              <TableHead className="w-[100px]">Active</TableHead>
+              <TableHead className="w-[120px]">Actions</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {instructions.map((instruction) => (
+              <TableRow key={instruction.id} className={instruction.suspended ? 'opacity-50' : ''}>
+                <TableCell className="font-medium">{instruction.name}</TableCell>
+                <TableCell>
+                  <ScrollArea className="h-[100px] w-full rounded-md border p-2">
+                    {instruction.content}
+                  </ScrollArea>
+                </TableCell>
+                <TableCell>
+                  <Switch
+                    checked={!instruction.suspended}
+                    onCheckedChange={(checked) => onToggleSuspend(instruction.id, !checked)}
+                  />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <EditInstructionDialog 
+                      instruction={instruction}
+                      onUpdate={onUpdate}
+                    />
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => onDelete(instruction.id)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
 
       {totalPages > 1 && (
         <Pagination>
