@@ -36,26 +36,26 @@ export function Header({
 
   return (
     <header className="flex flex-col border-b">
-      {/* Top section with logo and search */}
-      <div className="flex items-center justify-between p-2">
-        <Logo variant={isMobile ? "icon" : "full"} />
-        <div className="flex items-center gap-1">
-          <SearchBar
-            isSearching={isSearching}
-            searchQuery={searchQuery}
-            onSearchChange={onSearchChange}
-            onSearchToggle={onSearchToggle}
-          />
+      <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center gap-4">
+          <Logo variant={isMobile ? "icon" : "full"} />
+          {headerContent && (
+            <div className="flex items-center gap-2">
+              {headerContent.icon}
+              <h1 className="text-xl font-semibold">{headerContent.title}</h1>
+            </div>
+          )}
         </div>
       </div>
       
-      {/* Title section */}
-      {headerContent && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-background z-10">
-          {headerContent.icon}
-          <h1 className="text-xl font-semibold">{headerContent.title}</h1>
-        </div>
-      )}
+      <div className="px-4 py-2 border-t">
+        <SearchBar
+          isSearching={isSearching}
+          searchQuery={searchQuery}
+          onSearchChange={onSearchChange}
+          onSearchToggle={onSearchToggle}
+        />
+      </div>
     </header>
   );
 }
