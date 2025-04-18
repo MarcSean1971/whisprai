@@ -25,13 +25,17 @@ export function LoginForm() {
 
       if (error) {
         toast.error(error.message);
+        setIsLoading(false);
         return;
       }
 
-      // Success handled by onAuthStateChange
+      // Note: Successful login will be handled by the onAuthStateChange listener in Auth.tsx
+      toast.success("Login successful!");
+      
+      // Don't need to set isLoading to false on success as we'll navigate away
     } catch (error) {
+      console.error("Login error:", error);
       toast.error("An unexpected error occurred");
-    } finally {
       setIsLoading(false);
     }
   };
