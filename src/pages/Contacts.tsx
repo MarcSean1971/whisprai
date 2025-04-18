@@ -1,4 +1,3 @@
-
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { useNavigate } from "react-router-dom";
@@ -21,10 +20,8 @@ export default function Contacts() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: requestCounts } = useRequestCounts();
   
-  // Get the active tab from URL parameters or default to 'contacts'
   const activeTab = searchParams.get("tab") || "contacts";
   
-  // Set initial tab parameter if none exists
   useEffect(() => {
     if (!searchParams.get("tab")) {
       setSearchParams({ tab: "contacts" });
@@ -37,10 +34,7 @@ export default function Contacts() {
   
   const handleLogout = async () => {
     try {
-      // Clear local storage to remove any cached user data
       localStorage.clear();
-
-      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -48,10 +42,7 @@ export default function Contacts() {
         return;
       }
       
-      // Navigate to the login page
       navigate("/");
-      
-      // Show success toast
       toast.success("Successfully logged out");
     } catch (error) {
       console.error("Logout error:", error);
@@ -78,7 +69,7 @@ export default function Contacts() {
                 {requestCounts?.sent > 0 && (
                   <Badge 
                     variant="whispr" 
-                    className="absolute -top-2 -right-2 min-w-[20px] h-5"
+                    className="absolute -top-1 -right-1 min-w-[18px] h-4 flex items-center justify-center text-[10px]"
                   >
                     {requestCounts.sent}
                   </Badge>
@@ -89,7 +80,7 @@ export default function Contacts() {
                 {requestCounts?.received > 0 && (
                   <Badge 
                     variant="whispr"
-                    className="absolute -top-2 -right-2 min-w-[20px] h-5"
+                    className="absolute -top-1 -right-1 min-w-[18px] h-4 flex items-center justify-center text-[10px]"
                   >
                     {requestCounts.received}
                   </Badge>
