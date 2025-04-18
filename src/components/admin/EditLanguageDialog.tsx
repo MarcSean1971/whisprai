@@ -32,16 +32,21 @@ export function EditLanguageDialog({
 
     setIsLoading(true);
     try {
-      const { data: currentData } = await supabase
+      const { data: currentData, error: fetchError } = await supabase
         .from('admin_settings')
         .select('value')
         .eq('key', 'language_list')
         .single();
 
-      if (!currentData) throw new Error('No language data found');
+      if (fetchError) throw fetchError;
+      if (!currentData || !currentData.value) throw new Error('No language data found');
 
+      // Make sure we're treating currentData.value as an object
+      const currentLanguages = currentData.value as Record<string, string>;
+      
+      // Create a new object with the updated language
       const updatedLanguages = {
-        ...currentData.value,
+        ...currentLanguages,
         [languageCode]: name.trim()
       };
 
