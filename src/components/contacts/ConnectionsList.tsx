@@ -21,22 +21,48 @@ export function ConnectionsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // First, get the contact connections
+      const { data: contactsData, error: contactsError } = await supabase
         .from('contacts')
-        .select(`
-          id,
-          contact:contact_id (
-            profile:profiles (
-              first_name,
-              last_name,
-              avatar_url
-            )
-          )
-        `)
+        .select('id, contact_id')
         .eq('user_id', user.id);
 
-      if (error) throw error;
-      return (data as Contact[]) || [];
+      if (contactsError) throw contactsError;
+      if (!contactsData || contactsData.length === 0) return [];
+
+      // For each contact, fetch their profile information
+      const contactsWithProfiles = await Promise.all(
+        contactsData.map(async (contact) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', contact.contact_id)
+            .single();
+
+          if (profileError) {
+            console.error("Error fetching profile:", profileError);
+            return {
+              id: contact.id,
+              contact: {
+                profile: {
+                  first_name: null,
+                  last_name: null,
+                  avatar_url: null
+                }
+              }
+            };
+          }
+
+          return {
+            id: contact.id,
+            contact: {
+              profile: profileData
+            }
+          };
+        })
+      );
+
+      return contactsWithProfiles as Contact[];
     },
   });
 

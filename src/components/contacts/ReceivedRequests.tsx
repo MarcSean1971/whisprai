@@ -25,22 +25,34 @@ export function ReceivedRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // First, get the requests
+      const { data: requestsData, error } = await supabase
         .from('contact_requests')
-        .select(`
-          id,
-          sender_id,
-          profiles (
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('id, sender_id')
         .eq('status', 'pending')
         .eq('recipient_email', user.email);
 
       if (error) throw error;
-      return (data as ContactRequest[]) || [];
+      if (!requestsData || requestsData.length === 0) return [];
+
+      // For each request, fetch the sender's profile
+      const requestsWithProfiles = await Promise.all(
+        requestsData.map(async (request) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', request.sender_id)
+            .single();
+
+          return {
+            id: request.id,
+            sender_id: request.sender_id,
+            profile: profileError ? null : profileData
+          };
+        })
+      );
+
+      return requestsWithProfiles as ContactRequest[];
     },
   });
 

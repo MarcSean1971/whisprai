@@ -3,10 +3,11 @@ import { EmptyState } from "@/components/EmptyState";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactsList } from "@/components/contacts/ContactsList";
-import { PendingRequests } from "@/components/contacts/PendingRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SentRequests } from "@/components/contacts/SentRequests";
+import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 
 interface TabsSectionProps {
   activeTab: 'chats' | 'contacts';
@@ -62,7 +63,8 @@ export function TabsSection({
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
-              <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
+              <TabsTrigger value="sent" className="flex-1">Sent</TabsTrigger>
+              <TabsTrigger value="received" className="flex-1">Received</TabsTrigger>
             </TabsList>
           </div>
 
@@ -75,8 +77,12 @@ export function TabsSection({
             </div>
           </TabsContent>
 
-          <TabsContent value="pending" className="mt-0">
-            <PendingRequests />
+          <TabsContent value="sent" className="mt-0">
+            <SentRequests />
+          </TabsContent>
+
+          <TabsContent value="received" className="mt-0">
+            <ReceivedRequests />
           </TabsContent>
         </Tabs>
       </TabsContent>
