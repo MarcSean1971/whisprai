@@ -2,19 +2,29 @@
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { ContactProfileDialog } from "./ContactProfileDialog";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { UserRound } from "lucide-react";
 
 interface Contact {
   id: string;
   contact: {
+    email: string;
     profile: {
       first_name: string | null;
       last_name: string | null;
       avatar_url: string | null;
+      bio: string | null;
+      tagline: string | null;
+      birthdate: string | null;
     };
   };
 }
 
 export function ConnectionsList() {
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
@@ -30,24 +40,34 @@ export function ConnectionsList() {
       if (contactsError) throw contactsError;
       if (!contactsData || contactsData.length === 0) return [];
 
-      // For each contact, fetch their profile information
+      // For each contact, fetch their profile and email information
       const contactsWithProfiles = await Promise.all(
         contactsData.map(async (contact) => {
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .select('first_name, last_name, avatar_url')
+            .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
             .eq('id', contact.contact_id)
             .single();
 
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
+          const { data: userData, error: userError } = await supabase
+            .from('auth')
+            .select('email')
+            .eq('id', contact.contact_id)
+            .single();
+
+          if (profileError || userError) {
+            console.error("Error fetching contact details:", profileError || userError);
             return {
               id: contact.id,
               contact: {
+                email: 'Unknown',
                 profile: {
                   first_name: null,
                   last_name: null,
-                  avatar_url: null
+                  avatar_url: null,
+                  bio: null,
+                  tagline: null,
+                  birthdate: null
                 }
               }
             };
@@ -56,6 +76,7 @@ export function ConnectionsList() {
           return {
             id: contact.id,
             contact: {
+              email: userData?.email || 'Unknown',
               profile: profileData
             }
           };
@@ -89,6 +110,13 @@ export function ConnectionsList() {
               </div>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedContact(contact)}
+          >
+            <UserRound className="h-4 w-4" />
+          </Button>
         </div>
       ))}
       {(!contacts || contacts.length === 0) && (
@@ -96,6 +124,16 @@ export function ConnectionsList() {
           No contacts yet
         </div>
       )}
+
+      <ContactProfileDialog
+        open={!!selectedContact}
+        onOpenChange={() => setSelectedContact(null)}
+        contact={selectedContact ? {
+          id: selectedContact.id,
+          email: selectedContact.contact.email,
+          profile: selectedContact.contact.profile
+        } : undefined}
+      />
     </div>
   );
 }
