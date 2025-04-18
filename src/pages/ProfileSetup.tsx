@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { Form } from '@/components/ui/form';
 import { BackButton } from '@/components/ui/back-button';
 import { BottomNavigation } from '@/components/home/BottomNavigation';
 import { useAdmin } from '@/hooks/use-admin';
+import { Logo } from "@/components/Logo";
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -37,7 +37,6 @@ export default function ProfileSetup() {
   };
 
   const handleLogout = async () => {
-    // Implement logout logic similar to Home page
     navigate('/');
   };
 
@@ -48,6 +47,10 @@ export default function ProfileSetup() {
 
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
+      <div className="flex items-center gap-4 px-4 py-3 border-b">
+        <Logo variant="full" />
+      </div>
+
       <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto">
         <header className="flex items-center justify-between mb-6">
           <BackButton />

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContactsList } from "@/components/contacts/ContactsList";
 import { PendingRequests } from "@/components/contacts/PendingRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
+import { Logo } from "@/components/Logo";
 
 export default function Contacts() {
   const navigate = useNavigate();
@@ -14,6 +15,10 @@ export default function Contacts() {
   
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
+      <div className="flex items-center gap-4 px-4 py-3 border-b">
+        <Logo variant="full" />
+      </div>
+
       <Header 
         isSearching={false}
         searchQuery=""
