@@ -1,12 +1,9 @@
-import { useState, useRef, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ChatMessage } from "@/components/ChatMessage";
-import { MessageInput } from "@/components/MessageInput";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, MoreVertical, Phone, Search, Video } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { messages, contacts } from "@/lib/sample-data";
+import { ChatHeader } from "@/components/chat/ChatHeader";
+import { ChatMessages } from "@/components/chat/ChatMessages";
+import { ChatInput } from "@/components/chat/ChatInput";
 
 export type MessageType = {
   id: string;
@@ -24,11 +21,9 @@ export type MessageType = {
 };
 
 export default function Chat() {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [chatMessages, setChatMessages] = useState<MessageType[]>([]);
   const [suggestions, setSuggestions] = useState<{ id: string; text: string }[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [contact, setContact] = useState<any>(null);
 
   useEffect(() => {
@@ -49,10 +44,6 @@ export default function Chat() {
     
     setSuggestions(smartSuggestions);
   }, [id]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chatMessages]);
 
   const handleSendMessage = (content: string) => {
     const newMessage: MessageType = {
@@ -124,83 +115,13 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/home")}
-            className="md:hover:bg-accent"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={contact.avatar} alt={contact.name} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {contact.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="ml-3">
-            <h2 className="font-medium">{contact.name}</h2>
-            <p className="text-xs text-muted-foreground">
-              {contact.isOnline ? "Online" : "Last seen recently"}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon">
-            <Search className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Phone className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <Video className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-5 w-5" />
-          </Button>
-        </div>
-      </header>
-      
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {chatMessages.map((message, index) => {
-          const isOwn = message.sender.id === "me";
-          const showSender = 
-            !isOwn && 
-            (index === 0 || chatMessages[index - 1].sender.id !== message.sender.id);
-            
-          return (
-            <ChatMessage
-              key={message.id}
-              content={message.content}
-              timestamp={message.timestamp}
-              isOwn={isOwn}
-              status={message.status}
-              sender={message.sender}
-              showSender={showSender}
-              isAI={message.isAI}
-              translateTo={message.translateTo}
-              translatedContent={message.translatedContent}
-            />
-          );
-        })}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      <div className={cn(
-        "p-4 border-t transition-all",
-        suggestions.length > 0 && "pb-6"
-      )}>
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          onStartRecording={handleStartRecording}
-          suggestions={suggestions}
-        />
-      </div>
+      <ChatHeader contact={contact} />
+      <ChatMessages messages={chatMessages} />
+      <ChatInput
+        onSendMessage={handleSendMessage}
+        onStartRecording={handleStartRecording}
+        suggestions={suggestions}
+      />
     </div>
   );
 }
