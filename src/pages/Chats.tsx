@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
@@ -10,7 +9,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationItem } from "@/components/ConversationItem";
-import { Logo } from "@/components/Logo";
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -41,10 +39,6 @@ export default function Chats() {
 
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
-      <div className="flex items-center gap-4 px-4 py-3 border-b">
-        <Logo variant="full" />
-      </div>
-
       <Header 
         isSearching={isSearching}
         searchQuery={searchQuery}
