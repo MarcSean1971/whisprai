@@ -32,7 +32,7 @@ serve(async (req) => {
     )
 
     const data = await resend.emails.send({
-      from: 'WhisprAI <onboarding@resend.dev>',
+      from: 'WhisprAI <noreply@whisprai.app>',
       to: email,
       subject: 'Confirm your WhisprAI account',
       html,
