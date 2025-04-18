@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -49,37 +48,20 @@ export function ConnectionsList() {
           throw userError;
         }
 
-        // Get contacts where user is the contact_id
-        const { data: asContact, error: contactError } = await supabase
-          .from('contacts')
-          .select('id, user_id')
-          .eq('contact_id', user.id);
-
-        if (contactError) {
-          console.error('Error fetching as contact:', contactError);
-          throw contactError;
-        }
-
         console.log('Found contacts as user:', asUser?.length || 0);
-        console.log('Found contacts as contact:', asContact?.length || 0);
 
-        // Combine and process both sets of contacts
-        const allContacts = [
-          ...(asUser || []).map(contact => ({
-            id: contact.id,
-            otherId: contact.contact_id
-          })),
-          ...(asContact || []).map(contact => ({
-            id: contact.id,
-            otherId: contact.user_id
-          }))
-        ];
+        // Ensure we have unique contact IDs
+        const contactIds = new Set((asUser || []).map(contact => contact.contact_id));
+        const uniqueContacts = (asUser || []).map(contact => ({
+          id: contact.id,
+          otherId: contact.contact_id
+        }));
 
-        console.log('Total connections:', allContacts.length);
+        console.log('Total connections:', uniqueContacts.length);
 
         // Fetch details for all contacts
         const contactsWithDetails = await Promise.all(
-          allContacts.map(async (contact) => {
+          uniqueContacts.map(async (contact) => {
             // Fetch email using RPC
             const { data: email } = await supabase
               .rpc('get_user_email', { user_id: contact.otherId });
