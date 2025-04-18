@@ -16,11 +16,13 @@ import { useProfile } from '@/hooks/use-profile';
 import { supabase } from '@/integrations/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { profile, isLoading, updateProfile } = useProfile();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSetupSchema),
@@ -61,9 +63,24 @@ export default function ProfileSetup() {
   };
 
   const onSubmit = async (data: ProfileFormValues) => {
-    const success = await updateProfile(data);
-    if (success) {
-      navigate('/home');
+    console.log('Form submission started:', data);
+    setIsSubmitting(true);
+
+    try {
+      const success = await updateProfile(data);
+      console.log('Profile update result:', success);
+
+      if (success) {
+        toast.success('Profile updated successfully');
+        navigate('/home');
+      } else {
+        toast.error('Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error('Failed to update profile');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -82,7 +99,7 @@ export default function ProfileSetup() {
         <ThemeToggle />
       </div>
 
-      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-20">
+      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-32">
         <header className="flex items-center justify-center mb-6">
           <h1 className="text-xl font-semibold">Profile Setup</h1>
         </header>
@@ -94,9 +111,18 @@ export default function ProfileSetup() {
               form={form} 
               onEnhanceBio={handleEnhanceBio} 
             />
-            <div className="flex justify-end">
-              <Button type="submit">
-                Save Profile
+            <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t">
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : 'Save Profile'}
               </Button>
             </div>
           </form>

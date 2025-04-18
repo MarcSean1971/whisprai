@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,6 +50,7 @@ export function useProfile() {
   };
 
   const updateProfile = async (values: ProfileFormValues) => {
+    console.log('Starting profile update with values:', values);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -70,14 +70,16 @@ export function useProfile() {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile update error:', error);
+        throw error;
+      }
       
+      console.log('Profile updated successfully');
       await fetchProfile(); // Refresh the profile data
-      toast.success('Profile updated successfully');
       return true;
     } catch (error) {
-      console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      console.error('Profile update error:', error);
       return false;
     }
   };
