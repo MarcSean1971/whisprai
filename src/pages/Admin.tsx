@@ -50,7 +50,7 @@ export default function Admin() {
 
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
-      <div className="max-w-2xl mx-auto space-y-6 relative flex-1 overflow-y-auto p-4">
+      <div className="max-w-2xl mx-auto space-y-6 relative flex-1 overflow-y-auto p-4 no-scrollbar">
         <AdminHeader onExit={handleExit} />
         <AdminTabs />
       </div>
