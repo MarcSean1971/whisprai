@@ -1,103 +1,77 @@
 
-import { useQuery } from "@tanstack/react-query";
+import { useConversations } from "@/hooks/use-conversations";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import { UserRound } from "lucide-react";
 import { ContactProfileDialog } from "./ContactProfileDialog";
 import { useState } from "react";
 
 interface Contact {
   id: string;
-  contact: {
-    id: string;
-    email: string;
-    profile: {
-      first_name: string | null;
-      last_name: string | null;
-      avatar_url: string | null;
-      bio: string | null;
-      tagline: string | null;
-      birthdate: string | null;
-    } | null;
+  contacts: {
+    first_name: string | null;
+    last_name: string | null;
+    avatar_url: string | null;
+    bio: string | null;
+    tagline: string | null;
   };
 }
 
 export function ContactsList() {
-  const [selectedContact, setSelectedContact] = useState<Contact['contact'] | null>(null);
-  
-  const { data: contacts, isLoading } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          id,
-          contact:contact_id (
-            id,
-            email:auth.users!contacts_contact_id_fkey(email),
-            profile:profiles (
-              first_name,
-              last_name,
-              avatar_url,
-              bio,
-              tagline,
-              birthdate
-            )
-          )
-        `)
-        .returns<Contact[]>();
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const { data: contacts, isLoading } = useConversations();
 
   if (isLoading) {
     return <div className="p-4">Loading contacts...</div>;
   }
 
   return (
-    <>
-      <div className="space-y-2">
-        {contacts?.map((contact) => (
-          <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={contact.contact.profile?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {contact.contact.profile?.first_name?.[0] || contact.contact.email[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">
-                  {contact.contact.profile?.first_name
-                    ? `${contact.contact.profile.first_name} ${contact.contact.profile.last_name || ''}`
-                    : contact.contact.email}
-                </div>
+    <div className="space-y-2">
+      {contacts?.map((contact: Contact) => (
+        <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src={contact.contacts.avatar_url || undefined} />
+              <AvatarFallback>
+                {contact.contacts.first_name?.[0] || '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">
+                {contact.contacts.first_name && contact.contacts.last_name 
+                  ? `${contact.contacts.first_name} ${contact.contacts.last_name}`
+                  : 'Unknown Contact'}
               </div>
+              {contact.contacts.tagline && (
+                <div className="text-sm text-muted-foreground">
+                  {contact.contacts.tagline}
+                </div>
+              )}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSelectedContact(contact.contact)}
-            >
-              <UserRound className="h-4 w-4" />
-            </Button>
           </div>
-        ))}
-        {contacts?.length === 0 && (
-          <div className="text-center p-4 text-muted-foreground">
-            No contacts yet
-          </div>
-        )}
-      </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSelectedContact({
+              ...contact.contacts,
+              id: contact.id
+            })}
+          >
+            <UserRound className="h-4 w-4" />
+          </Button>
+        </div>
+      ))}
+      {(!contacts || contacts.length === 0) && (
+        <div className="text-center p-4 text-muted-foreground">
+          No contacts yet
+        </div>
+      )}
 
       <ContactProfileDialog
         open={!!selectedContact}
         onOpenChange={(open) => !open && setSelectedContact(null)}
-        contact={selectedContact || undefined}
+        contact={selectedContact}
       />
-    </>
+    </div>
   );
 }

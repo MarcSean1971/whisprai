@@ -4,32 +4,33 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function useConversations() {
   return useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['all-contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // This will use the RLS policies to only fetch conversations where the user is a participant
+      // Fetch all contacts where the current user is the user_id
       const { data, error } = await supabase
-        .from('conversations')
+        .from('contacts')
         .select(`
-          *,
-          conversation_participants(
-            user_id,
-            profiles:user_id(
-              first_name,
-              last_name,
-              avatar_url
-            )
+          id,
+          contact_id,
+          contacts:profiles!contacts_contact_id_fkey (
+            first_name,
+            last_name,
+            avatar_url,
+            tagline,
+            bio
           )
         `)
-        .order('updated_at', { ascending: false });
+        .eq('user_id', user.id);
 
       if (error) {
-        console.error('Error fetching conversations:', error);
+        console.error('Error fetching contacts:', error);
         throw error;
       }
       
+      console.log('Fetched contacts:', data);
       return data;
     },
   });
