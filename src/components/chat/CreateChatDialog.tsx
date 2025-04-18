@@ -5,6 +5,7 @@ import { ConnectionsList } from "@/components/contacts/ConnectionsList";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface Contact {
   id: string;
@@ -33,6 +34,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     
     try {
       setIsCreating(true);
+      toast.loading("Creating conversation...");
       
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
@@ -55,7 +57,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
 
       if (conversationError) {
         console.error('Error creating conversation:', conversationError);
-        throw new Error('Failed to create conversation');
+        throw new Error(`Failed to create conversation: ${conversationError.message}`);
       }
 
       console.log('Created conversation:', conversation.id);
@@ -70,16 +72,19 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
 
       if (participantsError) {
         console.error('Error adding participants:', participantsError);
-        throw new Error('Failed to add participants');
+        throw new Error(`Failed to add participants: ${participantsError.message}`);
       }
 
       // Close dialog and navigate to chat
+      toast.dismiss();
+      toast.success("Conversation created successfully");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
       console.error('Error creating conversation:', error);
-      toast.error('Failed to create conversation. Please try again.');
+      toast.dismiss();
+      toast.error(`Failed to create conversation: ${error instanceof Error ? error.message : 'Please try again'}`);
     } finally {
       setIsCreating(false);
     }
@@ -92,7 +97,14 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
           <DialogTitle>Select Contact</DialogTitle>
         </DialogHeader>
         <div className="mt-4">
-          <ConnectionsList onContactSelect={handleContactSelect} isSelectable />
+          {isCreating ? (
+            <div className="flex items-center justify-center h-40">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-2">Creating conversation...</span>
+            </div>
+          ) : (
+            <ConnectionsList onContactSelect={handleContactSelect} isSelectable />
+          )}
         </div>
       </DialogContent>
     </Dialog>
