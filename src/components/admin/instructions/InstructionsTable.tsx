@@ -16,11 +16,15 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { type Instruction } from './types';
+import { Switch } from "@/components/ui/switch";
+import { EditInstructionDialog } from './EditInstructionDialog';
+import type { Instruction } from './types';
 
 interface InstructionsTableProps {
   instructions: Instruction[];
   onDelete: (id: string) => void;
+  onUpdate: (instruction: Instruction) => Promise<void>;
+  onToggleSuspend: (id: string, suspended: boolean) => Promise<void>;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -30,6 +34,8 @@ interface InstructionsTableProps {
 export function InstructionsTable({ 
   instructions, 
   onDelete, 
+  onUpdate,
+  onToggleSuspend,
   currentPage, 
   totalPages,
   onPageChange,
@@ -46,22 +52,35 @@ export function InstructionsTable({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Content</TableHead>
+            <TableHead>Active</TableHead>
             <TableHead className="w-[100px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {instructions.map((instruction) => (
-            <TableRow key={instruction.id}>
+            <TableRow key={instruction.id} className={instruction.suspended ? 'opacity-50' : ''}>
               <TableCell>{instruction.name}</TableCell>
               <TableCell className="max-w-md truncate">{instruction.content}</TableCell>
               <TableCell>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => onDelete(instruction.id)}
-                >
-                  Delete
-                </Button>
+                <Switch
+                  checked={!instruction.suspended}
+                  onCheckedChange={(checked) => onToggleSuspend(instruction.id, !checked)}
+                />
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-2">
+                  <EditInstructionDialog 
+                    instruction={instruction}
+                    onUpdate={onUpdate}
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => onDelete(instruction.id)}
+                  >
+                    Delete
+                  </Button>
+                </div>
               </TableCell>
             </TableRow>
           ))}

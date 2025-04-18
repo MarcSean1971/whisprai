@@ -5,4 +5,6 @@ export interface Instruction {
   content: string;
   created_at?: string;
   updated_at?: string;
+  suspended: boolean;
+  updated_by?: string | null;
 }

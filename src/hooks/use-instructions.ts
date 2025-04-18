@@ -28,6 +28,45 @@ export function useInstructions() {
     }
   }, []);
 
+  const updateInstruction = useCallback(async (instruction: Instruction) => {
+    try {
+      const { error } = await supabase
+        .from('ai_instructions')
+        .update({
+          name: instruction.name,
+          content: instruction.content,
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        })
+        .eq('id', instruction.id);
+
+      if (error) throw error;
+      await loadInstructions();
+    } catch (error) {
+      console.error('Error updating instruction:', error);
+      throw error;
+    }
+  }, [loadInstructions]);
+
+  const toggleInstructionSuspension = useCallback(async (id: string, suspended: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('ai_instructions')
+        .update({
+          suspended,
+          updated_at: new Date().toISOString(),
+          updated_by: (await supabase.auth.getUser()).data.user?.id
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      await loadInstructions();
+    } catch (error) {
+      console.error('Error toggling instruction suspension:', error);
+      throw error;
+    }
+  }, [loadInstructions]);
+
   const deleteInstruction = useCallback(async (id: string) => {
     try {
       const { error } = await supabase
@@ -36,7 +75,6 @@ export function useInstructions() {
         .eq('id', id);
 
       if (error) throw error;
-
       toast.success('Instruction deleted successfully');
       await loadInstructions();
     } catch (error) {
@@ -50,6 +88,8 @@ export function useInstructions() {
     loading,
     error,
     loadInstructions,
+    updateInstruction,
+    toggleInstructionSuspension,
     deleteInstruction
   };
 }

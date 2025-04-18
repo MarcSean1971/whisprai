@@ -16,13 +16,14 @@ export function InstructionsManagement() {
     loading, 
     error, 
     loadInstructions, 
-    deleteInstruction 
+    deleteInstruction,
+    updateInstruction,
+    toggleInstructionSuspension
   } = useInstructions();
 
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Make sure all useEffect hooks are declared at the top level
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       return;
@@ -30,7 +31,6 @@ export function InstructionsManagement() {
     loadInstructions();
   }, [isAdmin, adminLoading, loadInstructions]);
 
-  // This useEffect should be defined here, before any conditionals
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
@@ -51,7 +51,6 @@ export function InstructionsManagement() {
     return <div>Loading instructions...</div>;
   }
 
-  // Filter instructions based on search query
   const filteredInstructions = instructions.filter((instruction: Instruction) => {
     const query = searchQuery.toLowerCase();
     return (
@@ -60,7 +59,6 @@ export function InstructionsManagement() {
     );
   });
 
-  // Calculate pagination for filtered results
   const totalPages = Math.ceil(filteredInstructions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedInstructions = filteredInstructions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -75,6 +73,8 @@ export function InstructionsManagement() {
         <InstructionsTable 
           instructions={paginatedInstructions}
           onDelete={deleteInstruction}
+          onUpdate={updateInstruction}
+          onToggleSuspend={toggleInstructionSuspension}
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
