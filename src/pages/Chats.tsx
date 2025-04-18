@@ -81,7 +81,7 @@ export default function Chats() {
                 avatar={conversation.avatar || undefined}
                 lastMessage={conversation.lastMessage?.content}
                 timestamp={conversation.lastMessage ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
-                unreadCount={0} // TODO: Implement unread count logic
+                unreadCount={0}
                 isGroup={conversation.is_group}
                 onClick={() => handleConversationClick(conversation.id)}
               />
@@ -93,14 +93,12 @@ export default function Chats() {
               description={
                 searchQuery
                   ? `No results for "${searchQuery}"`
-                  : "Start a new conversation by visiting contacts"
+                  : "Start a new conversation by clicking the + button"
               }
               action={
                 searchQuery ? (
                   <Button onClick={handleClearSearch}>Clear search</Button>
-                ) : (
-                  <Button onClick={() => navigate("/contacts")}>Go to Contacts</Button>
-                )
+                ) : undefined
               }
               className="h-[calc(100vh-8rem)]"
             />
