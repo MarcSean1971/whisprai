@@ -1,7 +1,6 @@
 
 import { Logo } from "@/components/Logo";
 import { SearchBar } from "./SearchBar";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { MessageSquare, Users } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
@@ -18,7 +17,6 @@ export function Header({
   onSearchChange,
   onSearchToggle,
 }: HeaderProps) {
-  const isMobile = useIsMobile();
   const location = useLocation();
 
   const getHeaderContent = () => {
@@ -38,7 +36,7 @@ export function Header({
     <header className="flex flex-col border-b">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-4">
-          <Logo variant={isMobile ? "icon" : "full"} />
+          <Logo variant="full" />
           {headerContent && (
             <div className="flex items-center gap-2">
               {headerContent.icon}
