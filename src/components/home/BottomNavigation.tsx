@@ -7,22 +7,21 @@ import {
   Shield, 
   LogOut 
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 interface BottomNavigationProps {
   activeTab: 'chats' | 'contacts';
-  setActiveTab: (tab: 'chats' | 'contacts') => void;
   onLogout: () => void;
   isAdmin: boolean;
 }
 
 export function BottomNavigation({ 
   activeTab, 
-  setActiveTab, 
   onLogout,
   isAdmin 
 }: BottomNavigationProps) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <div className="border-t bg-background py-2 px-2">
@@ -30,7 +29,7 @@ export function BottomNavigation({
         <Button
           variant={activeTab === 'chats' ? 'default' : 'ghost'}
           className="h-auto flex flex-col items-center justify-center py-1 gap-1"
-          onClick={() => setActiveTab('chats')}
+          onClick={() => navigate('/chats')}
         >
           <MessageSquarePlus className="h-5 w-5" />
           <span className="text-xs">Chats</span>
@@ -38,7 +37,7 @@ export function BottomNavigation({
         <Button
           variant={activeTab === 'contacts' ? 'default' : 'ghost'}
           className="h-auto flex flex-col items-center justify-center py-1 gap-1"
-          onClick={() => setActiveTab('contacts')}
+          onClick={() => navigate('/contacts')}
         >
           <Users className="h-5 w-5" />
           <span className="text-xs">Contacts</span>

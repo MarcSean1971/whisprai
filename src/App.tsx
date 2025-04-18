@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import ProfileSetup from "./pages/ProfileSetup";
 import Verify from "./pages/Verify";
 import Admin from "./pages/Admin";
+import Chats from "./pages/Chats";
+import Contacts from "./pages/Contacts";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +33,9 @@ const App = () => {
             <Route path="/" element={<Auth />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Chats />} />
+            <Route path="/chats" element={<Chats />} />
+            <Route path="/contacts" element={<Contacts />} />
             <Route path="/chat/:id" element={<Chat />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<NotFound />} />
