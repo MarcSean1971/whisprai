@@ -1,13 +1,13 @@
 
-import { useState } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContactsList } from "@/components/contacts/ContactsList";
-import { PendingRequests } from "@/components/contacts/PendingRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
+import { ConnectionsList } from "@/components/contacts/ConnectionsList";
+import { SentRequests } from "@/components/contacts/SentRequests";
+import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -53,7 +53,8 @@ export default function Contacts() {
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
-              <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
+              <TabsTrigger value="sent" className="flex-1">Sent</TabsTrigger>
+              <TabsTrigger value="received" className="flex-1">Received</TabsTrigger>
             </TabsList>
           </div>
 
@@ -62,12 +63,16 @@ export default function Contacts() {
               <div className="absolute right-4 top-4">
                 <AddContactDialog />
               </div>
-              <ContactsList />
+              <ConnectionsList />
             </div>
           </TabsContent>
 
-          <TabsContent value="pending" className="mt-0">
-            <PendingRequests />
+          <TabsContent value="sent" className="mt-0">
+            <SentRequests />
+          </TabsContent>
+
+          <TabsContent value="received" className="mt-0">
+            <ReceivedRequests />
           </TabsContent>
         </Tabs>
       </div>
