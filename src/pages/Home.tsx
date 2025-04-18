@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageSquarePlus, Search, Settings, Users, LogOut, Shield } from "lucide-react";
+import { MessageSquarePlus, Search, LogOut, Users, Shield, Settings } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -175,7 +175,7 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* Bottom Navigation Bar - WhatsApp Style */}
+      {/* Bottom Navigation Bar - Updated with Logout */}
       <div className="border-t bg-background py-2 px-2">
         <div className="grid grid-cols-4 gap-1">
           <Button
@@ -212,6 +212,14 @@ export default function Home() {
               <span className="text-xs">Admin</span>
             </Button>
           )}
+          <Button
+            variant="ghost"
+            className="h-auto flex flex-col items-center justify-center py-1 gap-1 text-destructive hover:text-destructive"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-5 w-5" />
+            <span className="text-xs">Logout</span>
+          </Button>
         </div>
       </div>
     </div>
