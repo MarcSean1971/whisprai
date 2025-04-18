@@ -28,7 +28,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
 
       console.log("Creating conversation with contact:", contactId);
 
-      // Create conversation
+      // Create conversation (created_by will be automatically set by RLS default)
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -44,35 +44,25 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         return null;
       }
 
-      // Add current user as participant
-      const { error: currentUserError } = await supabase
+      // Add current user and contact as participants
+      const { error: participantsError } = await supabase
         .from('conversation_participants')
-        .insert({
-          conversation_id: conversation.id,
-          user_id: user.id
-        });
+        .insert([
+          {
+            conversation_id: conversation.id,
+            user_id: user.id
+          },
+          {
+            conversation_id: conversation.id,
+            user_id: contactId
+          }
+        ]);
 
-      if (currentUserError) {
-        console.error("Failed to add current user:", currentUserError);
+      if (participantsError) {
+        console.error("Failed to add participants:", participantsError);
+        // Cleanup the conversation since participants couldn't be added
         await supabase.from('conversations').delete().eq('id', conversation.id);
-        toast.error('Failed to add you to the conversation');
-        return null;
-      }
-
-      // Add contact as participant
-      const { error: contactError } = await supabase
-        .from('conversation_participants')
-        .insert({
-          conversation_id: conversation.id,
-          user_id: contactId
-        });
-
-      if (contactError) {
-        console.error("Failed to add contact:", contactError);
-        // Cleanup: remove current user and conversation
-        await supabase.from('conversation_participants').delete().eq('conversation_id', conversation.id);
-        await supabase.from('conversations').delete().eq('id', conversation.id);
-        toast.error('Failed to add contact to the conversation');
+        toast.error('Failed to add participants to the conversation');
         return null;
       }
 
