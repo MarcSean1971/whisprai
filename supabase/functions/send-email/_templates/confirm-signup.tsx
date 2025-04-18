@@ -28,9 +28,23 @@ export const ConfirmSignupEmail = ({
     <Body style={main}>
       <Container style={container}>
         <Section style={logo}>
-          <Heading style={h1}>Welcome to WhisprAI!</Heading>
+          <div style={logoWrapper}>
+            <div style={logoIcon}>
+              <img
+                src="https://whisprai.app/logo.svg"
+                width="32"
+                height="32"
+                alt="WhisprAI"
+                style={logoImage}
+              />
+            </div>
+            <span style={logoText}>
+              Whispr<span style={{ color: '#7C4DFF' }}>AI</span>
+            </span>
+          </div>
         </Section>
         <Section style={section}>
+          <Heading style={h1}>Welcome to WhisprAI!</Heading>
           <Text style={text}>
             Thanks for signing up! Please confirm your email address ({email}) to
             get full access to WhisprAI.
@@ -68,11 +82,39 @@ const container = {
   marginBottom: '64px',
   borderRadius: '8px',
   maxWidth: '600px',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
 }
 
 const logo = {
-  padding: '32px 48px',
+  padding: '32px 48px 24px',
   textAlign: 'center' as const,
+}
+
+const logoWrapper = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+}
+
+const logoIcon = {
+  backgroundColor: '#7C4DFF',
+  borderRadius: '8px',
+  padding: '8px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+}
+
+const logoImage = {
+  width: '20px',
+  height: '20px',
+}
+
+const logoText = {
+  fontSize: '24px',
+  fontWeight: '700',
+  color: '#1A1F2C',
 }
 
 const section = {
@@ -82,38 +124,42 @@ const section = {
 const h1 = {
   fontSize: '24px',
   fontWeight: '600',
-  color: '#484848',
+  color: '#1A1F2C',
   textAlign: 'center' as const,
   padding: '0',
+  margin: '0 0 24px',
 }
 
 const text = {
   margin: '24px 0',
-  color: '#484848',
+  color: '#4B5563',
   fontSize: '16px',
   lineHeight: '24px',
   textAlign: 'left' as const,
 }
 
 const button = {
-  backgroundColor: '#7c3aed',
+  backgroundColor: '#7C4DFF',
   borderRadius: '6px',
   color: '#fff',
   fontSize: '16px',
+  fontWeight: '500',
   textDecoration: 'none',
   textAlign: 'center' as const,
   display: 'block',
-  padding: '12px',
-  margin: '24px 0',
+  padding: '12px 24px',
+  margin: '32px 0',
+  transition: 'background-color 0.2s ease',
 }
 
 const hr = {
-  borderColor: '#e6ebf1',
-  margin: '20px 0',
+  borderColor: '#E5E7EB',
+  margin: '32px 0',
 }
 
 const footer = {
-  color: '#8898aa',
-  fontSize: '12px',
-  lineHeight: '16px',
+  color: '#6B7280',
+  fontSize: '14px',
+  lineHeight: '20px',
 }
+
