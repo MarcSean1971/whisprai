@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConnectionsList } from "@/components/contacts/ConnectionsList";
@@ -45,7 +44,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
 
       console.log("Creating conversation...");
       
-      // First create the conversation without any participants
+      // First create the conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -60,38 +59,18 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         throw conversationError;
       }
 
-      // Sleep for a short moment to ensure conversation is created in the database
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      console.log("Adding current user as participant...");
-      // First add the current user as a participant
-      const { error: currentUserParticipantError } = await supabase
+      // Add both participants in a single insert to avoid race conditions
+      console.log("Adding participants...");
+      const { error: participantsError } = await supabase
         .from('conversation_participants')
-        .insert({ 
-          conversation_id: conversation.id, 
-          user_id: user.id 
-        });
+        .insert([
+          { conversation_id: conversation.id, user_id: user.id },
+          { conversation_id: conversation.id, user_id: contact.contact.id }
+        ]);
 
-      if (currentUserParticipantError) {
-        console.error("Adding current user participant error:", currentUserParticipantError);
-        throw currentUserParticipantError;
-      }
-
-      // Sleep for a short moment to ensure participant is added
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      console.log("Adding contact as participant...");
-      // Then add the contact as a participant
-      const { error: contactParticipantError } = await supabase
-        .from('conversation_participants')
-        .insert({ 
-          conversation_id: conversation.id, 
-          user_id: contact.contact.id 
-        });
-
-      if (contactParticipantError) {
-        console.error("Adding contact participant error:", contactParticipantError);
-        throw contactParticipantError;
+      if (participantsError) {
+        console.error("Adding participants error:", participantsError);
+        throw participantsError;
       }
 
       console.log("Conversation created successfully!");
