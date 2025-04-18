@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -10,7 +9,6 @@ import { useChat } from "@/hooks/use-chat";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
-  const [suggestions] = useState<Array<{ id: string; text: string }>>([]);
   const { data: messages, isLoading } = useMessages(id!);
   const { profile } = useProfile();
   const { sendMessage, handleVoiceRecord } = useChat(id!);
@@ -26,7 +24,7 @@ export default function Chat() {
       <ChatInput
         onSendMessage={sendMessage}
         onStartRecording={handleVoiceRecord}
-        suggestions={suggestions}
+        suggestions={[]}
       />
     </div>
   );

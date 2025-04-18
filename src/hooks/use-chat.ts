@@ -1,20 +1,24 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
 import { toast } from "sonner";
+import { useTranslation } from "@/hooks/use-translation";
+import { useProfile } from "@/hooks/use-profile";
 
 export function useChat(conversationId: string) {
   const [userId, setUserId] = useState<string | null>(null);
+  const { profile } = useProfile();
+  const { translateMessage } = useTranslation();
 
   // Initialize user ID
-  useState(() => {
+  useEffect(() => {
     const fetchUserId = async () => {
       const { data } = await supabase.auth.getUser();
       setUserId(data.user?.id || null);
     };
     fetchUserId();
-  });
+  }, []);
 
   const sendMessage = async (content: string) => {
     if (!conversationId || !content.trim() || !userId) return;
@@ -28,7 +32,8 @@ export function useChat(conversationId: string) {
           conversation_id: conversationId,
           content,
           original_language: detectedLanguage,
-          sender_id: userId
+          sender_id: userId,
+          status: 'sent'
         });
 
       if (error) throw error;
@@ -44,6 +49,7 @@ export function useChat(conversationId: string) {
 
   return {
     sendMessage,
-    handleVoiceRecord
+    handleVoiceRecord,
+    userId
   };
 }

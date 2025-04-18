@@ -3,6 +3,7 @@ import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
+import { useProfile } from "@/hooks/use-profile";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -13,23 +14,26 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { translateMessage } = useTranslation();
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
+  const { profile } = useProfile();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Process translations for messages that need it
   useEffect(() => {
     const processTranslations = async () => {
       const newTranslations: Record<string, string> = {};
+      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
       
       for (const message of messages) {
-        const isOwn = message.sender?.id === supabase.auth.getUser().then(res => res.data.user?.id);
-        const needsTranslation = !isOwn && message.original_language && message.original_language !== userLanguage;
+        const isOwn = message.sender_id === currentUserId;
+        const needsTranslation = !isOwn && 
+          message.original_language && 
+          message.original_language !== profile?.language;
         
         if (needsTranslation && !translatedContents[message.id]) {
           try {
-            const translated = await translateMessage(message.content, userLanguage);
+            const translated = await translateMessage(message.content, profile?.language || 'en');
             newTranslations[message.id] = translated;
           } catch (error) {
             console.error('Translation error:', error);
@@ -42,27 +46,28 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
       }
     };
     
-    processTranslations();
-  }, [messages, userLanguage, translateMessage]);
+    if (profile?.language) {
+      processTranslations();
+    }
+  }, [messages, profile?.language, translateMessage]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message, index) => {
-        const currentUserId = supabase.auth.getUser().then(res => res.data.user?.id);
-        const isOwn = message.sender?.id === currentUserId;
+        const isOwn = message.sender_id === (supabase.auth.getUser().then(res => res.data.user?.id));
         const showSender = 
           !isOwn && 
-          (index === 0 || messages[index - 1].sender?.id !== message.sender?.id);
+          (index === 0 || messages[index - 1].sender_id !== message.sender_id);
           
         const needsTranslation = 
           !isOwn && 
           message.original_language && 
-          message.original_language !== userLanguage;
+          message.original_language !== profile?.language;
 
         const translatedContent = needsTranslation 
           ? translatedContents[message.id]
-          : null;
-          
+          : undefined;
+
         return (
           <ChatMessage
             key={message.id}
