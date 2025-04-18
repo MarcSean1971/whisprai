@@ -5,6 +5,8 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { MessageInput } from "@/components/MessageInput";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, MoreVertical, Phone, Search, Video } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { messages, contacts } from "@/lib/sample-data";
 
 export type MessageType = {
   id: string;
