@@ -6,17 +6,19 @@ import { UserRound } from "lucide-react";
 import { ContactProfileDialog } from "./ContactProfileDialog";
 import { useState } from "react";
 
+interface Profile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+}
+
 interface Contact {
   id: string;
   contact_id: string;
-  profiles: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-    bio: string | null;
-    tagline: string | null;
-  };
+  profiles: Profile;
 }
 
 export function ContactsList() {
@@ -56,11 +58,15 @@ export function ContactsList() {
             size="icon"
             onClick={() => setSelectedContact({
               id: contact.contact_id,
-              first_name: contact.profiles?.first_name,
-              last_name: contact.profiles?.last_name,
-              avatar_url: contact.profiles?.avatar_url,
-              bio: contact.profiles?.bio,
-              tagline: contact.profiles?.tagline
+              email: "",
+              profile: {
+                first_name: contact.profiles?.first_name,
+                last_name: contact.profiles?.last_name,
+                avatar_url: contact.profiles?.avatar_url,
+                bio: contact.profiles?.bio,
+                tagline: contact.profiles?.tagline,
+                birthdate: null
+              }
             })}
           >
             <UserRound className="h-4 w-4" />
