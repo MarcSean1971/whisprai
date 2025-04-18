@@ -9,6 +9,7 @@ export function useConversations() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // This will use the RLS policies to only fetch conversations where the user is a participant
       const { data, error } = await supabase
         .from('conversations')
         .select(`

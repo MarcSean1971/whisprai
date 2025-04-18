@@ -36,7 +36,26 @@ export function useUserConversations() {
       
       console.log('Fetching conversations for user:', user.id);
       
-      // With RLS in place, this will automatically filter to only conversations where the user is a participant
+      // Fetch conversation_participants to get all conversations where the user is a participant
+      const { data: participations, error: participationsError } = await supabase
+        .from('conversation_participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
+
+      if (participationsError) {
+        console.error('Error fetching participations:', participationsError);
+        throw participationsError;
+      }
+
+      if (!participations || participations.length === 0) {
+        console.log('No participations found for user');
+        return [];
+      }
+
+      const conversationIds = participations.map(p => p.conversation_id);
+      console.log('Found conversation IDs:', conversationIds);
+
+      // Fetch conversation details for all conversations where the user is a participant
       const { data: conversations, error: conversationsError } = await supabase
         .from('conversations')
         .select(`
@@ -46,6 +65,7 @@ export function useUserConversations() {
           updated_at,
           conversation_participants(user_id)
         `)
+        .in('id', conversationIds)
         .order('updated_at', { ascending: false });
 
       if (conversationsError) {

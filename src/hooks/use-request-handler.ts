@@ -52,7 +52,7 @@ export function useRequestHandler(onRequestProcessed: () => void) {
       }
 
       if (accept) {
-        console.log(`Creating contact: user_id=${user.id}, contact_id=${request.sender_id}`);
+        console.log(`Creating contact records: user_id=${user.id}, contact_id=${request.sender_id}`);
         
         // Create two-way contact records (both users add each other)
         const { error: insertError } = await supabase
@@ -63,7 +63,7 @@ export function useRequestHandler(onRequestProcessed: () => void) {
           ]);
 
         if (insertError) {
-          console.error('Error creating contact:', insertError);
+          console.error('Error creating contact records:', insertError);
           throw insertError;
         }
 
@@ -94,6 +94,8 @@ export function useRequestHandler(onRequestProcessed: () => void) {
           console.error('Error adding participants to conversation:', participantsError);
           throw participantsError;
         }
+
+        console.log('Successfully created contacts and conversation participants');
       }
 
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
