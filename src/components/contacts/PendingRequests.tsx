@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
@@ -21,9 +21,9 @@ export function PendingRequests() {
 
   useEffect(() => {
     const fetchUserEmail = async () => {
-      const { data } = await supabase.auth.getUser();
-      console.log('Current authenticated user:', data.user);
-      setUserEmail(data.user?.email || null);
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current authenticated user:', user);
+      setUserEmail(user?.email || null);
     };
     
     fetchUserEmail();
@@ -32,19 +32,30 @@ export function PendingRequests() {
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['pending-requests'],
     queryFn: async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
         console.log('No authenticated user found');
         throw new Error('Not authenticated');
       }
-      console.log('Fetching requests for user:', userData.user.email);
+      console.log('Fetching requests for user:', user.email);
 
-      // Query pending requests - log the query params
+      // Query pending requests specifically for the recipient
       console.log('Querying contact_requests table for pending requests');
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select('id, sender_id, recipient_email, status')
-        .eq('status', 'pending');
+        .select(`
+          id,
+          sender_id,
+          recipient_email,
+          status,
+          profiles:sender_id (
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
+        .eq('status', 'pending')
+        .eq('recipient_email', user.email);
 
       if (requestsError) {
         console.error('Error fetching contact requests:', requestsError);
@@ -58,34 +69,16 @@ export function PendingRequests() {
         return [];
       }
 
-      // Fetch sender profiles for each request
-      console.log('Fetching profiles for requests...');
-      const processedRequests: ContactRequest[] = await Promise.all(
-        requestsData.map(async (request) => {
-          console.log('Processing request:', request);
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', request.sender_id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching profile for sender:', request.sender_id, profileError);
-          }
-
-          console.log('Profile data for sender:', request.sender_id, profileData);
-
-          return {
-            id: request.id,
-            sender_id: request.sender_id,
-            recipient_email: request.recipient_email,
-            status: request.status,
-            first_name: profileData?.first_name || null,
-            last_name: profileData?.last_name || null,
-            avatar_url: profileData?.avatar_url || null
-          };
-        })
-      );
+      // Map the joined data to our interface
+      const processedRequests: ContactRequest[] = requestsData.map((request) => ({
+        id: request.id,
+        sender_id: request.sender_id,
+        recipient_email: request.recipient_email,
+        status: request.status,
+        first_name: request.profiles?.first_name || null,
+        last_name: request.profiles?.last_name || null,
+        avatar_url: request.profiles?.avatar_url || null
+      }));
 
       console.log('Final processed requests:', processedRequests);
       return processedRequests;
@@ -150,6 +143,7 @@ export function PendingRequests() {
           <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
             <div className="flex items-center gap-3">
               <Avatar>
+                <AvatarImage src={request.avatar_url || undefined} />
                 <AvatarFallback>
                   {request.first_name?.[0] || request.sender_id[0].toUpperCase()}
                 </AvatarFallback>
@@ -188,7 +182,7 @@ export function PendingRequests() {
           </div>
         );
       })}
-      {requests?.length === 0 && (
+      {(!requests || requests.length === 0) && (
         <div className="text-center p-4 text-muted-foreground">
           No pending requests
         </div>
