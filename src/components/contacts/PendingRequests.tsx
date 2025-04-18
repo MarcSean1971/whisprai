@@ -11,7 +11,6 @@ interface ContactRequest {
   sender_id: string;
   recipient_email: string;
   status: string;
-  sender_email: string;
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
@@ -36,16 +35,9 @@ export function PendingRequests() {
       if (requestsError) throw requestsError;
       if (!requestsData || requestsData.length === 0) return [];
 
-      // Process each request to get sender details
+      // Process each request to get sender details from profiles table only
       const processedRequests: ContactRequest[] = await Promise.all(
         requestsData.map(async (request) => {
-          // Get sender email
-          const { data: senderData } = await supabase
-            .from('auth.users')
-            .select('email')
-            .eq('id', request.sender_id)
-            .single();
-
           // Get profile data
           const { data: profileData } = await supabase
             .from('profiles')
@@ -58,7 +50,6 @@ export function PendingRequests() {
             sender_id: request.sender_id,
             recipient_email: request.recipient_email,
             status: request.status,
-            sender_email: senderData?.email || 'Unknown',
             first_name: profileData?.first_name || null,
             last_name: profileData?.last_name || null,
             avatar_url: profileData?.avatar_url || null
@@ -126,14 +117,14 @@ export function PendingRequests() {
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarFallback>
-                {request.first_name?.[0] || request.sender_email[0].toUpperCase()}
+                {request.first_name?.[0] || request.sender_id[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
                 {request.first_name
                   ? `${request.first_name} ${request.last_name || ''}`
-                  : request.sender_email}
+                  : request.sender_id}
               </div>
             </div>
           </div>
