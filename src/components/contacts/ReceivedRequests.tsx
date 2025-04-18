@@ -30,10 +30,11 @@ export function ReceivedRequests() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          toast.error('Authentication error');
-          return [] as ContactRequest[];
+          throw new Error('Not authenticated');
         }
 
+        console.log('Fetching requests for user ID:', user.id);
+        
         // Get contact requests for the current user
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
@@ -43,9 +44,10 @@ export function ReceivedRequests() {
 
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
-          toast.error('Error fetching requests');
-          return [] as ContactRequest[];
+          throw new Error(`Error fetching requests: ${requestsError.message}`);
         }
+
+        console.log('Requests data:', requestsData);
 
         if (!requestsData || requestsData.length === 0) {
           return [] as ContactRequest[];
@@ -53,6 +55,8 @@ export function ReceivedRequests() {
 
         // Get profiles for the senders
         const senderIds = requestsData.map(request => request.sender_id);
+        console.log('Fetching profiles for sender IDs:', senderIds);
+        
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url')
@@ -60,8 +64,10 @@ export function ReceivedRequests() {
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
-          toast.error('Error fetching profiles');
+          throw new Error(`Error fetching profiles: ${profilesError.message}`);
         }
+
+        console.log('Profiles data:', profilesData);
 
         // Create a map for quick profile lookup
         const profilesMap = new Map();
@@ -90,7 +96,7 @@ export function ReceivedRequests() {
 
       } catch (error) {
         console.error('Failed to fetch requests:', error);
-        toast.error('Failed to fetch requests');
+        toast.error(error instanceof Error ? error.message : 'Failed to fetch requests');
         return [] as ContactRequest[];
       }
     },
@@ -100,13 +106,16 @@ export function ReceivedRequests() {
     setProcessingIds(prev => new Set(prev).add(requestId));
     
     try {
-      const { data: request } = await supabase
+      console.log(`Processing request ${requestId}, accept: ${accept}`);
+      
+      const { data: request, error: fetchError } = await supabase
         .from('contact_requests')
         .select('sender_id')
         .eq('id', requestId)
         .single();
 
-      if (!request) {
+      if (fetchError || !request) {
+        console.error('Error fetching request details:', fetchError);
         throw new Error('Request not found');
       }
 
@@ -114,27 +123,37 @@ export function ReceivedRequests() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
+        console.log(`Creating contact: user_id=${user.id}, contact_id=${request.sender_id}`);
+        
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
             { user_id: user.id, contact_id: request.sender_id }
           ]);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error('Error creating contact:', insertError);
+          throw insertError;
+        }
       }
 
+      console.log(`Updating request status to: ${accept ? 'accepted' : 'rejected'}`);
+      
       const { error: updateError } = await supabase
         .from('contact_requests')
         .update({ status: accept ? 'accepted' : 'rejected' })
         .eq('id', requestId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating request:', updateError);
+        throw updateError;
+      }
 
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
       refetch();
     } catch (error) {
       console.error('Error processing request:', error);
-      toast.error('Failed to process request');
+      toast.error(error instanceof Error ? error.message : 'Failed to process request');
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
