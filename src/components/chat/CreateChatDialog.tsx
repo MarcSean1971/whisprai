@@ -35,14 +35,13 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     try {
       setIsCreating(true);
       
-      // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) {
         throw new Error('You must be logged in to start a conversation');
       }
 
-      // Create conversation
+      // First create the conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -53,24 +52,33 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .single();
 
       if (conversationError) {
-        console.error("Error creating conversation:", conversationError);
         throw conversationError;
       }
 
-      // Add both participants at once
+      if (!conversation) {
+        throw new Error('Failed to create conversation');
+      }
+
+      // Then add the participants
+      const participants = [
+        { conversation_id: conversation.id, user_id: user.id },
+        { conversation_id: conversation.id, user_id: contact.contact.id }
+      ];
+
       const { error: participantsError } = await supabase
         .from('conversation_participants')
-        .insert([
-          { conversation_id: conversation.id, user_id: user.id },
-          { conversation_id: conversation.id, user_id: contact.contact.id }
-        ]);
+        .insert(participants);
 
       if (participantsError) {
-        console.error("Error adding participants:", participantsError);
+        // If adding participants fails, cleanup the conversation
+        await supabase
+          .from('conversations')
+          .delete()
+          .eq('id', conversation.id);
         throw participantsError;
       }
 
-      toast.success("Conversation created");
+      toast.success("Conversation started");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
       
