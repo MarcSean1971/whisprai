@@ -6,22 +6,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import { toast } from "sonner";
 
+interface Profile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+}
+
 interface ContactRequest {
   id: string;
   sender_id: string;
   recipient_id: string;
   status: string;
-  profile?: {
-    first_name: string | null;
-    last_name: string | null;
-    avatar_url: string | null;
-  } | null;
+  profile: Profile | null;
 }
 
 export function ReceivedRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const { data: requests, isLoading, refetch } = useQuery({
+  const { data: requests, isLoading, refetch } = useQuery<ContactRequest[]>({
     queryKey: ['received-requests'],
     queryFn: async () => {
       try {
@@ -54,7 +56,7 @@ export function ReceivedRequests() {
         // For each request, fetch the sender's profile
         const requestsWithProfiles = await Promise.all(
           requestsData.map(async (request) => {
-            const { data: profile, error: profileError } = await supabase
+            const { data: profileData, error: profileError } = await supabase
               .from('profiles')
               .select('first_name, last_name, avatar_url')
               .eq('id', request.sender_id)
@@ -62,19 +64,20 @@ export function ReceivedRequests() {
 
             if (profileError) {
               console.error('Error fetching profile for sender:', profileError);
-              // Return request without profile data if there was an error
-              return { ...request, profile: null };
+              return {
+                ...request,
+                profile: null
+              };
             }
 
-            // Return request with profile data
-            return { 
-              ...request, 
-              profile: profile 
+            return {
+              ...request,
+              profile: profileData as Profile
             };
           })
         );
 
-        return requestsWithProfiles as ContactRequest[];
+        return requestsWithProfiles;
       } catch (error) {
         console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
@@ -85,7 +88,6 @@ export function ReceivedRequests() {
 
   // Show loading state in toast
   if (isLoading) {
-    toast.info('Loading requests...');
     return <div className="p-4">Loading requests...</div>;
   }
 
