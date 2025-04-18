@@ -56,8 +56,9 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
           );
 
           if (otherParticipant && otherParticipant.profiles) {
-            // Cast to appropriate type to ensure TypeScript understands the structure
-            const profile = otherParticipant.profiles as {
+            // First convert to unknown, then cast to the expected type
+            // This is a safer approach when TypeScript is having trouble with direct type conversion
+            const profile = (otherParticipant.profiles as unknown) as {
               first_name: string | null;
               last_name: string | null;
               avatar_url: string | null;
