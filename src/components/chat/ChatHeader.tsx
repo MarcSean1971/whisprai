@@ -21,29 +21,34 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
   useEffect(() => {
     const fetchConversationDetails = async () => {
       try {
-        const { data: currentUser } = await supabase.auth.getUser();
+        const { data: userData } = await supabase.auth.getUser();
+        const currentUserId = userData.user?.id;
         
-        const { data: participants } = await supabase
+        const { data: participants, error } = await supabase
           .from('conversation_participants')
           .select(`
             user_id,
-            user:user_id(
-              profiles:profiles(
-                first_name,
-                last_name,
-                avatar_url
-              )
+            profiles:user_id(
+              first_name,
+              last_name,
+              avatar_url
             )
           `)
           .eq('conversation_id', conversationId);
 
+        if (error) {
+          console.error('Error fetching participants:', error);
+          return;
+        }
+
         if (participants && participants.length > 0) {
+          // Find the other participant (not the current user)
           const otherParticipant = participants.find(
-            p => p.user_id !== currentUser.data.user?.id
+            p => p.user_id !== currentUserId
           );
 
-          if (otherParticipant?.user?.profiles) {
-            const profile = otherParticipant.user.profiles;
+          if (otherParticipant && otherParticipant.profiles) {
+            const profile = otherParticipant.profiles;
             setContact({
               name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
               avatar: profile.avatar_url,
