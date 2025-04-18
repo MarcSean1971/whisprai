@@ -36,7 +36,7 @@ export function PendingRequests() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // Query all pending requests - RLS will handle visibility for both sent and received requests
+      // Query pending requests - RLS will handle visibility
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
         .select('id, sender_id, recipient_email, status')
@@ -45,6 +45,7 @@ export function PendingRequests() {
       if (requestsError) throw requestsError;
       if (!requestsData || requestsData.length === 0) return [];
 
+      // Fetch sender profiles for each request
       const processedRequests: ContactRequest[] = await Promise.all(
         requestsData.map(async (request) => {
           const { data: profileData } = await supabase
