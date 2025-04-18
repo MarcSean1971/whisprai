@@ -32,22 +32,13 @@ export function ConnectionsList() {
     queryKey: ['contacts'],
     queryFn: async () => {
       console.log('Fetching contacts...');
+      
+      // First get the list of contacts with their contact_id
       const { data, error } = await supabase
         .from('contacts')
         .select(`
           id,
-          contact:contact_id (
-            id,
-            email:auth.users!contacts_contact_id_fkey(email),
-            profile:profiles (
-              first_name,
-              last_name,
-              avatar_url,
-              bio,
-              tagline,
-              birthdate
-            )
-          )
+          contact_id
         `);
 
       if (error) {
@@ -55,8 +46,48 @@ export function ConnectionsList() {
         throw error;
       }
       
-      console.log('Fetched contacts:', data);
-      return data as Contact[];
+      console.log('Fetched contact IDs:', data);
+      
+      // If no contacts, return an empty array
+      if (!data || data.length === 0) {
+        return [];
+      }
+      
+      // Now for each contact_id, get the user details and profile
+      const contactsWithDetails = await Promise.all(
+        data.map(async (contact) => {
+          // Get user email
+          const { data: userData, error: userError } = await supabase
+            .rpc('get_user_email', { user_id: contact.contact_id });
+            
+          if (userError) {
+            console.error('Error fetching user email:', userError);
+          }
+          
+          // Get profile data
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', contact.contact_id)
+            .single();
+            
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Error fetching profile:', profileError);
+          }
+          
+          return {
+            id: contact.id,
+            contact: {
+              id: contact.contact_id,
+              email: userData || 'Unknown email',
+              profile: profileData || null
+            }
+          };
+        })
+      );
+      
+      console.log('Processed contacts with details:', contactsWithDetails);
+      return contactsWithDetails as Contact[];
     },
   });
 
