@@ -31,13 +31,14 @@ export function ConnectionsList() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
+      console.log('Fetching contacts...');
       const { data, error } = await supabase
         .from('contacts')
         .select(`
           id,
           contact:contact_id (
             id,
-            email:get_user_email(id),
+            email:auth.users!contacts_contact_id_fkey(email),
             profile:profiles (
               first_name,
               last_name,
@@ -47,11 +48,15 @@ export function ConnectionsList() {
               birthdate
             )
           )
-        `)
-        .returns<Contact[]>();
+        `);
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+      
+      console.log('Fetched contacts:', data);
+      return data as Contact[];
     },
   });
 
