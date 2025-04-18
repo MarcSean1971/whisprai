@@ -1,11 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { languageNames } from '@/lib/languages';
-import { Loader2, Trash2, Pencil } from 'lucide-react';
+import { Loader2, MoreVertical } from 'lucide-react';
 import { EditLanguageDialog } from './EditLanguageDialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function LanguageManagement() {
   const [newLanguageCode, setNewLanguageCode] = useState('');
@@ -161,24 +168,27 @@ export function LanguageManagement() {
             className="flex items-center justify-between p-2 border rounded hover:bg-muted/50"
           >
             <span className="flex-1">{name} ({code})</span>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleEditClick(code, name)}
-                className="h-8 w-8"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => handleDeleteLanguage(code)}
-                className="h-8 w-8"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <MoreVertical className="h-4 w-4" />
+                  <span className="sr-only">Open menu</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => handleEditClick(code, name)}
+                >
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => handleDeleteLanguage(code)}
+                  className="text-destructive"
+                >
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ))}
       </div>
