@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Logo } from "@/components/Logo";
@@ -7,8 +6,10 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, MessageSquarePlus, Search, Settings, Users, X } from "lucide-react";
+import { Bell, MessageSquarePlus, Search, Settings, Users, X, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // Sample data
 import { conversations } from "@/lib/sample-data";
@@ -32,6 +33,23 @@ export default function Home() {
 
   const handleConversationClick = (id: string) => {
     navigate(`/chat/${id}`);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      toast.success("Successfully logged out");
+      navigate("/");
+    } catch (error) {
+      toast.error("An unexpected error occurred during logout");
+      console.error("Logout error:", error);
+    }
   };
 
   return (
@@ -85,6 +103,14 @@ export default function Home() {
                 className="text-muted-foreground hover:text-foreground"
               >
                 <Settings className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="h-5 w-5" />
               </Button>
               <ThemeToggle />
             </>
