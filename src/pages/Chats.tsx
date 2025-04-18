@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
@@ -29,7 +29,7 @@ export default function Chats() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     checkAuth();
   }, []);
 
