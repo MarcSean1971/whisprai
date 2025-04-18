@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ export function PendingRequests() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // Only filter by status, RLS will handle visibility
+      // Query all pending requests - RLS will handle visibility for both sent and received requests
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
         .select('id, sender_id, recipient_email, status')
@@ -106,47 +107,56 @@ export function PendingRequests() {
     return <div className="p-4">Loading requests...</div>;
   }
 
+  const { data: currentUser } = supabase.auth.getUser();
+  const userEmail = currentUser?.user?.email;
+
   return (
     <div className="space-y-2">
-      {requests?.map((request) => (
-        <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarFallback>
-                {request.first_name?.[0] || request.sender_id[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {request.first_name
-                  ? `${request.first_name} ${request.last_name || ''}`
-                  : request.sender_id}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {request.recipient_email}
+      {requests?.map((request) => {
+        const isReceived = request.recipient_email === userEmail;
+        
+        return (
+          <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarFallback>
+                  {request.first_name?.[0] || request.sender_id[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {request.first_name
+                    ? `${request.first_name} ${request.last_name || ''}`
+                    : request.sender_id}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {isReceived ? 'Wants to connect with you' : `Sent to ${request.recipient_email}`}
+                </div>
               </div>
             </div>
+            {isReceived && (
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleRequest(request.id, true)}
+                  disabled={processingIds.has(request.id)}
+                >
+                  Accept
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => handleRequest(request.id, false)}
+                  disabled={processingIds.has(request.id)}
+                >
+                  Reject
+                </Button>
+              </div>
+            )}
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleRequest(request.id, true)}
-              disabled={processingIds.has(request.id)}
-            >
-              Accept
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleRequest(request.id, false)}
-              disabled={processingIds.has(request.id)}
-            >
-              Reject
-            </Button>
-          </div>
-        </div>
-      ))}
+        );
+      })}
       {requests?.length === 0 && (
         <div className="text-center p-4 text-muted-foreground">
           No pending requests
