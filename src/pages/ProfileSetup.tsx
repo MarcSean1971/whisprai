@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,24 +8,36 @@ import { ProfileDetails } from '@/components/profile-setup/ProfileDetails';
 import { useForm } from 'react-hook-form';
 import { ProfileFormValues } from '@/components/profile-setup/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { profileSetupSchema } from './ProfileSetupSchema'; // You'll need to create this
+import { profileSetupSchema } from './ProfileSetupSchema';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSetupSchema),
     defaultValues: {
-      // ... existing default values
+      firstName: '',
+      lastName: '',
+      tagline: '',
+      birthdate: '',
+      bio: '',
+      language: '',
+      interests: []
     }
   });
 
   const handleEnhanceBio = (enhancedBio: string) => {
-    // ... existing bio enhancement logic
+    form.setValue('bio', enhancedBio);
   };
 
   const handleGoBack = () => {
     navigate('/home'); // Consistent with other navigation patterns
   };
+
+  const onSubmit = form.handleSubmit((data) => {
+    console.log('Form submitted:', data);
+    // Here you would typically send the data to your backend
+    navigate('/home');
+  });
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -42,13 +55,17 @@ export default function ProfileSetup() {
         <div className="w-10"></div>
       </header>
 
-      <form>
+      <form onSubmit={onSubmit} className="space-y-6">
         <BasicInfo form={form} />
         <ProfileDetails 
           form={form} 
           onEnhanceBio={handleEnhanceBio} 
         />
-        {/* Rest of the existing form */}
+        <div className="flex justify-end">
+          <Button type="submit">
+            Save Profile
+          </Button>
+        </div>
       </form>
     </div>
   );
