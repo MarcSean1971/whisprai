@@ -68,6 +68,7 @@ export type Database = {
           created_at: string
           id: string
           recipient_email: string
+          recipient_id: string | null
           sender_id: string
           status: string
           updated_at: string
@@ -76,6 +77,7 @@ export type Database = {
           created_at?: string
           id?: string
           recipient_email: string
+          recipient_id?: string | null
           sender_id: string
           status?: string
           updated_at?: string
@@ -84,11 +86,20 @@ export type Database = {
           created_at?: string
           id?: string
           recipient_email?: string
+          recipient_id?: string | null
           sender_id?: string
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contact_requests_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {

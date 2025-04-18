@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,34 +24,28 @@ export function ReceivedRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // First, get the requests
-      const { data: requestsData, error } = await supabase
+      // Fetch requests where the current user is the recipient
+      const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select('id, sender_id')
-        .eq('status', 'pending')
-        .eq('recipient_email', user.email);
+        .select(`
+          id,
+          sender_id,
+          sender:profiles!contact_requests_sender_id_fkey (
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
+        .eq('recipient_id', user.id)
+        .eq('status', 'pending');
 
-      if (error) throw error;
-      if (!requestsData || requestsData.length === 0) return [];
+      if (requestsError) throw requestsError;
 
-      // For each request, fetch the sender's profile
-      const requestsWithProfiles = await Promise.all(
-        requestsData.map(async (request) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', request.sender_id)
-            .single();
-
-          return {
-            id: request.id,
-            sender_id: request.sender_id,
-            profile: profileError ? null : profileData
-          };
-        })
-      );
-
-      return requestsWithProfiles as ContactRequest[];
+      return requestsData.map(request => ({
+        id: request.id,
+        sender_id: request.sender_id,
+        profile: request.sender
+      }));
     },
   });
 

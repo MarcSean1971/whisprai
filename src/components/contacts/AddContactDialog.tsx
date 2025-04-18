@@ -30,11 +30,24 @@ export function AddContactDialog() {
         throw new Error('Not authenticated');
       }
 
+      // Find the recipient's profile by email
+      const { data: recipientData, error: recipientError } = await supabase
+        .from('profiles')
+        .select('id')
+        .single();
+
+      if (recipientError || !recipientData) {
+        toast.error('User not found with this email address');
+        return;
+      }
+
+      // Create the contact request with recipient_id
       const { error } = await supabase
         .from('contact_requests')
         .insert({
           sender_id: userData.user.id,
-          recipient_email: email
+          recipient_id: recipientData.id,
+          recipient_email: email // Keep this for now until we fully migrate
         });
 
       if (error) throw error;
