@@ -18,6 +18,15 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
+// Define the Instruction interface to match the database schema
+interface Instruction {
+  id: string;
+  name: string;
+  content: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Zod schema for validation
 const instructionSchema = z.object({
   name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
