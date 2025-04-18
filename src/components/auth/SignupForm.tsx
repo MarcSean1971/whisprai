@@ -17,40 +17,15 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
-      // Generate verification token before signup
-      const verificationToken = crypto.randomUUID();
-      
-      // Sign up the user with metadata containing the verification token
-      const { data: { user }, error: signupError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            email_confirmed: false,
-            verification_token: verificationToken
-          }
+          emailRedirectTo: `${window.location.origin}/verify`
         }
       });
 
-      if (signupError || !user) {
-        throw signupError || new Error("Failed to create account");
-      }
-
-      // Create the verification URL with the token
-      const verificationUrl = `${window.location.origin}/verify?token=${verificationToken}&email=${encodeURIComponent(email)}`;
-
-      // Send confirmation email using our edge function
-      const { error: emailError } = await supabase.functions.invoke('send-email', {
-        body: {
-          email,
-          confirmationUrl: verificationUrl
-        },
-      });
-
-      if (emailError) {
-        console.error("Email sending error:", emailError);
-        throw new Error("Failed to send confirmation email");
-      }
+      if (error) throw error;
 
       toast.success("Please check your email to verify your account");
     } catch (error) {
