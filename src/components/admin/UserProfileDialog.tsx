@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -36,7 +36,8 @@ export function UserProfileDialog({ userId, open, onOpenChange }: UserProfileDia
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  useState(() => {
+  // Fix: useState was being used incorrectly as a effect hook
+  useEffect(() => {
     if (userId && open) {
       loadProfile(userId);
     }
