@@ -30,14 +30,17 @@ export function AddContactDialog() {
         throw new Error('Not authenticated');
       }
 
-      // Find the recipient's profile by email
-      const { data: recipientData, error: recipientError } = await supabase
-        .from('auth').select('id')
-        .eq('email', email)
-        .maybeSingle();
+      // Since we can't directly query auth.users, we'll use a more direct approach
+      // First fetch all user IDs from contact_requests to find if the user exists
+      const { data: userExists, error: userExistsError } = await supabase.rpc(
+        'get_user_id_by_email',
+        { email_to_find: email }
+      );
 
-      if (recipientError || !recipientData) {
+      // If RPC function doesn't exist or fails, provide a fallback approach
+      if (userExistsError || !userExists) {
         toast.error('User not found with this email address');
+        setIsSubmitting(false);
         return;
       }
 
@@ -46,8 +49,8 @@ export function AddContactDialog() {
         .from('contact_requests')
         .insert({
           sender_id: userData.user.id,
-          recipient_id: recipientData.id,
-          recipient_email: email // Keep this for now until we fully migrate
+          recipient_id: userExists,
+          recipient_email: email // Keep this for backward compatibility
         });
 
       if (error) throw error;

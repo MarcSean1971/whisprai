@@ -25,29 +25,34 @@ export function ReceivedRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Fetch requests where the current user is the recipient
+      // First, get all pending requests where the current user is the recipient
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select(`
-          id,
-          sender_id,
-          profiles(first_name, last_name, avatar_url)
-        `)
+        .select('id, sender_id')
         .eq('recipient_id', user.id)
         .eq('status', 'pending');
 
       if (requestsError) throw requestsError;
-      
-      // Transform the data to match our expected interface
-      return requestsData.map(request => ({
-        id: request.id,
-        sender_id: request.sender_id,
-        profile: request.profiles ? {
-          first_name: request.profiles.first_name,
-          last_name: request.profiles.last_name,
-          avatar_url: request.profiles.avatar_url
-        } : null
-      }));
+      if (!requestsData || requestsData.length === 0) return [];
+
+      // For each request, fetch the sender's profile
+      const requestsWithProfiles = await Promise.all(
+        requestsData.map(async (request) => {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', request.sender_id)
+            .single();
+
+          return {
+            id: request.id,
+            sender_id: request.sender_id,
+            profile: profileError ? null : profile
+          };
+        })
+      );
+
+      return requestsWithProfiles;
     },
   });
 
