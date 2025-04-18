@@ -57,6 +57,9 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
         throw new Error('Not authenticated');
       }
 
+      console.log("Current user:", user.id);
+      console.log("Contact user:", contact.id);
+
       // Create conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
@@ -76,27 +79,52 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
         throw new Error('No conversation was created');
       }
 
-      // Add participants
-      const participants = [
-        { conversation_id: conversation.id, user_id: user.id },
-        { conversation_id: conversation.id, user_id: contact.id }
-      ];
+      console.log("Created conversation:", conversation.id);
 
-      const { error: participantsError } = await supabase
+      // Add participants one by one to avoid potential RLS issues
+      // First add current user
+      const { error: currentUserError } = await supabase
         .from('conversation_participants')
-        .insert(participants);
+        .insert({
+          conversation_id: conversation.id,
+          user_id: user.id
+        });
 
-      if (participantsError) {
-        // If adding participants fails, cleanup the conversation
-        const { error: cleanupError } = await supabase
+      if (currentUserError) {
+        console.error("Failed to add current user as participant:", currentUserError);
+        
+        // Cleanup conversation if adding the current user fails
+        await supabase
           .from('conversations')
           .delete()
           .eq('id', conversation.id);
           
-        if (cleanupError) {
-          console.error("Failed to cleanup conversation:", cleanupError);
-        }
-        throw new Error('Failed to add participants');
+        throw new Error('Failed to add you as participant');
+      }
+
+      // Then add the contact
+      const { error: contactError } = await supabase
+        .from('conversation_participants')
+        .insert({
+          conversation_id: conversation.id,
+          user_id: contact.id
+        });
+
+      if (contactError) {
+        console.error("Failed to add contact as participant:", contactError);
+        
+        // Cleanup conversation and participants if adding the contact fails
+        await supabase
+          .from('conversation_participants')
+          .delete()
+          .eq('conversation_id', conversation.id);
+          
+        await supabase
+          .from('conversations')
+          .delete()
+          .eq('id', conversation.id);
+          
+        throw new Error('Failed to add contact as participant');
       }
 
       toast.success("Conversation started");
