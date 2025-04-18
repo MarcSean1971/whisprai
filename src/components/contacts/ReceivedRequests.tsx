@@ -30,64 +30,48 @@ export function ReceivedRequests() {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
-          console.error('No authenticated user found');
           toast.error('Authentication error');
           return [] as ContactRequest[];
         }
 
-        // First, get the requests
-        const { data: requestsData, error: requestsError } = await supabase
+        // Get contact requests for the current user
+        const { data: requests, error: requestsError } = await supabase
           .from('contact_requests')
-          .select('id, sender_id, recipient_id, status')
+          .select(`
+            id,
+            sender_id,
+            recipient_id,
+            status,
+            sender:sender_id (
+              profile:profiles (
+                first_name,
+                last_name,
+                avatar_url
+              )
+            )
+          `)
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
-          toast.error(`Error fetching requests: ${requestsError.message}`);
+          toast.error('Error fetching requests');
           return [] as ContactRequest[];
         }
 
-        if (!requestsData || requestsData.length === 0) {
-          return [] as ContactRequest[];
-        }
-
-        // Then, get profiles for all those sender IDs
-        const senderIds = requestsData.map(request => request.sender_id);
-        const { data: profilesData, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
-          .in('id', senderIds);
-
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-          toast.error(`Error fetching profiles: ${profilesError.message}`);
-          // Continue even if profile fetch fails, we'll just show IDs
-        }
-
-        // Create a map for quick profile lookup
-        const profilesMap = new Map();
-        if (profilesData) {
-          profilesData.forEach(profile => {
-            profilesMap.set(profile.id, {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              avatar_url: profile.avatar_url
-            });
-          });
-        }
-
-        // Combine the data
-        const combinedData: ContactRequest[] = requestsData.map(request => ({
-          ...request,
-          profile: profilesMap.get(request.sender_id) || {
+        // Transform the data to match our interface
+        return requests.map(request => ({
+          id: request.id,
+          sender_id: request.sender_id,
+          recipient_id: request.recipient_id,
+          status: request.status,
+          profile: request.sender?.profile || {
             first_name: null,
             last_name: null,
             avatar_url: null
           }
-        }));
+        })) as ContactRequest[];
 
-        return combinedData;
       } catch (error) {
         console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
@@ -95,10 +79,6 @@ export function ReceivedRequests() {
       }
     },
   });
-
-  if (isLoading) {
-    return <div className="p-4">Loading requests...</div>;
-  }
 
   const handleRequest = async (requestId: string, accept: boolean) => {
     setProcessingIds(prev => new Set(prev).add(requestId));
@@ -147,6 +127,10 @@ export function ReceivedRequests() {
       });
     }
   };
+
+  if (isLoading) {
+    return <div className="p-4">Loading requests...</div>;
+  }
 
   return (
     <div className="space-y-2">
