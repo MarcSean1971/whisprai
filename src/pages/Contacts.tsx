@@ -13,12 +13,14 @@ import { toast } from "sonner";
 import { useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { useRequestCounts } from "@/hooks/use-request-counts";
+import { useContactsCount } from "@/hooks/use-contacts-count";
 
 export default function Contacts() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: requestCounts } = useRequestCounts();
+  const { data: contactsCount } = useContactsCount();
   
   const activeTab = searchParams.get("tab") || "contacts";
   
@@ -64,7 +66,17 @@ export default function Contacts() {
         <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
-              <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
+              <TabsTrigger value="contacts" className="flex-1 relative">
+                Contacts
+                {contactsCount > 0 && (
+                  <Badge 
+                    variant="whispr" 
+                    className="absolute -top-1 -right-1 min-w-[18px] h-4 flex items-center justify-center text-[10px]"
+                  >
+                    {contactsCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="sent" className="flex-1 relative">
                 Sent
                 {requestCounts?.sent > 0 && (
