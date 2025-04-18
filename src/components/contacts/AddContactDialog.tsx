@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,26 +29,24 @@ export function AddContactDialog() {
         throw new Error('Not authenticated');
       }
 
-      // Since we can't directly query auth.users, we'll use a more direct approach
-      // First fetch all user IDs from contact_requests to find if the user exists
-      const { data: userExists, error: userExistsError } = await supabase.rpc(
-        'get_user_id_by_email',
-        { email_to_find: email }
-      );
+      // Use the RPC function to get the recipient's ID
+      const { data: recipientId, error: lookupError } = await supabase
+        .rpc('get_user_id_by_email', { 
+          email_to_find: email 
+        });
 
-      // If RPC function doesn't exist or fails, provide a fallback approach
-      if (userExistsError || !userExists) {
+      if (lookupError || !recipientId) {
         toast.error('User not found with this email address');
         setIsSubmitting(false);
         return;
       }
 
-      // Create the contact request with recipient_id
+      // Create the contact request
       const { error } = await supabase
         .from('contact_requests')
         .insert({
           sender_id: userData.user.id,
-          recipient_id: userExists,
+          recipient_id: recipientId,
           recipient_email: email // Keep this for backward compatibility
         });
 
