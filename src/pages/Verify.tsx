@@ -6,6 +6,18 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Define the user type to match what comes from Supabase
+type SupabaseUser = {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    email?: string;
+    verification_token?: string;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
+
 export default function Verify() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -29,19 +41,17 @@ export default function Verify() {
         const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
         
         // Filter users on the client side since we can't use the filter parameter
-        // Type assertion to handle the users array properly
-        const user = users && users.length > 0 
-          ? users.find(u => 
-              (u.user_metadata && u.user_metadata.email === decodeURIComponent(email)) || 
-              (u.email === decodeURIComponent(email))
-            ) 
-          : null;
+        const userArray = users as SupabaseUser[] || [];
+        const user = userArray.find(u => 
+          (u.user_metadata?.email === decodeURIComponent(email)) || 
+          (u.email === decodeURIComponent(email))
+        );
         
         if (getUserError || !user) {
           throw new Error("User not found");
         }
 
-        if (user.user_metadata.verification_token !== token) {
+        if (user.user_metadata?.verification_token !== token) {
           throw new Error("Invalid verification token");
         }
 
