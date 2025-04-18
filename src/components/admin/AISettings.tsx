@@ -34,8 +34,8 @@ export function AISettings() {
 
         if (error) throw error;
         if (data && data.value) {
-          // Ensure the value is properly typed as AISettingsType
-          const settingsData = data.value as AISettingsType;
+          // First convert to unknown, then to our expected type to avoid TS errors
+          const settingsData = data.value as unknown as AISettingsType;
           setSettings(settingsData);
         }
       } catch (error) {
@@ -53,7 +53,7 @@ export function AISettings() {
     try {
       const { error } = await supabase
         .from('admin_settings')
-        .update({ value: settings })
+        .update({ value: settings as unknown as Json })
         .eq('key', 'openai_settings');
 
       if (error) throw error;
