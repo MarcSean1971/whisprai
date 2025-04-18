@@ -15,6 +15,15 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
   const { translateMessage } = useTranslation();
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   const { profile } = useProfile();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    fetchUserId();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -22,18 +31,20 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
 
   useEffect(() => {
     const processTranslations = async () => {
+      if (!profile?.language || !currentUserId) return;
+
       const newTranslations: Record<string, string> = {};
-      const currentUserId = (await supabase.auth.getUser()).data.user?.id;
       
       for (const message of messages) {
         const isOwn = message.sender_id === currentUserId;
         const needsTranslation = !isOwn && 
           message.original_language && 
-          message.original_language !== profile?.language;
+          message.original_language !== profile.language;
         
         if (needsTranslation && !translatedContents[message.id]) {
           try {
-            const translated = await translateMessage(message.content, profile?.language || 'en');
+            console.log(`Translating message from ${message.original_language} to ${profile.language}`);
+            const translated = await translateMessage(message.content, profile.language);
             newTranslations[message.id] = translated;
           } catch (error) {
             console.error('Translation error:', error);
@@ -46,15 +57,13 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
       }
     };
     
-    if (profile?.language) {
-      processTranslations();
-    }
-  }, [messages, profile?.language, translateMessage]);
+    processTranslations();
+  }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
   return (
     <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.map((message, index) => {
-        const isOwn = message.sender_id === (supabase.auth.getUser().then(res => res.data.user?.id));
+        const isOwn = message.sender_id === currentUserId;
         const showSender = 
           !isOwn && 
           (index === 0 || messages[index - 1].sender_id !== message.sender_id);

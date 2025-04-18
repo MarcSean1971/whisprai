@@ -1,32 +1,30 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
-import { conversations } from "@/lib/sample-data";
 import { EmptyState } from "@/components/EmptyState";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationItem } from "@/components/ConversationItem";
+import { useUserConversations } from "@/hooks/use-user-conversations";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Chats() {
   const navigate = useNavigate();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredConversations, setFilteredConversations] = useState(conversations);
   const { isAdmin } = useAdmin();
+  const { data: conversations, isLoading, error, refetch } = useUserConversations();
 
-  useEffect(() => {
-    if (searchQuery) {
-      const filtered = conversations.filter(
-        convo => convo.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredConversations(filtered);
-    } else {
-      setFilteredConversations(conversations);
-    }
-  }, [searchQuery]);
+  const filteredConversations = searchQuery && conversations
+    ? conversations.filter(convo => 
+        convo.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : conversations;
 
   const handleConversationClick = (id: string) => {
     navigate(`/chat/${id}`);
@@ -35,6 +33,23 @@ export default function Chats() {
   const handleClearSearch = () => {
     setSearchQuery("");
     setIsSearching(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      toast.success("Successfully logged out");
+      navigate("/");
+    } catch (error) {
+      toast.error("An unexpected error occurred during logout");
+      console.error("Logout error:", error);
+    }
   };
 
   return (
@@ -48,11 +63,26 @@ export default function Chats() {
       
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-0.5">
-          {filteredConversations.length > 0 ? (
+          {isLoading ? (
+            <div className="p-4 text-center">Loading conversations...</div>
+          ) : error ? (
+            <div className="p-4 text-center text-red-500">
+              <p>Error loading conversations</p>
+              <Button onClick={() => refetch()} variant="outline" className="mt-2">
+                Retry
+              </Button>
+            </div>
+          ) : filteredConversations && filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => (
               <ConversationItem
                 key={conversation.id}
-                {...conversation}
+                id={conversation.id}
+                name={conversation.name}
+                avatar={conversation.avatar}
+                lastMessage={conversation.lastMessage?.content}
+                timestamp={conversation.lastMessage ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
+                unreadCount={0} // TODO: Implement unread count logic
+                isGroup={conversation.is_group}
                 onClick={() => handleConversationClick(conversation.id)}
               />
             ))
@@ -63,12 +93,14 @@ export default function Chats() {
               description={
                 searchQuery
                   ? `No results for "${searchQuery}"`
-                  : "Start a new conversation"
+                  : "Start a new conversation by visiting contacts"
               }
               action={
                 searchQuery ? (
                   <Button onClick={handleClearSearch}>Clear search</Button>
-                ) : undefined
+                ) : (
+                  <Button onClick={() => navigate("/contacts")}>Go to Contacts</Button>
+                )
               }
               className="h-[calc(100vh-8rem)]"
             />
@@ -80,7 +112,7 @@ export default function Chats() {
       
       <BottomNavigation 
         activeTab="chats"
-        onLogout={() => navigate("/")}
+        onLogout={handleLogout}
         isAdmin={isAdmin}
       />
     </div>

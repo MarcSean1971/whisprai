@@ -1,3 +1,4 @@
+
 import { Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ export function ChatMessage({
 
   const [showOriginal, setShowOriginal] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
+  const hasTranslation = !!translatedContent;
 
   return (
     <div className={cn(
@@ -83,7 +85,7 @@ export function ChatMessage({
           <div>{displayContent}</div>
           
           <div className="flex justify-end items-center gap-1 mt-1">
-            {translatedContent && !isOwn && (
+            {hasTranslation && !isOwn && (
               <TranslationIcon 
                 originalLanguage={originalLanguage || 'unknown'}
                 onClick={() => setShowOriginal(!showOriginal)}
