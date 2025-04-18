@@ -38,64 +38,55 @@ export function useRequestHandler(onRequestProcessed: () => void) {
         throw new Error('Request has already been processed');
       }
 
-      // First update the request status
-      console.log(`Updating request status to: ${accept ? 'accepted' : 'rejected'}`);
-      
-      const { error: updateError } = await supabase
-        .from('contact_requests')
-        .update({ status: accept ? 'accepted' : 'rejected' })
-        .eq('id', requestId);
-
-      if (updateError) {
-        console.error('Error updating request:', updateError);
-        throw updateError;
-      }
-
       if (accept) {
-        console.log(`Creating contact records: user_id=${user.id}, contact_id=${request.sender_id}`);
-        
-        // Create two-way contact records (both users add each other)
-        const { error: insertError } = await supabase
+        // First create the contact records
+        const { error: contactsError } = await supabase
           .from('contacts')
           .insert([
             { user_id: user.id, contact_id: request.sender_id },
             { user_id: request.sender_id, contact_id: user.id }
           ]);
 
-        if (insertError) {
-          console.error('Error creating contact records:', insertError);
-          throw insertError;
+        if (contactsError) {
+          console.error('Error creating contacts:', contactsError);
+          throw contactsError;
         }
 
-        // Create a new conversation for these contacts
-        const { data: conversationData, error: conversationError } = await supabase
+        // Then create the conversation
+        const { data: conversation, error: conversationError } = await supabase
           .from('conversations')
           .insert([{ is_group: false }])
           .select()
           .single();
 
-        if (conversationError) {
+        if (conversationError || !conversation) {
           console.error('Error creating conversation:', conversationError);
           throw conversationError;
         }
 
-        const conversationId = conversationData.id;
-        console.log(`Created conversation with ID: ${conversationId}`);
-
-        // Add both users as participants
+        // Finally add conversation participants
         const { error: participantsError } = await supabase
           .from('conversation_participants')
           .insert([
-            { conversation_id: conversationId, user_id: user.id },
-            { conversation_id: conversationId, user_id: request.sender_id }
+            { conversation_id: conversation.id, user_id: user.id },
+            { conversation_id: conversation.id, user_id: request.sender_id }
           ]);
 
         if (participantsError) {
-          console.error('Error adding participants to conversation:', participantsError);
+          console.error('Error adding conversation participants:', participantsError);
           throw participantsError;
         }
+      }
 
-        console.log('Successfully created contacts and conversation participants');
+      // Update request status last, after all other operations are successful
+      const { error: updateError } = await supabase
+        .from('contact_requests')
+        .update({ status: accept ? 'accepted' : 'rejected' })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating request status:', updateError);
+        throw updateError;
       }
 
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
