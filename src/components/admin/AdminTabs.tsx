@@ -7,7 +7,7 @@ import { InstructionsManagement } from './InstructionsManagement';
 
 export function AdminTabs() {
   return (
-    <Tabs defaultValue="languages" className="w-full">
+    <Tabs defaultValue="languages" className="w-full max-w-full">
       <TabsList className="flex w-full">
         <TabsTrigger value="languages" className="flex-1">Languages</TabsTrigger>
         <TabsTrigger value="ai" className="flex-1">AI Settings</TabsTrigger>
@@ -15,22 +15,21 @@ export function AdminTabs() {
         <TabsTrigger value="instructions" className="flex-1">Instructions</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="languages">
+      <TabsContent value="languages" className="w-full">
         <LanguageManagement />
       </TabsContent>
       
-      <TabsContent value="ai">
+      <TabsContent value="ai" className="w-full">
         <AISettings />
       </TabsContent>
 
-      <TabsContent value="users">
+      <TabsContent value="users" className="w-full">
         <UserManagement />
       </TabsContent>
 
-      <TabsContent value="instructions">
+      <TabsContent value="instructions" className="w-full">
         <InstructionsManagement />
       </TabsContent>
     </Tabs>
   );
 }
-
