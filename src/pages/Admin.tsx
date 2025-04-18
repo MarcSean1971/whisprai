@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, LogOut } from 'lucide-react';
 import { useAdmin } from '@/hooks/use-admin';
 import { LanguageManagement } from '@/components/admin/LanguageManagement';
 import { AISettings } from '@/components/admin/AISettings';
@@ -35,17 +35,19 @@ export default function Admin() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto space-y-6 relative">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={handleExit} 
-          className="absolute top-0 left-0 gap-2"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </Button>
-        
-        <h1 className="text-2xl font-bold mt-12">Admin Dashboard</h1>
+        <div className="flex justify-between items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleExit} 
+            className="gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Exit
+          </Button>
+          
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        </div>
         
         <Tabs defaultValue="languages" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
@@ -75,3 +77,4 @@ export default function Admin() {
     </div>
   );
 }
+
