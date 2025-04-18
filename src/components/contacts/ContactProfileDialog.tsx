@@ -6,7 +6,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CalendarDays, Mail } from "lucide-react";
+import { CalendarDays, Mail, Tag } from "lucide-react";
+import { formatDate } from "@/lib/utils";
 
 interface ContactProfileDialogProps {
   open: boolean;
@@ -48,9 +49,6 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
             </Avatar>
             <div className="text-center">
               <h2 className="text-xl font-semibold">{fullName}</h2>
-              {contact.profile?.tagline && (
-                <p className="text-sm text-muted-foreground">{contact.profile.tagline}</p>
-              )}
             </div>
           </div>
 
@@ -59,6 +57,13 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
               <Mail className="h-4 w-4 text-muted-foreground" />
               <span>{contact.email}</span>
             </div>
+
+            {contact.profile?.tagline && (
+              <div className="flex items-center gap-2 text-sm">
+                <Tag className="h-4 w-4 text-muted-foreground" />
+                <span>{contact.profile.tagline}</span>
+              </div>
+            )}
 
             {contact.profile?.birthdate && (
               <div className="flex items-center gap-2 text-sm">
@@ -70,7 +75,7 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
             {contact.profile?.bio && (
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">About</h3>
-                <p className="text-sm text-muted-foreground">{contact.profile.bio}</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{contact.profile.bio}</p>
               </div>
             )}
           </div>
@@ -79,3 +84,4 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
     </Dialog>
   );
 }
+
