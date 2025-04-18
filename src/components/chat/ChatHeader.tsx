@@ -56,10 +56,16 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
           );
 
           if (otherParticipant && otherParticipant.profiles) {
-            const profile = otherParticipant.profiles;
+            // Cast to appropriate type to ensure TypeScript understands the structure
+            const profile = otherParticipant.profiles as {
+              first_name: string | null;
+              last_name: string | null;
+              avatar_url: string | null;
+            };
+            
             setContact({
               name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-              avatar: profile.avatar_url,
+              avatar: profile.avatar_url || undefined,
               isOnline: true
             });
           }
