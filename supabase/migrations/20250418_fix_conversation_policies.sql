@@ -22,10 +22,12 @@ CREATE POLICY "Users can view conversation participants"
 ON public.conversation_participants
 FOR SELECT
 USING (
-  conversation_id IN (
-    SELECT conversation_id 
-    FROM public.conversation_participants 
-    WHERE user_id = auth.uid()
+  auth.uid() = user_id
+  OR
+  EXISTS (
+    SELECT 1 FROM public.conversation_participants
+    WHERE conversation_id = conversation_participants.conversation_id
+    AND user_id = auth.uid()
   )
 );
 
@@ -34,9 +36,9 @@ CREATE POLICY "Users can add participants to their conversations"
 ON public.conversation_participants
 FOR INSERT
 WITH CHECK (
-  conversation_id IN (
-    SELECT conversation_id 
-    FROM public.conversation_participants 
-    WHERE user_id = auth.uid()
+  EXISTS (
+    SELECT 1 FROM public.conversation_participants
+    WHERE conversation_id = conversation_participants.conversation_id
+    AND user_id = auth.uid()
   )
 );
