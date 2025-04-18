@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConnectionsList } from "@/components/contacts/ConnectionsList";
@@ -33,7 +34,6 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     
     try {
       setIsCreating(true);
-      console.log("Starting conversation creation...");
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -42,9 +42,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         throw new Error('You must be logged in to start a conversation');
       }
 
-      console.log("Creating conversation...");
-      
-      // First create the conversation
+      // Create conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -55,12 +53,11 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .single();
 
       if (conversationError) {
-        console.error("Conversation creation error:", conversationError);
+        console.error("Error creating conversation:", conversationError);
         throw conversationError;
       }
 
-      // Add both participants in a single insert to avoid race conditions
-      console.log("Adding participants...");
+      // Add both participants at once
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -69,11 +66,10 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         ]);
 
       if (participantsError) {
-        console.error("Adding participants error:", participantsError);
+        console.error("Error adding participants:", participantsError);
         throw participantsError;
       }
 
-      console.log("Conversation created successfully!");
       toast.success("Conversation created");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
