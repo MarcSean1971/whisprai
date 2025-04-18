@@ -7,19 +7,21 @@ import { UserRound } from "lucide-react";
 import { ContactProfileDialog } from "./ContactProfileDialog";
 import { useState } from "react";
 
+interface Profile {
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+  birthdate: string | null;
+}
+
 interface Contact {
   id: string;
   contact: {
     id: string;
     email: string;
-    profile: {
-      first_name: string | null;
-      last_name: string | null;
-      avatar_url: string | null;
-      bio: string | null;
-      tagline: string | null;
-      birthdate: string | null;
-    } | null;
+    profile: Profile | null;
   };
 }
 
@@ -29,23 +31,24 @@ export function ConnectionsList() {
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_user_email', {
-        user_id: contact.contact_id
-      }).select(`
-        id,
-        contact:contact_id (
+      const { data, error } = await supabase
+        .from('contacts')
+        .select(`
           id,
-          email:get_user_email(id),
-          profile:profiles (
-            first_name,
-            last_name,
-            avatar_url,
-            bio,
-            tagline,
-            birthdate
+          contact:contact_id (
+            id,
+            email:get_user_email(id),
+            profile:profiles (
+              first_name,
+              last_name,
+              avatar_url,
+              bio,
+              tagline,
+              birthdate
+            )
           )
-        )
-      `);
+        `)
+        .returns<Contact[]>();
 
       if (error) throw error;
       return data;
@@ -105,4 +108,3 @@ export function ConnectionsList() {
     </>
   );
 }
-

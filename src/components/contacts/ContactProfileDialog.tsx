@@ -7,7 +7,6 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CalendarDays, Mail, Tag } from "lucide-react";
-import { formatDate } from "@/lib/utils";
 
 interface ContactProfileDialogProps {
   open: boolean;
@@ -84,4 +83,3 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
     </Dialog>
   );
 }
-
