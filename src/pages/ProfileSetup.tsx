@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -34,7 +33,8 @@ export default function ProfileSetup() {
   const navigate = useNavigate();
   const { uploadAvatar } = useAvatarUpload();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -46,14 +46,40 @@ export default function ProfileSetup() {
   });
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/');
+    const checkSessionAndLoadProfile = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/');
+          return;
+        }
+
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (profile) {
+          form.reset({
+            bio: profile.bio || '',
+            language: profile.language || '',
+            interests: profile.interests as string[] || [],
+          });
+          setAvatarUrl(profile.avatar_url);
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        toast.error('Failed to load profile data');
+      } finally {
+        setIsLoading(false);
       }
     };
-    checkSession();
-  }, [navigate]);
+
+    checkSessionAndLoadProfile();
+  }, [navigate, form]);
 
   const handleAvatarChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -71,7 +97,7 @@ export default function ProfileSetup() {
   };
 
   const onSubmit = async (values: ProfileFormValues) => {
-    setIsLoading(true);
+    setIsSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) throw new Error('No user found');
@@ -95,9 +121,17 @@ export default function ProfileSetup() {
       toast.error('Error updating profile');
       console.error('Error:', error);
     } finally {
-      setIsLoading(false);
+      setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
@@ -166,8 +200,8 @@ export default function ProfileSetup() {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Profile'}
+            <Button type="submit" className="w-full" disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Profile'}
             </Button>
           </form>
         </Form>
