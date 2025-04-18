@@ -2,7 +2,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define types for better type safety
 interface Profile {
   id: string;
   first_name: string | null;
@@ -13,7 +12,7 @@ interface Profile {
 
 interface Participant {
   user_id: string;
-  profiles?: Profile;
+  profile?: Profile;
 }
 
 interface Conversation {
@@ -35,8 +34,6 @@ export function useUserConversations() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       
-      console.log('Fetching conversations for user:', user.id);
-
       // Get all conversations where the user is a participant
       const { data: participations, error: participationsError } = await supabase
         .from('conversation_participants')
@@ -49,14 +46,12 @@ export function useUserConversations() {
       }
 
       if (!participations || participations.length === 0) {
-        console.log('No conversations found for user');
         return [];
       }
 
       const conversationIds = participations.map(p => p.conversation_id);
-      console.log('Found conversation IDs:', conversationIds);
 
-      // Get conversation details
+      // Get conversation details and participants
       const { data: conversations, error: conversationsError } = await supabase
         .from('conversations')
         .select(`
@@ -74,51 +69,49 @@ export function useUserConversations() {
         throw conversationsError;
       }
 
-      // Now, we'll fetch participant profiles separately to avoid the relation error
+      // Fetch all participant profiles in a single query
+      const allParticipantIds = conversations.flatMap(conv => 
+        conv.participants.map((p: any) => p.user_id)
+      );
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, avatar_url, language')
+        .in('id', allParticipantIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Process conversations with profiles
       const processedConversations: Conversation[] = await Promise.all(
         conversations.map(async (conversation) => {
-          // Get participant profiles
-          const participantIds = conversation.participants.map((p: any) => p.user_id);
-          
-          // Fetch profiles for all participants
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url, language')
-            .in('id', participantIds);
-
-          if (profilesError) {
-            console.error(`Error fetching profiles for conversation ${conversation.id}:`, profilesError);
-          }
-
-          // Match profiles to participants
+          // Map profiles to participants
           const enrichedParticipants = conversation.participants.map((p: any) => ({
             user_id: p.user_id,
-            profiles: profiles?.find(profile => profile.id === p.user_id)
+            profile: profiles?.find(profile => profile.id === p.user_id)
           }));
 
           // Get last message
-          const { data: messages, error: messagesError } = await supabase
+          const { data: messages } = await supabase
             .from('messages')
             .select('*')
             .eq('conversation_id', conversation.id)
             .order('created_at', { ascending: false })
             .limit(1);
 
-          if (messagesError) {
-            console.error(`Error fetching messages for conversation ${conversation.id}:`, messagesError);
-          }
-
-          // Filter out the current user from participants to get the other participants
+          // Filter out current user to get other participants
           const otherParticipants = enrichedParticipants.filter(
             p => p.user_id !== user.id
           );
 
-          // For direct messages (not groups), use the other person's name as conversation name
+          // Set conversation name and avatar
           let conversationName = 'Conversation';
           let avatar = null;
           
           if (!conversation.is_group && otherParticipants.length > 0) {
-            const otherUser = otherParticipants[0].profiles;
+            const otherUser = otherParticipants[0].profile;
             if (otherUser) {
               conversationName = otherUser.first_name && otherUser.last_name 
                 ? `${otherUser.first_name} ${otherUser.last_name}`.trim()
