@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import { useAdmin } from '@/hooks/use-admin';
 import { Logo } from "@/components/Logo";
 import { useProfile } from '@/hooks/use-profile';
 import { supabase } from '@/integrations/supabase/client';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 
 export default function ProfileSetup() {
@@ -75,8 +77,9 @@ export default function ProfileSetup() {
 
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
-      <div className="flex items-center gap-4 px-4 py-3 border-b">
+      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b">
         <Logo variant="full" />
+        <ThemeToggle />
       </div>
 
       <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto">
