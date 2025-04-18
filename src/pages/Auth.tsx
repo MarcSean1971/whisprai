@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -15,37 +16,105 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate("/home");
+      }
+    };
+    checkUser();
+
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        navigate("/home");
+      }
+    });
+
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate authentication
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // Success handled by onAuthStateChange
+    } catch (error) {
+      toast.error("An unexpected error occurred");
       setIsLoading(false);
-      navigate("/home");
-    }, 1500);
+    }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate registration
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + "/home"
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      // If no immediate error, show signup success message
+      toast.info("Check your email for confirmation link");
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    } finally {
       setIsLoading(false);
-      navigate("/home");
-    }, 1500);
+    }
   };
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate sending magic link
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          shouldCreateUser: false,
+          emailRedirectTo: window.location.origin + "/home"
+        }
+      });
+
+      if (error) {
+        toast.error(error.message);
+        setIsLoading(false);
+        return;
+      }
+
+      toast.info("Check your email for magic link");
+    } catch (error) {
+      toast.error("An unexpected error occurred");
+    } finally {
       setIsLoading(false);
-      alert("Magic link sent to " + email);
-    }, 1500);
+    }
   };
 
   return (
