@@ -9,13 +9,13 @@ export function useConversations() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Modified query to correctly join profiles through contact_id
+      // Query with fixed joined relationship
       const { data, error } = await supabase
         .from('contacts')
         .select(`
           id,
           contact_id,
-          profiles:profiles!contact_id(
+          profiles!profiles(
             id,
             first_name,
             last_name,

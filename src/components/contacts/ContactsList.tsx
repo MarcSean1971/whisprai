@@ -18,7 +18,7 @@ interface Profile {
 interface Contact {
   id: string;
   contact_id: string;
-  profiles: Profile;
+  profiles: Profile[];
 }
 
 export function ContactsList() {
@@ -31,48 +31,53 @@ export function ContactsList() {
 
   return (
     <div className="space-y-2">
-      {contacts?.map((contact: Contact) => (
-        <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={contact.profiles?.avatar_url || undefined} />
-              <AvatarFallback>
-                {contact.profiles?.first_name?.[0] || '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {contact.profiles?.first_name && contact.profiles?.last_name 
-                  ? `${contact.profiles.first_name} ${contact.profiles.last_name}`
-                  : 'Unknown Contact'}
-              </div>
-              {contact.profiles?.tagline && (
-                <div className="text-sm text-muted-foreground">
-                  {contact.profiles.tagline}
+      {contacts?.map((contact: Contact) => {
+        // Get the first profile from the array
+        const profile = contact.profiles?.[0];
+        
+        return (
+          <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={profile?.avatar_url || undefined} />
+                <AvatarFallback>
+                  {profile?.first_name?.[0] || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {profile?.first_name && profile?.last_name 
+                    ? `${profile.first_name} ${profile.last_name}`
+                    : 'Unknown Contact'}
                 </div>
-              )}
+                {profile?.tagline && (
+                  <div className="text-sm text-muted-foreground">
+                    {profile.tagline}
+                  </div>
+                )}
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSelectedContact({
+                id: contact.contact_id,
+                email: "",
+                profile: {
+                  first_name: profile?.first_name,
+                  last_name: profile?.last_name,
+                  avatar_url: profile?.avatar_url,
+                  bio: profile?.bio,
+                  tagline: profile?.tagline,
+                  birthdate: null
+                }
+              })}
+            >
+              <UserRound className="h-4 w-4" />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setSelectedContact({
-              id: contact.contact_id,
-              email: "",
-              profile: {
-                first_name: contact.profiles?.first_name,
-                last_name: contact.profiles?.last_name,
-                avatar_url: contact.profiles?.avatar_url,
-                bio: contact.profiles?.bio,
-                tagline: contact.profiles?.tagline,
-                birthdate: null
-              }
-            })}
-          >
-            <UserRound className="h-4 w-4" />
-          </Button>
-        </div>
-      ))}
+        );
+      })}
       {(!contacts || contacts.length === 0) && (
         <div className="text-center p-4 text-muted-foreground">
           No contacts yet
