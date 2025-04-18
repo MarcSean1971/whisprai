@@ -9,20 +9,13 @@ export function useConversations() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get contacts with profile information in a single query
+      // Fetch contacts with a separate query to get their profiles
       const { data, error } = await supabase
         .from('contacts')
         .select(`
           id,
           contact_id,
-          profiles!contact_id(
-            id,
-            first_name,
-            last_name,
-            avatar_url,
-            tagline,
-            bio
-          )
+          user_id
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
@@ -32,15 +25,34 @@ export function useConversations() {
         throw error;
       }
 
-      // Transform the data to match the expected format
-      const transformedData = data.map(contact => ({
-        id: contact.id,
-        contact_id: contact.contact_id,
-        contact_profile: contact.profiles || null
-      }));
+      // For each contact, fetch the profile information
+      const contactsWithProfiles = await Promise.all(
+        data.map(async (contact) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', contact.contact_id)
+            .single();
 
-      console.log('Fetched contacts:', transformedData);
-      return transformedData;
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            return {
+              id: contact.id,
+              contact_id: contact.contact_id,
+              contact_profile: null
+            };
+          }
+
+          return {
+            id: contact.id,
+            contact_id: contact.contact_id,
+            contact_profile: profileData
+          };
+        })
+      );
+
+      console.log('Fetched contacts with profiles:', contactsWithProfiles);
+      return contactsWithProfiles;
     },
   });
 }
