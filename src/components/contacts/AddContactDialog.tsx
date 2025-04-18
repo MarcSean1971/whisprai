@@ -32,9 +32,9 @@ export function AddContactDialog() {
 
       // Find the recipient's profile by email
       const { data: recipientData, error: recipientError } = await supabase
-        .from('profiles')
-        .select('id')
-        .single();
+        .from('auth').select('id')
+        .eq('email', email)
+        .maybeSingle();
 
       if (recipientError || !recipientData) {
         toast.error('User not found with this email address');

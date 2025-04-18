@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,21 +31,22 @@ export function ReceivedRequests() {
         .select(`
           id,
           sender_id,
-          sender:profiles!contact_requests_sender_id_fkey (
-            first_name,
-            last_name,
-            avatar_url
-          )
+          profiles(first_name, last_name, avatar_url)
         `)
         .eq('recipient_id', user.id)
         .eq('status', 'pending');
 
       if (requestsError) throw requestsError;
-
+      
+      // Transform the data to match our expected interface
       return requestsData.map(request => ({
         id: request.id,
         sender_id: request.sender_id,
-        profile: request.sender
+        profile: request.profiles ? {
+          first_name: request.profiles.first_name,
+          last_name: request.profiles.last_name,
+          avatar_url: request.profiles.avatar_url
+        } : null
       }));
     },
   });
