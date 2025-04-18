@@ -43,29 +43,13 @@ export function useUserConversations() {
       }
 
       try {
-        // Get conversations the user participates in - simpler query
-        const { data: participations, error: participationsError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id);
-
-        if (participationsError) {
-          console.error('Error fetching participations:', participationsError);
-          throw participationsError;
-        }
+        console.log("Fetching conversations for user:", user.id);
         
-        if (!participations || participations.length === 0) {
-          return []; // User has no conversations yet
-        }
-
-        // Get the conversation IDs
-        const conversationIds = participations.map(p => p.conversation_id);
-
-        // Fetch basic conversation data
+        // With our updated RLS policies, we can directly query conversations
+        // The RLS will automatically filter to only those the user has access to
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select('*')
-          .in('id', conversationIds)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
@@ -74,8 +58,14 @@ export function useUserConversations() {
         }
 
         if (!conversations || conversations.length === 0) {
-          return []; // No conversations found
+          console.log("No conversations found for user");
+          return []; // User has no conversations yet
         }
+
+        console.log(`Found ${conversations.length} conversations`);
+        
+        // Get conversation IDs
+        const conversationIds = conversations.map(c => c.id);
 
         // Get all participants for these conversations
         const { data: allParticipants, error: participantsError } = await supabase
@@ -162,6 +152,7 @@ export function useUserConversations() {
           };
         });
 
+        console.log(`Processed ${processedConversations.length} conversations`);
         return processedConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);

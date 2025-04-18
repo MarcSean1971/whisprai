@@ -269,10 +269,6 @@ export type Database = {
         Args: { conversation_uuid: string; user_uuid: string }
         Returns: boolean
       }
-      is_user_in_conversation: {
-        Args: { conversation_uuid: string; user_uuid: string }
-        Returns: boolean
-      }
     }
     Enums: {
       [_ in never]: never

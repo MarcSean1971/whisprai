@@ -64,32 +64,36 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
       
       console.log("Conversation created:", conversation.id);
 
-      // Then add the participants
-      console.log("Adding participants...");
-      const participants = [
-        { conversation_id: conversation.id, user_id: user.id },
-        { conversation_id: conversation.id, user_id: contact.contact.id }
-      ];
+      try {
+        // Then add the participants
+        console.log("Adding participants...");
+        const participants = [
+          { conversation_id: conversation.id, user_id: user.id },
+          { conversation_id: conversation.id, user_id: contact.contact.id }
+        ];
 
-      const { error: participantsError } = await supabase
-        .from('conversation_participants')
-        .insert(participants);
+        const { error: participantsError } = await supabase
+          .from('conversation_participants')
+          .insert(participants);
 
-      if (participantsError) {
-        console.error("Error adding participants:", participantsError);
+        if (participantsError) {
+          console.error("Error adding participants:", participantsError);
+          throw participantsError;
+        }
+
+        console.log("Participants added successfully");
+        toast.success("Conversation started");
+        onOpenChange(false);
+        navigate(`/chat/${conversation.id}`);
+      } catch (participantError) {
         // If adding participants fails, cleanup the conversation
-        console.log("Cleaning up conversation due to error...");
+        console.error("Error adding participants, cleaning up conversation:", participantError);
         await supabase
           .from('conversations')
           .delete()
           .eq('id', conversation.id);
-        throw participantsError;
+        throw participantError;
       }
-
-      console.log("Participants added successfully");
-      toast.success("Conversation started");
-      onOpenChange(false);
-      navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
       console.error('Error creating conversation:', error);
