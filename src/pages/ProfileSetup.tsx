@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { BasicInfo } from '@/components/profile-setup/BasicInfo';
@@ -11,11 +12,13 @@ import { Form } from '@/components/ui/form';
 import { BottomNavigation } from '@/components/home/BottomNavigation';
 import { useAdmin } from '@/hooks/use-admin';
 import { Logo } from "@/components/Logo";
+import { useProfile } from '@/hooks/use-profile';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
+  const [activeTab, setActiveTab] = React.useState<'chats' | 'contacts'>('chats');
+  const { profile, isLoading, updateProfile } = useProfile();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSetupSchema),
@@ -31,6 +34,16 @@ export default function ProfileSetup() {
     }
   });
 
+  useEffect(() => {
+    if (profile && !isLoading) {
+      Object.entries(profile).forEach(([key, value]) => {
+        if (value !== null && key in form.getValues()) {
+          form.setValue(key as keyof ProfileFormValues, value);
+        }
+      });
+    }
+  }, [profile, isLoading, form]);
+
   const handleEnhanceBio = (enhancedBio: string) => {
     form.setValue('bio', enhancedBio);
   };
@@ -39,10 +52,20 @@ export default function ProfileSetup() {
     navigate('/');
   };
 
-  const onSubmit = form.handleSubmit((data) => {
-    console.log('Form submitted:', data);
-    navigate('/home');
+  const onSubmit = form.handleSubmit(async (data) => {
+    const success = await updateProfile(data);
+    if (success) {
+      navigate('/home');
+    }
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
