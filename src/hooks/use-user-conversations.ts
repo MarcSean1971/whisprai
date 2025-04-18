@@ -34,24 +34,9 @@ export function useUserConversations() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       
-      // Get all conversations where the user is a participant
-      const { data: participations, error: participationsError } = await supabase
-        .from('conversation_participants')
-        .select('conversation_id')
-        .eq('user_id', user.id);
-
-      if (participationsError) {
-        console.error('Error fetching participations:', participationsError);
-        throw participationsError;
-      }
-
-      if (!participations || participations.length === 0) {
-        return [];
-      }
-
-      const conversationIds = participations.map(p => p.conversation_id);
-
-      // Get conversation details and participants
+      console.log('Fetching conversations for user:', user.id);
+      
+      // With RLS in place, this will automatically filter to only conversations where the user is a participant
       const { data: conversations, error: conversationsError } = await supabase
         .from('conversations')
         .select(`
@@ -59,9 +44,8 @@ export function useUserConversations() {
           is_group,
           created_at,
           updated_at,
-          participants:conversation_participants(user_id)
+          conversation_participants(user_id)
         `)
-        .in('id', conversationIds)
         .order('updated_at', { ascending: false });
 
       if (conversationsError) {
@@ -69,9 +53,16 @@ export function useUserConversations() {
         throw conversationsError;
       }
 
+      if (!conversations || conversations.length === 0) {
+        console.log('No conversations found for user');
+        return [];
+      }
+
+      console.log('Found conversations:', conversations.length);
+
       // Fetch all participant profiles in a single query
       const allParticipantIds = conversations.flatMap(conv => 
-        conv.participants.map((p: any) => p.user_id)
+        conv.conversation_participants.map((p: any) => p.user_id)
       );
 
       const { data: profiles, error: profilesError } = await supabase
@@ -86,9 +77,9 @@ export function useUserConversations() {
 
       // Process conversations with profiles
       const processedConversations: Conversation[] = await Promise.all(
-        conversations.map(async (conversation) => {
+        conversations.map(async (conversation: any) => {
           // Map profiles to participants
-          const enrichedParticipants = conversation.participants.map((p: any) => ({
+          const enrichedParticipants = conversation.conversation_participants.map((p: any) => ({
             user_id: p.user_id,
             profile: profiles?.find(profile => profile.id === p.user_id)
           }));
