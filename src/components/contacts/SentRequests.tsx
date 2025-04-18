@@ -1,7 +1,11 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Undo2 } from "lucide-react";
+import { toast } from "sonner";
+import { useState } from "react";
 
 interface ContactRequest {
   id: string;
@@ -10,7 +14,9 @@ interface ContactRequest {
 }
 
 export function SentRequests() {
-  const { data: requests, isLoading } = useQuery({
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  
+  const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['sent-requests'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -26,6 +32,31 @@ export function SentRequests() {
       return data || [];
     },
   });
+
+  const handleWithdraw = async (requestId: string) => {
+    try {
+      setProcessingIds(prev => new Set(prev).add(requestId));
+      
+      const { error } = await supabase
+        .from('contact_requests')
+        .update({ status: 'withdrawn' })
+        .eq('id', requestId);
+
+      if (error) throw error;
+      
+      toast.success('Request withdrawn successfully');
+      refetch();
+    } catch (error) {
+      console.error('Error withdrawing request:', error);
+      toast.error('Failed to withdraw request');
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
+    }
+  };
 
   if (isLoading) {
     return <div className="p-4">Loading requests...</div>;
@@ -48,6 +79,14 @@ export function SentRequests() {
               </div>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleWithdraw(request.id)}
+            disabled={processingIds.has(request.id)}
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
         </div>
       ))}
       {(!requests || requests.length === 0) && (
