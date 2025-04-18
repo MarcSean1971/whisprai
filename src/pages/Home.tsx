@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Logo } from "@/components/Logo";
@@ -149,41 +148,41 @@ export default function Home() {
         </Button>
       </div>
 
-      {/* Bottom Navigation Bar - Mobile Optimized */}
-      <div className="border-t bg-background py-1 px-2">
+      {/* Bottom Navigation Bar - WhatsApp Style */}
+      <div className="border-t bg-background py-2 px-2">
         <div className="grid grid-cols-4 gap-1">
           <Button
             variant={activeTab === 'messages' ? 'default' : 'ghost'}
-            className="h-10 flex flex-col items-center justify-center py-1"
+            className="h-auto flex flex-col items-center justify-center py-1 gap-1"
             onClick={() => setActiveTab('messages')}
           >
-            <MessageSquarePlus className="h-4 w-4" />
-            {!isMobile && <span className="text-xs mt-1">Messages</span>}
+            <MessageSquarePlus className="h-5 w-5" />
+            <span className="text-xs">Chats</span>
           </Button>
           <Button
             variant={activeTab === 'contacts' ? 'default' : 'ghost'}
-            className="h-10 flex flex-col items-center justify-center py-1"
+            className="h-auto flex flex-col items-center justify-center py-1 gap-1"
             onClick={() => setActiveTab('contacts')}
           >
-            <Users className="h-4 w-4" />
-            {!isMobile && <span className="text-xs mt-1">Contacts</span>}
+            <Users className="h-5 w-5" />
+            <span className="text-xs">Contacts</span>
           </Button>
           <Button
             variant="ghost"
-            className="h-10 flex flex-col items-center justify-center py-1"
+            className="h-auto flex flex-col items-center justify-center py-1 gap-1"
             onClick={() => navigate('/profile-setup')}
           >
-            <Settings className="h-4 w-4" />
-            {!isMobile && <span className="text-xs mt-1">Settings</span>}
+            <Settings className="h-5 w-5" />
+            <span className="text-xs">Settings</span>
           </Button>
           {isAdmin && (
             <Button
               variant="ghost"
-              className="h-10 flex flex-col items-center justify-center py-1"
+              className="h-auto flex flex-col items-center justify-center py-1 gap-1"
               onClick={() => navigate('/admin')}
             >
-              <Shield className="h-4 w-4" />
-              {!isMobile && <span className="text-xs mt-1">Admin</span>}
+              <Shield className="h-5 w-5" />
+              <span className="text-xs">Admin</span>
             </Button>
           )}
         </div>
