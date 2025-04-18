@@ -22,12 +22,18 @@ export function InstructionsManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Make sure all useEffect hooks are declared at the top level
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
       return;
     }
     loadInstructions();
   }, [isAdmin, adminLoading, loadInstructions]);
+
+  // This useEffect should be defined here, before any conditionals
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
 
   if (adminLoading) {
     return <div>Loading...</div>;
@@ -58,11 +64,6 @@ export function InstructionsManagement() {
   const totalPages = Math.ceil(filteredInstructions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedInstructions = filteredInstructions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-  // Reset to first page when search query changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
 
   return (
     <div className="space-y-6">
