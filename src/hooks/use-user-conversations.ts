@@ -36,55 +36,103 @@ export function useUserConversations() {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
+        
+        console.log('Fetching conversations for user:', user.id);
 
-        // Fetch conversations where user is a participant
-        const { data: userConversations, error: conversationsError } = await supabase
+        // First, get all conversation IDs the user is part of
+        const { data: participations, error: participationsError } = await supabase
           .from('conversation_participants')
-          .select(`
-            conversation:conversations (
-              id,
-              is_group,
-              created_at,
-              updated_at
-            ),
-            user:profiles (
-              id,
-              first_name,
-              last_name,
-              avatar_url,
-              language
-            )
-          `)
+          .select('conversation_id')
           .eq('user_id', user.id);
 
-        if (conversationsError) throw conversationsError;
-        if (!userConversations) return [];
+        if (participationsError) {
+          console.error('Error fetching participations:', participationsError);
+          throw participationsError;
+        }
 
-        // Process conversations
-        const processedConversations: Conversation[] = userConversations
-          .filter(uc => uc.conversation) // Filter out any null conversations
-          .map(uc => {
-            const conversation = uc.conversation;
+        if (!participations || participations.length === 0) {
+          console.log('No conversations found');
+          return [];
+        }
+
+        const conversationIds = participations.map(p => p.conversation_id);
+        console.log('Found', conversationIds.length, 'conversations');
+
+        // Fetch the conversation details
+        const { data: conversations, error: conversationsError } = await supabase
+          .from('conversations')
+          .select('*')
+          .in('id', conversationIds)
+          .order('updated_at', { ascending: false });
+
+        if (conversationsError) {
+          console.error('Error fetching conversations:', conversationsError);
+          throw conversationsError;
+        }
+
+        // For each conversation, get all participants
+        const processedConversations: Conversation[] = [];
+        
+        for (const conversation of conversations) {
+          // Get participants for this conversation
+          const { data: participants, error: participantsError } = await supabase
+            .from('conversation_participants')
+            .select('user_id')
+            .eq('conversation_id', conversation.id);
+            
+          if (participantsError) {
+            console.error('Error fetching participants:', participantsError);
+            continue;
+          }
+          
+          // Get other participants' profiles (excluding current user)
+          const otherParticipants = participants.filter(p => p.user_id !== user.id);
+          
+          if (otherParticipants.length === 0) {
+            // Skip conversations with no other participants
+            continue;
+          }
+          
+          // Get profiles for other participants
+          const otherParticipantIds = otherParticipants.map(p => p.user_id);
+          const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .in('id', otherParticipantIds);
+            
+          if (profilesError) {
+            console.error('Error fetching profiles:', profilesError);
+            continue;
+          }
+          
+          // Format participants list with profiles
+          const processedParticipants: Participant[] = otherParticipants.map(p => {
+            const profile = profiles.find(prof => prof.id === p.user_id);
             return {
-              ...conversation,
-              participants: [{
-                user_id: uc.user.id,
-                profile: uc.user
-              }],
-              name: uc.user.first_name 
-                ? `${uc.user.first_name} ${uc.user.last_name || ''}`
-                : `User ${uc.user.id.slice(0, 8)}`,
-              avatar: uc.user.avatar_url
+              user_id: p.user_id,
+              profile: profile as Profile
             };
           });
+          
+          // Get primary other participant for 1:1 chat (first one for simplicity)
+          const primaryProfile = profiles[0];
+          
+          // Add processed conversation to the result
+          processedConversations.push({
+            ...conversation,
+            participants: processedParticipants,
+            name: primaryProfile?.first_name 
+              ? `${primaryProfile.first_name || ''} ${primaryProfile.last_name || ''}`.trim()
+              : `User ${primaryProfile?.id.slice(0, 8)}`,
+            avatar: primaryProfile?.avatar_url || null
+          });
+        }
 
-        // Sort conversations by updated_at
-        return processedConversations.sort((a, b) => 
-          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
-        );
-
+        // Return the processed conversations
+        return processedConversations;
+        
       } catch (error) {
-        console.error('Error fetching conversations:', error);
+        console.error('Error in useUserConversations:', error);
         throw error;
       }
     },
