@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +8,9 @@ import { toast } from "sonner";
 interface ContactRequest {
   id: string;
   sender_id: string;
+  recipient_id: string;
+  recipient_email: string;
+  status: string;
   profile: {
     first_name: string | null;
     last_name: string | null;
@@ -32,7 +34,7 @@ export function ReceivedRequests() {
       // First, get all pending requests where the current user is the recipient
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select('id, sender_id')
+        .select('id, sender_id, recipient_id, recipient_email, status')
         .eq('recipient_id', user.id)
         .eq('status', 'pending');
 
@@ -58,8 +60,7 @@ export function ReceivedRequests() {
           }
 
           return {
-            id: request.id,
-            sender_id: request.sender_id,
+            ...request,
             profile: profileError ? null : profile
           };
         })
