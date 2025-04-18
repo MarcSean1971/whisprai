@@ -1,14 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Json } from '@/integrations/supabase/types';
 
 interface AISettingsType {
-  api_key: string;
   model: string;
   temperature: number;
   max_tokens: number;
@@ -16,7 +15,6 @@ interface AISettingsType {
 
 export function AISettings() {
   const [settings, setSettings] = useState<AISettingsType>({
-    api_key: '',
     model: 'gpt-4o-mini',
     temperature: 0.7,
     max_tokens: 1000
@@ -34,7 +32,6 @@ export function AISettings() {
 
         if (error) throw error;
         if (data && data.value) {
-          // First convert to unknown, then to our expected type to avoid TS errors
           const settingsData = data.value as unknown as AISettingsType;
           setSettings(settingsData);
         }
@@ -73,16 +70,6 @@ export function AISettings() {
       <h2 className="text-xl font-semibold">AI Settings</h2>
       
       <div className="space-y-4">
-        <div>
-          <label className="text-sm font-medium">API Key</label>
-          <Input
-            type="password"
-            value={settings.api_key}
-            onChange={(e) => setSettings(prev => ({ ...prev, api_key: e.target.value }))}
-            placeholder="Enter OpenAI API Key"
-          />
-        </div>
-
         <div>
           <label className="text-sm font-medium">Model</label>
           <Select
