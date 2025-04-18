@@ -60,6 +60,11 @@ export function useProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Ensure interests is always a string array
+      const interests = Array.isArray(values.interests) 
+        ? values.interests.map(String)
+        : [];
+
       const { error } = await supabase
         .from('profiles')
         .upsert({
@@ -70,7 +75,7 @@ export function useProfile() {
           birthdate: values.birthdate,
           bio: values.bio,
           language: values.language,
-          interests: values.interests,
+          interests: interests,
           avatar_url: values.avatarUrl,
           updated_at: new Date().toISOString()
         });

@@ -52,7 +52,7 @@ export default function ProfileSetup() {
     navigate('/');
   };
 
-  const handleSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = async (data: ProfileFormValues) => {
     const success = await updateProfile(data);
     if (success) {
       navigate('/home');
@@ -79,7 +79,7 @@ export default function ProfileSetup() {
         </header>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <BasicInfo form={form} />
             <ProfileDetails 
               form={form} 
