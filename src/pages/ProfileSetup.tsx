@@ -82,7 +82,7 @@ export default function ProfileSetup() {
         <ThemeToggle />
       </div>
 
-      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto">
+      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-20">
         <header className="flex items-center justify-center mb-6">
           <h1 className="text-xl font-semibold">Profile Setup</h1>
         </header>

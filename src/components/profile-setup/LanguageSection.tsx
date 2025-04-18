@@ -41,9 +41,14 @@ export function LanguageSection({ form }: LanguageSectionProps) {
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
             </FormControl>
-            <SelectContent className="max-h-[200px]">
+            <SelectContent 
+              className="max-h-[300px] overflow-y-auto bg-popover z-50"
+              position="popper"
+              sideOffset={4}
+              side="bottom"
+            >
               {Object.entries(languages).map(([code, name]) => (
-                <SelectItem key={code} value={code}>
+                <SelectItem key={code} value={code} className="cursor-pointer">
                   {name}
                 </SelectItem>
               ))}

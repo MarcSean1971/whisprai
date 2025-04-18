@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   MessageSquarePlus, 
@@ -40,52 +39,51 @@ export function BottomNavigation({
   }
 
   return (
-    <div className="border-t bg-background py-2 px-2">
-      <div className="grid grid-cols-5 gap-1">
+    <div className="border-t bg-background py-2 px-2 fixed bottom-0 left-0 right-0">
+      <div className="flex justify-between w-full max-w-screen-xl mx-auto">
         <Button
           variant={currentTab === 'chats' ? 'default' : 'ghost'}
-          className="h-auto flex flex-col items-center justify-center py-1 gap-1"
+          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
           onClick={() => navigate('/chats')}
         >
           <MessageSquarePlus className="h-5 w-5" />
-          <span className="text-xs">Chats</span>
+          <span className="text-xs truncate">Chats</span>
         </Button>
         <Button
           variant={currentTab === 'contacts' ? 'default' : 'ghost'}
-          className="h-auto flex flex-col items-center justify-center py-1 gap-1"
+          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
           onClick={() => navigate('/contacts')}
         >
           <Users className="h-5 w-5" />
-          <span className="text-xs">Contacts</span>
+          <span className="text-xs truncate">Contacts</span>
         </Button>
         <Button
           variant={currentTab === 'settings' ? 'default' : 'ghost'}
-          className="h-auto flex flex-col items-center justify-center py-1 gap-1"
+          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
           onClick={() => navigate('/profile-setup')}
         >
           <Settings className="h-5 w-5" />
-          <span className="text-xs">Settings</span>
+          <span className="text-xs truncate">Settings</span>
         </Button>
         {isAdmin && (
           <Button
             variant={currentTab === 'admin' ? 'default' : 'ghost'}
-            className="h-auto flex flex-col items-center justify-center py-1 gap-1"
+            className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
             onClick={() => navigate('/admin')}
           >
             <Shield className="h-5 w-5" />
-            <span className="text-xs">Admin</span>
+            <span className="text-xs truncate">Admin</span>
           </Button>
         )}
         <Button
           variant="ghost"
-          className="h-auto flex flex-col items-center justify-center py-1 gap-1 text-destructive hover:text-destructive"
+          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0 text-destructive hover:text-destructive"
           onClick={onLogout}
         >
           <LogOut className="h-5 w-5" />
-          <span className="text-xs">Logout</span>
+          <span className="text-xs truncate">Logout</span>
         </Button>
       </div>
     </div>
   );
 }
-
