@@ -12,9 +12,14 @@ export function useRequestHandler(onRequestProcessed: () => void) {
     try {
       console.log(`Processing request ${requestId}, accept: ${accept}`);
       
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+      
+      // Fetch request details
       const { data: request, error: fetchError } = await supabase
         .from('contact_requests')
-        .select('sender_id, status')
+        .select('sender_id, recipient_id, status')
         .eq('id', requestId)
         .single();
 
@@ -23,6 +28,12 @@ export function useRequestHandler(onRequestProcessed: () => void) {
         throw new Error('Request not found');
       }
 
+      // Verify the current user is the recipient of this request
+      if (request.recipient_id !== user.id) {
+        throw new Error('You are not authorized to process this request');
+      }
+
+      // Check if request is still pending
       if (request.status !== 'pending') {
         throw new Error('Request has already been processed');
       }
@@ -41,16 +52,14 @@ export function useRequestHandler(onRequestProcessed: () => void) {
       }
 
       if (accept) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
         console.log(`Creating contact: user_id=${user.id}, contact_id=${request.sender_id}`);
         
-        // Create contact record
+        // Create two-way contact records (both users add each other)
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
-            { user_id: user.id, contact_id: request.sender_id }
+            { user_id: user.id, contact_id: request.sender_id },
+            { user_id: request.sender_id, contact_id: user.id }
           ]);
 
         if (insertError) {
