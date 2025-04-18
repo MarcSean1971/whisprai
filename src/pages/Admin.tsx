@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,10 +20,6 @@ export default function Admin() {
       navigate('/home');
     }
   }, [isAdmin, loading, navigate]);
-
-  const handleExit = () => {
-    navigate('/home');
-  };
 
   const handleLogout = async () => {
     try {
@@ -53,7 +50,7 @@ export default function Admin() {
     <div className="flex flex-col h-screen bg-background w-full">
       <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
         <div className="mx-auto w-full">
-          <AdminHeader onExit={handleExit} />
+          <AdminHeader />
           <AdminTabs />
         </div>
       </div>
