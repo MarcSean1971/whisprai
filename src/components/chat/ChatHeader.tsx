@@ -21,10 +21,18 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
   useEffect(() => {
     const fetchConversationDetails = async () => {
       try {
-        const { data: userData } = await supabase.auth.getUser();
-        const currentUserId = userData.user?.id;
+        // Get current user
+        const { data: authData, error: authError } = await supabase.auth.getUser();
         
-        const { data: participants, error } = await supabase
+        if (authError) {
+          console.error('Error fetching user:', authError);
+          return;
+        }
+        
+        const currentUserId = authData.user?.id;
+        
+        // Get participants
+        const { data: participants, error: participantsError } = await supabase
           .from('conversation_participants')
           .select(`
             user_id,
@@ -36,8 +44,8 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
           `)
           .eq('conversation_id', conversationId);
 
-        if (error) {
-          console.error('Error fetching participants:', error);
+        if (participantsError) {
+          console.error('Error fetching participants:', participantsError);
           return;
         }
 
