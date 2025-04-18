@@ -11,10 +11,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-// Updated User interface to make email optional to match Supabase's User type
 interface User {
   id: string;
-  email?: string; // Changed from required to optional
+  email?: string;
   created_at: string;
 }
 
@@ -28,9 +27,9 @@ export function UserManagement() {
 
   const loadUsers = async () => {
     try {
-      const { data: { users }, error } = await supabase.auth.admin.listUsers();
+      const { data: { users }, error } = await supabase.functions.invoke('list-users');
       if (error) throw error;
-      setUsers(users); // Now this will work with the updated interface
+      setUsers(users);
     } catch (error) {
       console.error('Error loading users:', error);
       toast.error('Failed to load users');
