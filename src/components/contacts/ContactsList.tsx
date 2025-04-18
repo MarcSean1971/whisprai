@@ -31,7 +31,7 @@ export function ContactsList() {
 
   return (
     <div className="space-y-2">
-      {contacts?.map((contact: Contact) => {
+      {contacts?.map((contact: any) => {
         // Get the first profile from the array
         const profile = contact.profiles?.[0];
         
