@@ -10,10 +10,12 @@ import { SentRequests } from "@/components/contacts/SentRequests";
 import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState } from "react";
 
 export default function Contacts() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
+  const [activeTab, setActiveTab] = useState("contacts");
   
   const handleLogout = async () => {
     try {
@@ -49,7 +51,7 @@ export default function Contacts() {
       />
       
       <div className="flex-1 overflow-y-auto">
-        <Tabs defaultValue="contacts" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
