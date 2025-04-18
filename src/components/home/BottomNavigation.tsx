@@ -41,7 +41,7 @@ export function BottomNavigation({
 
   return (
     <div className="border-t bg-background py-2 px-2">
-      <div className="grid grid-cols-4 gap-1">
+      <div className="grid grid-cols-5 gap-1">
         <Button
           variant={currentTab === 'chats' ? 'default' : 'ghost'}
           className="h-auto flex flex-col items-center justify-center py-1 gap-1"
@@ -66,7 +66,7 @@ export function BottomNavigation({
           <Settings className="h-5 w-5" />
           <span className="text-xs">Settings</span>
         </Button>
-        {isAdmin ? (
+        {isAdmin && (
           <Button
             variant={currentTab === 'admin' ? 'default' : 'ghost'}
             className="h-auto flex flex-col items-center justify-center py-1 gap-1"
@@ -75,17 +75,17 @@ export function BottomNavigation({
             <Shield className="h-5 w-5" />
             <span className="text-xs">Admin</span>
           </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            className="h-auto flex flex-col items-center justify-center py-1 gap-1 text-destructive hover:text-destructive"
-            onClick={onLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            <span className="text-xs">Logout</span>
-          </Button>
         )}
+        <Button
+          variant="ghost"
+          className="h-auto flex flex-col items-center justify-center py-1 gap-1 text-destructive hover:text-destructive"
+          onClick={onLogout}
+        >
+          <LogOut className="h-5 w-5" />
+          <span className="text-xs">Logout</span>
+        </Button>
       </div>
     </div>
   );
 }
+
