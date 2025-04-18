@@ -1,16 +1,10 @@
-
 import { useState, useRef, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
 import { MessageInput } from "@/components/MessageInput";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, MoreVertical, Phone, Search, Video } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-
-// Sample data
-import { messages, contacts } from "@/lib/sample-data";
 
 export type MessageType = {
   id: string;
@@ -36,18 +30,15 @@ export default function Chat() {
   const [contact, setContact] = useState<any>(null);
 
   useEffect(() => {
-    // Find contact by ID
     const foundContact = contacts.find(c => c.id === id);
     setContact(foundContact);
     
-    // Filter messages by conversation ID
     const conversationMessages = messages.filter(m => 
       m.conversationId === id
     );
     
     setChatMessages(conversationMessages);
     
-    // Generate AI suggestions based on conversation context
     const smartSuggestions = [
       { id: "1", text: "Sure, that works for me" },
       { id: "2", text: "What time should we meet?" },
@@ -58,7 +49,6 @@ export default function Chat() {
   }, [id]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
@@ -76,7 +66,6 @@ export default function Chat() {
     
     setChatMessages([...chatMessages, newMessage]);
     
-    // Simulate message being sent and delivered
     setTimeout(() => {
       setChatMessages(prev => 
         prev.map(msg => 
@@ -97,7 +86,6 @@ export default function Chat() {
       );
     }, 2000);
     
-    // Simulate AI response
     setTimeout(() => {
       const aiResponse: MessageType = {
         id: Date.now().toString(),
@@ -114,7 +102,6 @@ export default function Chat() {
       
       setChatMessages(prev => [...prev, aiResponse]);
       
-      // Generate new suggestions
       const newSuggestions = [
         { id: "1", text: "Thank you!" },
         { id: "2", text: "Can you explain in more detail?" },
@@ -126,7 +113,6 @@ export default function Chat() {
   };
 
   const handleStartRecording = () => {
-    // Placeholder for voice recording functionality
     alert("Voice recording feature will be implemented here");
   };
 
@@ -136,14 +122,13 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      {/* Header */}
       <header className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => navigate("/home")}
-            className="mr-2 md:hidden"
+            className="md:hover:bg-accent"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
@@ -179,7 +164,6 @@ export default function Chat() {
         </div>
       </header>
       
-      {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {chatMessages.map((message, index) => {
           const isOwn = message.sender.id === "me";
@@ -205,7 +189,6 @@ export default function Chat() {
         <div ref={messagesEndRef} />
       </div>
       
-      {/* Message Input */}
       <div className={cn(
         "p-4 border-t transition-all",
         suggestions.length > 0 && "pb-6"
