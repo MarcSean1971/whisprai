@@ -37,13 +37,17 @@ export default function Verify() {
 
       try {
         // Get user by email - using the correct API parameters
+        // The admin.listUsers method doesn't support direct filtering by email
+        // We'll get the first page of users and then filter manually
         const { data, error: getUserError } = await supabase.auth.admin.listUsers({
           page: 1,
-          perPage: 1,
-          query: decodeURIComponent(email)
+          perPage: 100
         });
 
-        const user = data?.users?.[0] as SupabaseUser | undefined;
+        // Find the user with the matching email
+        const user = data?.users?.find(u => 
+          u.email?.toLowerCase() === decodeURIComponent(email).toLowerCase()
+        ) as SupabaseUser | undefined;
         
         if (getUserError || !user) {
           console.error("User fetch error:", getUserError);
