@@ -72,16 +72,23 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
           { conversation_id: conversation.id, user_id: contact.contact.id }
         ];
 
-        const { error: participantsError } = await supabase
+        console.log("Participant details:", participants);
+
+        const { data, error: participantsError } = await supabase
           .from('conversation_participants')
-          .insert(participants);
+          .insert(participants)
+          .select();
 
         if (participantsError) {
-          console.error("Error adding participants:", participantsError);
+          console.error("Detailed participant insertion error:", {
+            error: participantsError,
+            message: participantsError.message,
+            details: participantsError.details
+          });
           throw participantsError;
         }
 
-        console.log("Participants added successfully");
+        console.log("Participants added successfully:", data);
         toast.success("Conversation started");
         onOpenChange(false);
         navigate(`/chat/${conversation.id}`);
