@@ -1,5 +1,5 @@
 
-import { Wifi } from "lucide-react";
+import { Mic } from "lucide-react";
 
 interface LogoProps {
   size?: "sm" | "md" | "lg";
@@ -16,7 +16,7 @@ export function Logo({ size = "md", variant = "full" }: LogoProps) {
   return (
     <div className="flex items-center gap-2">
       <div className="flex items-center justify-center w-8 h-8 rounded-md bg-whispr-purple text-white">
-        <Wifi className="w-5 h-5" />
+        <Mic className="w-5 h-5" />
       </div>
       {variant === "full" && (
         <span className={`font-bold ${sizeClasses[size]} text-foreground`}>
