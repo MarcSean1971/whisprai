@@ -13,18 +13,29 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 
-interface Instruction {
-  id: string;
-  name: string;
-  content: string;
-}
+// Zod schema for validation
+const instructionSchema = z.object({
+  name: z.string().min(1, "Name is required").max(100, "Name must be less than 100 characters"),
+  content: z.string().min(1, "Content is required").max(5000, "Content must be less than 5000 characters")
+});
 
 export function InstructionsManagement() {
   const [instructions, setInstructions] = useState<Instruction[]>([]);
-  const [newName, setNewName] = useState('');
-  const [newContent, setNewContent] = useState('');
   const [loading, setLoading] = useState(true);
+
+  // Initialize form with react-hook-form and zod validation
+  const form = useForm<z.infer<typeof instructionSchema>>({
+    resolver: zodResolver(instructionSchema),
+    defaultValues: {
+      name: '',
+      content: ''
+    }
+  });
 
   useEffect(() => {
     loadInstructions();
@@ -47,23 +58,20 @@ export function InstructionsManagement() {
     }
   };
 
-  const handleSave = async () => {
-    if (!newName.trim() || !newContent.trim()) {
-      toast.error('Name and content are required');
-      return;
-    }
-
+  const onSubmit = async (values: z.infer<typeof instructionSchema>) => {
     try {
       const { error } = await supabase
         .from('ai_instructions')
-        .insert([{ name: newName, content: newContent }]);
+        .insert([{ 
+          name: values.name, 
+          content: values.content 
+        }]);
 
       if (error) throw error;
 
       toast.success('Instruction added successfully');
-      setNewName('');
-      setNewContent('');
-      loadInstructions();
+      form.reset(); // Reset form after successful submission
+      loadInstructions(); // Refresh the list
     } catch (error) {
       console.error('Error saving instruction:', error);
       toast.error('Failed to save instruction');
@@ -93,21 +101,45 @@ export function InstructionsManagement() {
 
   return (
     <div className="space-y-6">
-      <div className="space-y-4">
-        <h3 className="text-lg font-medium">Add New Instruction</h3>
-        <Input
-          placeholder="Instruction Name"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <Textarea
-          placeholder="Instruction Content"
-          value={newContent}
-          onChange={(e) => setNewContent(e.target.value)}
-          className="min-h-[100px]"
-        />
-        <Button onClick={handleSave} className="w-full">Add Instruction</Button>
-      </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <h3 className="text-lg font-medium">Add New Instruction</h3>
+          
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Instruction Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Enter instruction name" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="content"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Instruction Content</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    placeholder="Enter instruction content" 
+                    className="min-h-[100px]" 
+                    {...field} 
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button type="submit" className="w-full">Add Instruction</Button>
+        </form>
+      </Form>
 
       <div className="space-y-4">
         <h3 className="text-lg font-medium">Existing Instructions</h3>
