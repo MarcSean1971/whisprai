@@ -2,6 +2,8 @@
 import { Logo } from "@/components/Logo";
 import { SearchBar } from "./SearchBar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MessageSquare, Users } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 interface HeaderProps {
   isSearching: boolean;
@@ -17,18 +19,40 @@ export function Header({
   onSearchToggle,
 }: HeaderProps) {
   const isMobile = useIsMobile();
+  const location = useLocation();
+
+  const getHeaderContent = () => {
+    switch (location.pathname) {
+      case '/chats':
+        return { title: 'Chats', icon: <MessageSquare className="h-5 w-5" /> };
+      case '/contacts':
+        return { title: 'Contacts', icon: <Users className="h-5 w-5" /> };
+      default:
+        return null;
+    }
+  };
+
+  const headerContent = getHeaderContent();
 
   return (
-    <header className="flex items-center justify-between p-2 border-b">
-      <Logo variant={isMobile ? "icon" : "full"} />
-      <div className="flex items-center gap-1">
-        <SearchBar
-          isSearching={isSearching}
-          searchQuery={searchQuery}
-          onSearchChange={onSearchChange}
-          onSearchToggle={onSearchToggle}
-        />
+    <header className="flex flex-col p-2 border-b space-y-4">
+      <div className="flex items-center justify-between">
+        <Logo variant={isMobile ? "icon" : "full"} />
+        <div className="flex items-center gap-1">
+          <SearchBar
+            isSearching={isSearching}
+            searchQuery={searchQuery}
+            onSearchChange={onSearchChange}
+            onSearchToggle={onSearchToggle}
+          />
+        </div>
       </div>
+      {headerContent && (
+        <div className="flex items-center gap-2">
+          {headerContent.icon}
+          <h1 className="text-xl font-semibold">{headerContent.title}</h1>
+        </div>
+      )}
     </header>
   );
 }
