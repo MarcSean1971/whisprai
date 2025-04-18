@@ -1,8 +1,8 @@
+
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { languageNames } from '@/lib/languages';
 import { EditLanguageDialog } from './EditLanguageDialog';
 import { AddLanguageForm } from './languages/AddLanguageForm';
 import { LanguageList } from './languages/LanguageList';
@@ -23,10 +23,17 @@ export function LanguageManagement() {
 
         if (error) {
           if (error.code === 'PGRST116') {
+            // If language list doesn't exist, create a default one
+            const defaultLanguages = { 
+              en: "English", 
+              es: "Spanish", 
+              fr: "French" 
+            };
+            
             await supabase
               .from('admin_settings')
-              .insert({ key: 'language_list', value: languageNames });
-            setLanguages(languageNames);
+              .insert({ key: 'language_list', value: defaultLanguages });
+            setLanguages(defaultLanguages);
           } else {
             throw error;
           }

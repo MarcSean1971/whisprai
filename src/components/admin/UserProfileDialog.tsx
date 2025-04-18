@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -19,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { languageNames } from '@/lib/languages';
+import { useLanguages } from '@/hooks/use-languages';
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Loader2 } from "lucide-react";
 
 interface UserProfileDialogProps {
   userId: string | null;
@@ -35,6 +35,7 @@ export function UserProfileDialog({ userId, open, onOpenChange }: UserProfileDia
     avatar_url: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { languages, isLoading: languagesLoading } = useLanguages();
 
   // Fix: useState was being used incorrectly as a effect hook
   useEffect(() => {
@@ -86,6 +87,58 @@ export function UserProfileDialog({ userId, open, onOpenChange }: UserProfileDia
   };
 
   if (!profile) return null;
+  
+  const renderContent = () => {
+    if (languagesLoading) {
+      return (
+        <div className="flex items-center justify-center py-4">
+          <Loader2 className="h-5 w-5 animate-spin" />
+        </div>
+      );
+    }
+    
+    return (
+      <>
+        <div className="flex items-center justify-center">
+          <Avatar className="h-24 w-24">
+            <AvatarImage src={profile.avatar_url || ''} alt="Profile picture" />
+            <AvatarFallback>
+              {profile.avatar_url ? 'Avatar' : 'No Avatar'}
+            </AvatarFallback>
+          </Avatar>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="language">Language</Label>
+          <Select
+            value={profile.language}
+            onValueChange={(value) => setProfile({ ...profile, language: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select language" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(languages).map(([code, name]) => (
+                <SelectItem key={code} value={code}>
+                  {String(name)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="bio">Bio</Label>
+          <Textarea
+            id="bio"
+            value={profile.bio || ''}
+            onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+            rows={4}
+          />
+        </div>
+      </>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -94,49 +147,13 @@ export function UserProfileDialog({ userId, open, onOpenChange }: UserProfileDia
           <DialogTitle>Edit User Profile</DialogTitle>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="flex items-center justify-center">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={profile.avatar_url || ''} alt="Profile picture" />
-              <AvatarFallback>
-                {profile.avatar_url ? 'Avatar' : 'No Avatar'}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="language">Language</Label>
-            <Select
-              value={profile.language}
-              onValueChange={(value) => setProfile({ ...profile, language: value })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select language" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(languageNames).map(([code, name]) => (
-                  <SelectItem key={code} value={code}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profile.bio || ''}
-              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-              rows={4}
-            />
-          </div>
+          {renderContent()}
         </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave} disabled={isLoading}>
+          <Button onClick={handleSave} disabled={isLoading || languagesLoading}>
             {isLoading ? 'Saving...' : 'Save changes'}
           </Button>
         </div>
