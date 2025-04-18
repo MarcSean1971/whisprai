@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,12 +24,11 @@ export function PendingRequests() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      // Now using RLS policies to handle visibility - just query pending requests
+      // Only filter by status, RLS will handle visibility
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
         .select('id, sender_id, recipient_email, status')
-        .eq('status', 'pending')
-        .eq('recipient_email', userData.user.email);
+        .eq('status', 'pending');
 
       if (requestsError) throw requestsError;
       if (!requestsData || requestsData.length === 0) return [];
