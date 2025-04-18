@@ -33,7 +33,7 @@ export function BottomNavigation({
           onClick={() => setActiveTab('messages')}
         >
           <MessageSquarePlus className="h-5 w-5" />
-          <span className="text-xs">Chats</span>
+          <span className="text-xs">Messages</span>
         </Button>
         <Button
           variant={activeTab === 'contacts' ? 'default' : 'ghost'}

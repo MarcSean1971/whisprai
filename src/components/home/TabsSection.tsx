@@ -9,25 +9,28 @@ import { ConversationItem } from "@/components/ConversationItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TabsSectionProps {
+  activeTab: 'messages' | 'contacts';
   filteredConversations: Array<any>;
   searchQuery: string;
   onConversationClick: (id: string) => void;
   onClearSearch: () => void;
+  onTabChange: (value: string) => void;
 }
 
 export function TabsSection({
+  activeTab,
   filteredConversations,
   searchQuery,
   onConversationClick,
   onClearSearch,
+  onTabChange,
 }: TabsSectionProps) {
   return (
-    <Tabs defaultValue="messages" className="w-full">
+    <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <div className="px-2 border-b">
         <TabsList className="w-full justify-start">
           <TabsTrigger value="messages" className="flex-1">Messages</TabsTrigger>
           <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
-          <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
         </TabsList>
       </div>
 
@@ -61,15 +64,19 @@ export function TabsSection({
         </div>
       </TabsContent>
 
-      <TabsContent value="contacts" className="mt-0 relative">
-        <div className="absolute right-4 top-4">
-          <AddContactDialog />
+      <TabsContent value="contacts" className="mt-0">
+        <div className="space-y-4">
+          <div className="relative">
+            <div className="absolute right-4 top-4">
+              <AddContactDialog />
+            </div>
+            <ContactsList />
+          </div>
+          <div className="pt-4 border-t">
+            <h3 className="px-4 text-sm font-medium mb-2">Pending Requests</h3>
+            <PendingRequests />
+          </div>
         </div>
-        <ContactsList />
-      </TabsContent>
-
-      <TabsContent value="pending" className="mt-0">
-        <PendingRequests />
       </TabsContent>
     </Tabs>
   );

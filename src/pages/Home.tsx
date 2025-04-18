@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/use-admin";
-import { Button } from "@/components/ui/button";
 
 // Components
 import { Header } from "@/components/home/Header";
@@ -71,10 +70,12 @@ export default function Home() {
       
       <div className="flex-1 overflow-y-auto">
         <TabsSection 
+          activeTab={activeTab}
           filteredConversations={filteredConversations}
           searchQuery={searchQuery}
           onConversationClick={handleConversationClick}
           onClearSearch={handleClearSearch}
+          onTabChange={(value) => setActiveTab(value as 'messages' | 'contacts')}
         />
       </div>
 
