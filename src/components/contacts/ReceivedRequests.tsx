@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -32,19 +33,10 @@ export function ReceivedRequests() {
           throw new Error('Not authenticated');
         }
 
+        // First, get the contact requests
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
-          .select(`
-            id, 
-            sender_id,
-            recipient_id,
-            status,
-            profile:profiles!contact_requests_sender_id_fkey (
-              first_name,
-              last_name,
-              avatar_url
-            )
-          `)
+          .select('id, sender_id, recipient_id, status')
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
@@ -54,7 +46,35 @@ export function ReceivedRequests() {
           throw requestsError;
         }
 
-        return requestsData || [];
+        // If there are no requests, return empty array
+        if (!requestsData || requestsData.length === 0) {
+          return [];
+        }
+
+        // For each request, fetch the sender's profile
+        const requestsWithProfiles = await Promise.all(
+          requestsData.map(async (request) => {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, avatar_url')
+              .eq('id', request.sender_id)
+              .single();
+
+            if (profileError) {
+              console.error('Error fetching profile for sender:', profileError);
+              // Return request without profile data if there was an error
+              return { ...request, profile: null };
+            }
+
+            // Return request with profile data
+            return { 
+              ...request, 
+              profile: profile 
+            };
+          })
+        );
+
+        return requestsWithProfiles as ContactRequest[];
       } catch (error) {
         console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
