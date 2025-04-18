@@ -6,7 +6,7 @@ import { NewMessageButton } from "@/components/home/NewMessageButton";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { EmptyState } from "@/components/EmptyState";
-import { Search } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationItem } from "@/components/ConversationItem";
 import { useUserConversations } from "@/hooks/use-user-conversations";
@@ -80,10 +80,16 @@ export default function Chats() {
             <div className="p-4 text-center">Loading conversations...</div>
           ) : error ? (
             <div className="p-4 text-center">
-              <p className="text-red-500 mb-2">Unable to load conversations</p>
-              <Button onClick={() => refetch()} variant="outline" className="mt-2">
-                Retry
-              </Button>
+              <div className="flex flex-col items-center justify-center gap-2 p-4">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+                <p className="text-destructive mb-2">Unable to load conversations</p>
+                <pre className="text-xs text-muted-foreground bg-muted p-2 rounded-md max-w-full overflow-auto my-2">
+                  {error instanceof Error ? error.message : 'Unknown error'}
+                </pre>
+                <Button onClick={() => refetch()} variant="outline" className="mt-2">
+                  Retry
+                </Button>
+              </div>
             </div>
           ) : filteredConversations && filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => (
