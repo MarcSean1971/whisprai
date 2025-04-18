@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ interface ContactRequest {
 export function ReceivedRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const { data: requests, isLoading } = useQuery({
+  const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
       try {
@@ -93,6 +94,56 @@ export function ReceivedRequests() {
     return <div className="p-4">Loading requests...</div>;
   }
 
+  const handleRequest = async (requestId: string, accept: boolean) => {
+    setProcessingIds(prev => new Set(prev).add(requestId));
+    
+    try {
+      const { data: request } = await supabase
+        .from('contact_requests')
+        .select('sender_id')
+        .eq('id', requestId)
+        .single();
+
+      if (!request) {
+        throw new Error('Request not found');
+      }
+
+      if (accept) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // Create bidirectional contact connection
+        const { error: insertError } = await supabase
+          .from('contacts')
+          .insert([
+            { user_id: user.id, contact_id: request.sender_id }
+          ]);
+
+        if (insertError) throw insertError;
+      }
+
+      // Update request status
+      const { error: updateError } = await supabase
+        .from('contact_requests')
+        .update({ status: accept ? 'accepted' : 'rejected' })
+        .eq('id', requestId);
+
+      if (updateError) throw updateError;
+
+      toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
+      refetch();
+    } catch (error) {
+      console.error('Error processing request:', error);
+      toast.error('Failed to process request');
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
+    }
+  };
+
   // Render minimal UI to focus on data
   return (
     <div className="space-y-2">
@@ -157,54 +208,4 @@ export function ReceivedRequests() {
       )}
     </div>
   );
-
-  const handleRequest = async (requestId: string, accept: boolean) => {
-    setProcessingIds(prev => new Set(prev).add(requestId));
-    
-    try {
-      const { data: request } = await supabase
-        .from('contact_requests')
-        .select('sender_id')
-        .eq('id', requestId)
-        .single();
-
-      if (!request) {
-        throw new Error('Request not found');
-      }
-
-      if (accept) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
-        // Create bidirectional contact connection
-        const { error: insertError } = await supabase
-          .from('contacts')
-          .insert([
-            { user_id: user.id, contact_id: request.sender_id }
-          ]);
-
-        if (insertError) throw insertError;
-      }
-
-      // Update request status
-      const { error: updateError } = await supabase
-        .from('contact_requests')
-        .update({ status: accept ? 'accepted' : 'rejected' })
-        .eq('id', requestId);
-
-      if (updateError) throw updateError;
-
-      toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
-      refetch();
-    } catch (error) {
-      console.error('Error processing request:', error);
-      toast.error('Failed to process request');
-    } finally {
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
-    }
-  };
 }
