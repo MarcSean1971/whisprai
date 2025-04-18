@@ -1,43 +1,16 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAvatarUpload } from '@/hooks/use-avatar-upload';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { languageNames } from '@/lib/languages';
-import { BioEnhancer } from '@/components/BioEnhancer';
-
-const profileSchema = z.object({
-  firstName: z.string().min(2, 'First name must be at least 2 characters').max(50),
-  lastName: z.string().min(2, 'Last name must be at least 2 characters').max(50),
-  tagline: z.string().max(100, 'Tagline must be less than 100 characters').optional(),
-  birthdate: z.string().refine((val) => {
-    const date = new Date(val);
-    const now = new Date();
-    return date < now;
-  }, 'Birthdate must be in the past'),
-  bio: z.string().optional(),
-  language: z.string().min(1, 'Please select a language'),
-  interests: z.array(z.string()).optional(),
-});
-
-type ProfileFormValues = z.infer<typeof profileSchema>;
+import { AvatarUpload } from '@/components/profile-setup/AvatarUpload';
+import { BasicInfo } from '@/components/profile-setup/BasicInfo';
+import { ProfileDetails } from '@/components/profile-setup/ProfileDetails';
+import { profileSchema, type ProfileFormValues } from '@/components/profile-setup/types';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -171,133 +144,15 @@ export default function ProfileSetup() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="flex flex-col items-center gap-3">
-              <Avatar className="w-20 h-20">
-                <AvatarImage src={avatarUrl || ''} alt="Profile" />
-                <AvatarFallback>?</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-center gap-1">
-                <Button variant="outline" size="sm" asChild>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarChange}
-                      className="hidden"
-                    />
-                    {avatarUrl ? 'Change Photo' : 'Upload Photo'}
-                  </label>
-                </Button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="John" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Doe" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="tagline"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Tagline</FormLabel>
-                  <FormControl>
-                    <Input placeholder="A short description about yourself" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <AvatarUpload 
+              avatarUrl={avatarUrl} 
+              onAvatarChange={handleAvatarChange}
             />
-
-            <FormField
-              control={form.control}
-              name="birthdate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Birthdate</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <BasicInfo form={form} />
+            <ProfileDetails 
+              form={form}
+              onEnhanceBio={handleEnhanceBio}
             />
-
-            <FormField
-              control={form.control}
-              name="language"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preferred Language *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a language" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {Object.entries(languageNames).map(([code, name]) => (
-                        <SelectItem key={code} value={code}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center justify-between">
-                    <FormLabel>Bio</FormLabel>
-                    <BioEnhancer 
-                      currentBio={field.value || ''} 
-                      onEnhance={handleEnhanceBio} 
-                    />
-                  </div>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Tell us about yourself..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <Button type="submit" className="w-full" disabled={isSaving}>
               {isSaving ? 'Saving...' : 'Save Profile'}
             </Button>
@@ -307,4 +162,3 @@ export default function ProfileSetup() {
     </div>
   );
 }
-
