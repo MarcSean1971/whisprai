@@ -34,6 +34,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     
     try {
       setIsCreating(true);
+      console.log("Starting conversation creation with contact:", contact.contact.id);
       
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
@@ -42,6 +43,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
       }
 
       // First create the conversation
+      console.log("Creating conversation...");
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -52,14 +54,18 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .single();
 
       if (conversationError) {
+        console.error("Error creating conversation:", conversationError);
         throw conversationError;
       }
 
       if (!conversation) {
         throw new Error('Failed to create conversation');
       }
+      
+      console.log("Conversation created:", conversation.id);
 
       // Then add the participants
+      console.log("Adding participants...");
       const participants = [
         { conversation_id: conversation.id, user_id: user.id },
         { conversation_id: conversation.id, user_id: contact.contact.id }
@@ -70,7 +76,9 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .insert(participants);
 
       if (participantsError) {
+        console.error("Error adding participants:", participantsError);
         // If adding participants fails, cleanup the conversation
+        console.log("Cleaning up conversation due to error...");
         await supabase
           .from('conversations')
           .delete()
@@ -78,6 +86,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         throw participantsError;
       }
 
+      console.log("Participants added successfully");
       toast.success("Conversation started");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
