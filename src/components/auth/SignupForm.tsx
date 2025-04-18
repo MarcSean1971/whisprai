@@ -18,11 +18,15 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
+      // Sign up the user without email verification
       const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: window.location.origin + "/home"
+          emailRedirectTo: `${window.location.origin}/home`,
+          data: {
+            email_confirmed: false // We'll update this after they verify
+          }
         }
       });
 
@@ -31,28 +35,45 @@ export function SignupForm() {
         return;
       }
 
-      // Generate a confirmation URL manually since Supabase doesn't return one directly
-      const appUrl = window.location.origin;
-      const confirmationUrl = `${appUrl}/home?email=${encodeURIComponent(email)}`;
+      if (!data.user) {
+        toast.error("Failed to create account");
+        return;
+      }
 
-      // Send custom confirmation email
+      // Generate a sign-up token (this will be used to verify the email)
+      const token = crypto.randomUUID();
+
+      // Store the token in the user's metadata (we'll verify this later)
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { verification_token: token }
+      });
+
+      if (updateError) {
+        toast.error("Failed to initialize account verification");
+        return;
+      }
+
+      // Create the verification URL with the token
+      const verificationUrl = `${window.location.origin}/verify?token=${token}&email=${encodeURIComponent(email)}`;
+
+      // Send custom confirmation email using our edge function
       const { error: emailError } = await supabase.functions.invoke('send-email', {
         body: {
           email,
-          confirmationUrl
+          confirmationUrl: verificationUrl
         },
       });
 
       if (emailError) {
-        toast.error("Failed to send confirmation email");
         console.error("Email error:", emailError);
+        toast.error("Failed to send confirmation email");
         return;
       }
 
-      toast.info("Check your email for confirmation link");
+      toast.info("Please check your email to verify your account");
     } catch (error) {
-      toast.error("An unexpected error occurred");
       console.error("Signup error:", error);
+      toast.error("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
