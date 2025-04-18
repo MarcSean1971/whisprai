@@ -23,26 +23,21 @@ export function useProfile() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select()
         .eq('id', user.id)
         .maybeSingle();
 
       if (error) throw error;
 
       if (data) {
-        // Ensure interests is always a string array
-        const interests = Array.isArray(data.interests) 
-          ? data.interests.map(i => String(i))
-          : [];
-
         const formattedProfile: ProfileFormValues = {
           firstName: data.first_name || '',
           lastName: data.last_name || '',
           tagline: data.tagline || '',
           birthdate: data.birthdate || '',
           bio: data.bio || '',
-          language: data.language || '',
-          interests: interests,
+          language: data.language || 'en',
+          interests: Array.isArray(data.interests) ? data.interests.map(i => String(i)) : [],
           avatarUrl: data.avatar_url || ''
         };
         setProfile(formattedProfile);
@@ -60,27 +55,23 @@ export function useProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Ensure interests is always a string array
-      const interests = Array.isArray(values.interests) 
-        ? values.interests.map(String)
-        : [];
-
       const { error } = await supabase
         .from('profiles')
-        .upsert({
-          id: user.id,
+        .update({
           first_name: values.firstName,
           last_name: values.lastName,
           tagline: values.tagline,
           birthdate: values.birthdate,
           bio: values.bio,
           language: values.language,
-          interests: interests,
+          interests: Array.isArray(values.interests) ? values.interests : [],
           avatar_url: values.avatarUrl,
           updated_at: new Date().toISOString()
-        });
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
+      
       await fetchProfile(); // Refresh the profile data
       toast.success('Profile updated successfully');
       return true;
