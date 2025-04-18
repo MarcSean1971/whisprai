@@ -17,7 +17,6 @@ import { useProfile } from '@/hooks/use-profile';
 export default function ProfileSetup() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = React.useState<'chats' | 'contacts'>('chats');
   const { profile, isLoading, updateProfile } = useProfile();
 
   const form = useForm<ProfileFormValues>({
@@ -95,7 +94,6 @@ export default function ProfileSetup() {
       </div>
       
       <BottomNavigation 
-        activeTab={activeTab}
         onLogout={handleLogout}
         isAdmin={isAdmin}
       />
