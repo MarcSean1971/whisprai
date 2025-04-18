@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import { ProfileFormValues } from '@/components/profile-setup/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { profileSetupSchema } from './ProfileSetupSchema';
+import { Form } from '@/components/ui/form';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -55,18 +56,20 @@ export default function ProfileSetup() {
         <div className="w-10"></div>
       </header>
 
-      <form onSubmit={onSubmit} className="space-y-6">
-        <BasicInfo form={form} />
-        <ProfileDetails 
-          form={form} 
-          onEnhanceBio={handleEnhanceBio} 
-        />
-        <div className="flex justify-end">
-          <Button type="submit">
-            Save Profile
-          </Button>
-        </div>
-      </form>
+      <Form {...form}>
+        <form onSubmit={onSubmit} className="space-y-6">
+          <BasicInfo form={form} />
+          <ProfileDetails 
+            form={form} 
+            onEnhanceBio={handleEnhanceBio} 
+          />
+          <div className="flex justify-end">
+            <Button type="submit">
+              Save Profile
+            </Button>
+          </div>
+        </form>
+      </Form>
     </div>
   );
 }
