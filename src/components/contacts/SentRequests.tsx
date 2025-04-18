@@ -19,9 +19,8 @@ interface ContactRequest {
   id: string;
   recipient_email: string;
   status: string;
-  recipient: {
-    profile: Profile | null;
-  } | null;
+  recipient_id: string | null;
+  recipient_profile: Profile | null;
 }
 
 export function SentRequests() {
@@ -38,28 +37,40 @@ export function SentRequests() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // First, fetch the contact requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select(`
-          id,
-          recipient_email,
-          status,
-          recipient:recipient_id (
-            profile:profiles (
-              first_name,
-              last_name,
-              avatar_url,
-              bio,
-              tagline,
-              birthdate
-            )
-          )
-        `)
+        .select('id, recipient_email, status, recipient_id')
         .eq('status', 'pending')
         .eq('sender_id', user.id);
 
-      if (error) throw error;
-      return data as ContactRequest[];
+      if (requestsError) throw requestsError;
+      
+      // Process each request to get profile data if recipient_id exists
+      const processedRequests: ContactRequest[] = await Promise.all(
+        requestsData.map(async (request) => {
+          let recipientProfile: Profile | null = null;
+          
+          if (request.recipient_id) {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
+              .eq('id', request.recipient_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              recipientProfile = profileData;
+            }
+          }
+          
+          return {
+            ...request,
+            recipient_profile: recipientProfile
+          };
+        })
+      );
+
+      return processedRequests;
     },
   });
 
@@ -99,14 +110,14 @@ export function SentRequests() {
           key={request.id}
           id={request.id}
           recipientEmail={request.recipient_email}
-          profile={request.recipient?.profile || null}
+          profile={request.recipient_profile}
           isProcessing={processingIds.has(request.id)}
           onWithdraw={handleWithdraw}
           onViewProfile={() => {
             setSelectedContact({
-              id: '',  // We don't have access to the ID directly
+              id: request.recipient_id || '',
               email: request.recipient_email,
-              profile: request.recipient?.profile || null
+              profile: request.recipient_profile
             });
           }}
         />
