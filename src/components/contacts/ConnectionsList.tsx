@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,21 +34,10 @@ export function ConnectionsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get contacts with their profiles
+      // Get contacts without the profiles join first
       const { data, error } = await supabase
         .from('contacts')
-        .select(`
-          id,
-          contact_id,
-          contacts_profile:profiles!contacts_contact_id_fkey (
-            first_name,
-            last_name,
-            avatar_url,
-            bio,
-            tagline,
-            birthdate
-          )
-        `)
+        .select('id, contact_id')
         .eq('user_id', user.id);
 
       if (error) {
@@ -57,25 +47,32 @@ export function ConnectionsList() {
 
       if (!data) return [];
 
-      // Process the data to match our expected types
-      const contactsWithEmail = await Promise.all(
+      // Process the data to match our expected types by fetching profiles separately
+      const contactsWithDetails = await Promise.all(
         data.map(async (contact) => {
           // Fetch email separately using RPC
           const { data: email } = await supabase
             .rpc('get_user_email', { user_id: contact.contact_id });
+          
+          // Fetch profile separately
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
+            .eq('id', contact.contact_id)
+            .maybeSingle();
             
           return {
             id: contact.id,
             contact: {
               id: contact.contact_id,
               email: email || 'Unknown email',
-              profile: contact.contacts_profile || null
+              profile: profileData || null
             }
           };
         })
       );
 
-      return contactsWithEmail;
+      return contactsWithDetails;
     },
   });
 
