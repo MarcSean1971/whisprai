@@ -12,44 +12,20 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    // Set up auth state change listener first
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        // Check if user has completed profile setup
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('language')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profile?.language === 'en') {
-          navigate('/profile-setup');
-        } else {
-          navigate('/home');
-        }
-      }
-    };
-    checkUser();
-
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN') {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('language')
-          .eq('id', session?.user.id)
-          .single();
-
-        if (profile?.language === 'en') {
-          navigate('/profile-setup');
-        } else {
-          navigate('/home');
-        }
+        navigate('/home');
       }
     });
 
-    // Cleanup subscription
+    // Check initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/home');
+      }
+    });
+
     return () => {
       subscription.unsubscribe();
     };
