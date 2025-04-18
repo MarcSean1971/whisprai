@@ -22,4 +22,3 @@ export const languageNames: { [key: string]: string } = {
   'vi': 'Vietnamese',
   'zh': 'Chinese'
 };
-
