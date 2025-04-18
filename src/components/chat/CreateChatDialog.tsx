@@ -35,17 +35,17 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     try {
       setIsCreating(true);
       
+      // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) {
         console.error("Auth error:", userError);
-        throw new Error('Authentication error occurred');
+        throw new Error('Not authenticated');
       }
       if (!user) {
-        throw new Error('You must be logged in to start a conversation');
+        throw new Error('Not authenticated');
       }
 
-      // First create the conversation
-      console.log("Creating conversation...");
+      // Create conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -56,50 +56,26 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .single();
 
       if (conversationError) {
-        console.error("Error creating conversation:", {
-          error: conversationError,
-          message: conversationError.message,
-          details: conversationError.details
-        });
+        console.error("Failed to create conversation:", conversationError);
         throw new Error('Failed to create conversation');
       }
 
       if (!conversation) {
         throw new Error('No conversation was created');
       }
-      
-      console.log("Conversation created:", conversation.id);
 
-      try {
-        // Add both users as participants
-        const participants = [
-          { conversation_id: conversation.id, user_id: user.id },
-          { conversation_id: conversation.id, user_id: contact.contact.id }
-        ];
+      // Add participants
+      const participants = [
+        { conversation_id: conversation.id, user_id: user.id },
+        { conversation_id: conversation.id, user_id: contact.contact.id }
+      ];
 
-        console.log("Adding participants:", participants);
+      const { error: participantsError } = await supabase
+        .from('conversation_participants')
+        .insert(participants);
 
-        const { data: participantsData, error: participantsError } = await supabase
-          .from('conversation_participants')
-          .insert(participants)
-          .select();
-
-        if (participantsError) {
-          console.error("Participant insertion error:", {
-            error: participantsError,
-            message: participantsError.message,
-            details: participantsError.details,
-            participants
-          });
-          throw new Error('Failed to add participants to conversation');
-        }
-
-        console.log("Participants added successfully:", participantsData);
-        toast.success("Conversation started");
-        onOpenChange(false);
-        navigate(`/chat/${conversation.id}`);
-      } catch (participantError) {
-        console.error("Error in participant creation, cleaning up conversation:", participantError);
+      if (participantsError) {
+        // If adding participants fails, cleanup the conversation
         const { error: cleanupError } = await supabase
           .from('conversations')
           .delete()
@@ -108,11 +84,15 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         if (cleanupError) {
           console.error("Failed to cleanup conversation:", cleanupError);
         }
-        throw participantError;
+        throw new Error('Failed to add participants');
       }
+
+      toast.success("Conversation started");
+      onOpenChange(false);
+      navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
-      console.error('Error in conversation creation:', error);
+      console.error('Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create conversation');
     } finally {
       setIsCreating(false);
