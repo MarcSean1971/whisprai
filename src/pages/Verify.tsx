@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-// Define the user type to match what comes from Supabase
-type SupabaseUser = {
+// Define a proper type for the user data returned from Supabase
+interface SupabaseUserData {
   id: string;
   email?: string;
   user_metadata?: {
@@ -15,7 +15,7 @@ type SupabaseUser = {
     verification_token?: string;
     [key: string]: any;
   };
-};
+}
 
 export default function Verify() {
   const [searchParams] = useSearchParams();
@@ -45,9 +45,11 @@ export default function Verify() {
         });
 
         // Find the user with the matching email
-        const user = data?.users?.find(u => 
+        // We need to cast the users array to the correct type
+        const users = data?.users as SupabaseUserData[] || [];
+        const user = users.find(u => 
           u.email?.toLowerCase() === decodeURIComponent(email).toLowerCase()
-        ) as SupabaseUser | undefined;
+        );
         
         if (getUserError || !user) {
           console.error("User fetch error:", getUserError);
