@@ -1,23 +1,25 @@
 
 export const languageNames: { [key: string]: string } = {
+  'af': 'Afrikaans',
+  'ar': 'Arabic',
+  'bn': 'Bengali',
+  'de': 'German',
   'en': 'English',
   'es': 'Spanish',
   'fr': 'French',
-  'de': 'German',
+  'hi': 'Hindi',
   'it': 'Italian',
-  'pt': 'Portuguese',
-  'ru': 'Russian',
   'ja': 'Japanese',
   'ko': 'Korean',
-  'zh': 'Chinese',
-  'ar': 'Arabic',
-  'hi': 'Hindi',
-  'bn': 'Bengali',
-  'pa': 'Punjabi',
-  'tr': 'Turkish',
-  'vi': 'Vietnamese',
-  'th': 'Thai',
   'nl': 'Dutch',
+  'pa': 'Punjabi',
   'pl': 'Polish',
-  'uk': 'Ukrainian'
+  'pt': 'Portuguese',
+  'ru': 'Russian',
+  'th': 'Thai',
+  'tr': 'Turkish',
+  'uk': 'Ukrainian',
+  'vi': 'Vietnamese',
+  'zh': 'Chinese'
 };
+
