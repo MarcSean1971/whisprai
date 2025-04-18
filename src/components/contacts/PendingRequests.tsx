@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
 interface ContactRequest {
@@ -18,6 +18,17 @@ interface ContactRequest {
 
 export function PendingRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  // Fetch the current user's email on component mount
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserEmail(data.user?.email || null);
+    };
+    
+    fetchUserEmail();
+  }, []);
 
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['pending-requests'],
@@ -106,9 +117,6 @@ export function PendingRequests() {
   if (isLoading) {
     return <div className="p-4">Loading requests...</div>;
   }
-
-  const { data: currentUser } = supabase.auth.getUser();
-  const userEmail = currentUser?.user?.email;
 
   return (
     <div className="space-y-2">
