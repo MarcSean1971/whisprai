@@ -15,19 +15,23 @@ export function AdminTabs() {
         <TabsTrigger value="instructions" className="flex-1">Instructions</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="languages" className="w-full">
+      <TabsContent value="languages" className="w-full space-y-6">
+        <h2 className="text-xl font-semibold">Language Management</h2>
         <LanguageManagement />
       </TabsContent>
       
-      <TabsContent value="ai" className="w-full">
+      <TabsContent value="ai" className="w-full space-y-6">
+        <h2 className="text-xl font-semibold">AI Settings</h2>
         <AISettings />
       </TabsContent>
 
-      <TabsContent value="users" className="w-full">
+      <TabsContent value="users" className="w-full space-y-6">
+        <h2 className="text-xl font-semibold">User Management</h2>
         <UserManagement />
       </TabsContent>
 
-      <TabsContent value="instructions" className="w-full">
+      <TabsContent value="instructions" className="w-full space-y-6">
+        <h2 className="text-xl font-semibold">Instructions Management</h2>
         <InstructionsManagement />
       </TabsContent>
     </Tabs>

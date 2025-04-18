@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -90,7 +91,6 @@ export function UserManagement() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold">User Management</h2>
       <Table>
         <TableHeader>
           <TableRow>

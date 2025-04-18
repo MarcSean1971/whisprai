@@ -80,8 +80,6 @@ export function LanguageManagement() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Language Management</h2>
-      
       <AddLanguageForm 
         languages={languages}
         onLanguageAdded={setLanguages}
