@@ -35,18 +35,15 @@ export function PendingRequests() {
           id,
           sender_id,
           recipient_email,
-          sender:sender_id (
-            email:auth.users!contact_requests_sender_id_fkey(email),
-            profile:profiles (
-              first_name,
-              last_name,
-              avatar_url
-            )
+          sender:auth.users!inner(email),
+          sender_profile:profiles!inner(
+            first_name,
+            last_name,
+            avatar_url
           )
         `)
         .eq('recipient_email', userData.user.email)
-        .eq('status', 'pending')
-        .returns<ContactRequest[]>();
+        .eq('status', 'pending');
 
       if (error) throw error;
       return data;
@@ -109,13 +106,13 @@ export function PendingRequests() {
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarFallback>
-                {request.sender.profile?.first_name?.[0] || request.sender.email[0].toUpperCase()}
+                {request.sender_profile?.first_name?.[0] || request.sender.email[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
-                {request.sender.profile?.first_name
-                  ? `${request.sender.profile.first_name} ${request.sender.profile.last_name || ''}`
+                {request.sender_profile?.first_name
+                  ? `${request.sender_profile.first_name} ${request.sender_profile.last_name || ''}`
                   : request.sender.email}
               </div>
             </div>
