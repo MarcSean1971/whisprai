@@ -3,18 +3,34 @@ import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Undo2 } from "lucide-react";
+import { Undo2, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { ContactProfileDialog } from "@/components/contacts/ContactProfileDialog";
 
 interface ContactRequest {
   id: string;
   recipient_email: string;
   status: string;
+  recipient: {
+    profile: {
+      first_name: string | null;
+      last_name: string | null;
+      avatar_url: string | null;
+      bio: string | null;
+      tagline: string | null;
+      birthdate: string | null;
+    } | null;
+  } | null;
 }
 
 export function SentRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [selectedContact, setSelectedContact] = useState<{
+    id: string;
+    email: string;
+    profile: ContactRequest['recipient']['profile'];
+  } | null>(null);
   
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['sent-requests'],
@@ -24,7 +40,21 @@ export function SentRequests() {
 
       const { data, error } = await supabase
         .from('contact_requests')
-        .select('id, recipient_email, status')
+        .select(`
+          id,
+          recipient_email,
+          status,
+          recipient:recipient_id (
+            profile:profiles (
+              first_name,
+              last_name,
+              avatar_url,
+              bio,
+              tagline,
+              birthdate
+            )
+          )
+        `)
         .eq('status', 'pending')
         .eq('sender_id', user.id);
 
@@ -79,14 +109,29 @@ export function SentRequests() {
               </div>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleWithdraw(request.id)}
-            disabled={processingIds.has(request.id)}
-          >
-            <Undo2 className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSelectedContact({
+                  id: request.recipient?.profile?.id || '',
+                  email: request.recipient_email,
+                  profile: request.recipient?.profile || null
+                });
+              }}
+            >
+              <UserRound className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleWithdraw(request.id)}
+              disabled={processingIds.has(request.id)}
+            >
+              <Undo2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       ))}
       {(!requests || requests.length === 0) && (
@@ -94,6 +139,15 @@ export function SentRequests() {
           No pending sent requests
         </div>
       )}
+      <ContactProfileDialog
+        open={selectedContact !== null}
+        onOpenChange={(open) => !open && setSelectedContact(null)}
+        contact={selectedContact ? {
+          id: selectedContact.id,
+          email: selectedContact.email,
+          profile: selectedContact.profile
+        } : undefined}
+      />
     </div>
   );
 }
