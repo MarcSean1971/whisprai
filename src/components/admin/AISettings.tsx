@@ -5,9 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
+
+interface AISettingsType {
+  api_key: string;
+  model: string;
+  temperature: number;
+  max_tokens: number;
+}
 
 export function AISettings() {
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<AISettingsType>({
     api_key: '',
     model: 'gpt-4o-mini',
     temperature: 0.7,
@@ -25,7 +33,11 @@ export function AISettings() {
           .single();
 
         if (error) throw error;
-        if (data) setSettings(data.value);
+        if (data && data.value) {
+          // Ensure the value is properly typed as AISettingsType
+          const settingsData = data.value as AISettingsType;
+          setSettings(settingsData);
+        }
       } catch (error) {
         console.error('Error loading AI settings:', error);
         toast.error('Failed to load AI settings');
