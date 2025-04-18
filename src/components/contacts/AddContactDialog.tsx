@@ -24,9 +24,18 @@ export function AddContactDialog() {
     setIsSubmitting(true);
 
     try {
+      // Get the current user's ID
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) {
+        throw new Error('Not authenticated');
+      }
+
       const { error } = await supabase
         .from('contact_requests')
-        .insert([{ recipient_email: email }]);
+        .insert({
+          sender_id: userData.user.id,
+          recipient_email: email
+        });
 
       if (error) throw error;
 
