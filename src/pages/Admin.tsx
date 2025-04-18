@@ -7,6 +7,8 @@ import { ChevronLeft } from 'lucide-react';
 import { useAdmin } from '@/hooks/use-admin';
 import { LanguageManagement } from '@/components/admin/LanguageManagement';
 import { AISettings } from '@/components/admin/AISettings';
+import { UserManagement } from '@/components/admin/UserManagement';
+import { InstructionsManagement } from '@/components/admin/InstructionsManagement';
 
 export default function Admin() {
   const navigate = useNavigate();
@@ -46,9 +48,11 @@ export default function Admin() {
         <h1 className="text-2xl font-bold mt-12">Admin Dashboard</h1>
         
         <Tabs defaultValue="languages" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="languages">Languages</TabsTrigger>
             <TabsTrigger value="ai">AI Settings</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="instructions">Instructions</TabsTrigger>
           </TabsList>
           
           <TabsContent value="languages">
@@ -57,6 +61,14 @@ export default function Admin() {
           
           <TabsContent value="ai">
             <AISettings />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserManagement />
+          </TabsContent>
+
+          <TabsContent value="instructions">
+            <InstructionsManagement />
           </TabsContent>
         </Tabs>
       </div>
