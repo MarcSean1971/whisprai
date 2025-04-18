@@ -38,12 +38,14 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
       if (!user) {
         throw new Error('You must be logged in to start a conversation');
       }
 
       console.log("Creating conversation...");
-      // Create conversation
+      
+      // First create the conversation without any participants
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -58,18 +60,38 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         throw conversationError;
       }
 
-      console.log("Adding participants...");
-      // Add participants
-      const { error: participantsError } = await supabase
-        .from('conversation_participants')
-        .insert([
-          { conversation_id: conversation.id, user_id: user.id },
-          { conversation_id: conversation.id, user_id: contact.contact.id }
-        ]);
+      // Sleep for a short moment to ensure conversation is created in the database
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (participantsError) {
-        console.error("Adding participants error:", participantsError);
-        throw participantsError;
+      console.log("Adding current user as participant...");
+      // First add the current user as a participant
+      const { error: currentUserParticipantError } = await supabase
+        .from('conversation_participants')
+        .insert({ 
+          conversation_id: conversation.id, 
+          user_id: user.id 
+        });
+
+      if (currentUserParticipantError) {
+        console.error("Adding current user participant error:", currentUserParticipantError);
+        throw currentUserParticipantError;
+      }
+
+      // Sleep for a short moment to ensure participant is added
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log("Adding contact as participant...");
+      // Then add the contact as a participant
+      const { error: contactParticipantError } = await supabase
+        .from('conversation_participants')
+        .insert({ 
+          conversation_id: conversation.id, 
+          user_id: contact.contact.id 
+        });
+
+      if (contactParticipantError) {
+        console.error("Adding contact participant error:", contactParticipantError);
+        throw contactParticipantError;
       }
 
       console.log("Conversation created successfully!");

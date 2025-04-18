@@ -54,7 +54,7 @@ export function useUserConversations() {
           throw participationsError;
         }
         
-        if (!participations.length) {
+        if (!participations || participations.length === 0) {
           return []; // User has no conversations yet
         }
 
@@ -71,6 +71,10 @@ export function useUserConversations() {
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
+        }
+
+        if (!conversations || conversations.length === 0) {
+          return []; // No conversations found
         }
 
         // Get all participants for these conversations
@@ -107,7 +111,7 @@ export function useUserConversations() {
         }
 
         // Group messages by conversation
-        const messagesByConversation = latestMessages.reduce((acc, message) => {
+        const messagesByConversation = (latestMessages || []).reduce((acc, message) => {
           if (!acc[message.conversation_id]) {
             acc[message.conversation_id] = [];
           }
@@ -116,7 +120,7 @@ export function useUserConversations() {
         }, {});
 
         // Group participants by conversation
-        const participantsByConversation = allParticipants.reduce((acc, p) => {
+        const participantsByConversation = (allParticipants || []).reduce((acc, p) => {
           if (!acc[p.conversation_id]) {
             acc[p.conversation_id] = [];
           }
