@@ -23,7 +23,7 @@ interface ContactRequest {
 export function ReceivedRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const { data: requests, isLoading, refetch } = useQuery<ContactRequest[]>({
+  const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
       try {
@@ -32,10 +32,10 @@ export function ReceivedRequests() {
         if (!user) {
           console.error('No authenticated user found');
           toast.error('Authentication error');
-          throw new Error('Not authenticated');
+          return [] as ContactRequest[];
         }
 
-        // Get pending requests
+        // First, get the requests
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
           .select('id, sender_id, recipient_id, status')
@@ -45,14 +45,14 @@ export function ReceivedRequests() {
         if (requestsError) {
           console.error('Error fetching requests:', requestsError);
           toast.error(`Error fetching requests: ${requestsError.message}`);
-          throw requestsError;
+          return [] as ContactRequest[];
         }
 
         if (!requestsData || requestsData.length === 0) {
-          return [];
+          return [] as ContactRequest[];
         }
 
-        // Get profile information for each sender separately
+        // Then, get profiles for all those sender IDs
         const senderIds = requestsData.map(request => request.sender_id);
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -62,9 +62,10 @@ export function ReceivedRequests() {
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
           toast.error(`Error fetching profiles: ${profilesError.message}`);
+          // Continue even if profile fetch fails, we'll just show IDs
         }
 
-        // Create a map of profiles by user ID for quick lookup
+        // Create a map for quick profile lookup
         const profilesMap = new Map();
         if (profilesData) {
           profilesData.forEach(profile => {
@@ -76,8 +77,8 @@ export function ReceivedRequests() {
           });
         }
 
-        // Merge the request data with the profile data
-        return requestsData.map(request => ({
+        // Combine the data
+        const combinedData: ContactRequest[] = requestsData.map(request => ({
           ...request,
           profile: profilesMap.get(request.sender_id) || {
             first_name: null,
@@ -85,10 +86,12 @@ export function ReceivedRequests() {
             avatar_url: null
           }
         }));
+
+        return combinedData;
       } catch (error) {
         console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
-        throw error;
+        return [] as ContactRequest[];
       }
     },
   });
@@ -147,47 +150,48 @@ export function ReceivedRequests() {
 
   return (
     <div className="space-y-2">
-      {requests?.map((request) => (
-        <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={request.profile?.avatar_url || undefined} />
-              <AvatarFallback>
-                {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {request.profile?.first_name
-                  ? `${request.profile.first_name} ${request.profile.last_name || ''}`
-                  : request.sender_id}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Wants to connect with you
+      {requests && requests.length > 0 ? (
+        requests.map((request) => (
+          <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={request.profile?.avatar_url || undefined} />
+                <AvatarFallback>
+                  {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">
+                  {request.profile?.first_name
+                    ? `${request.profile.first_name} ${request.profile.last_name || ''}`
+                    : request.sender_id}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  Wants to connect with you
+                </div>
               </div>
             </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRequest(request.id, true)}
+                disabled={processingIds.has(request.id)}
+              >
+                Accept
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => handleRequest(request.id, false)}
+                disabled={processingIds.has(request.id)}
+              >
+                Reject
+              </Button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleRequest(request.id, true)}
-              disabled={processingIds.has(request.id)}
-            >
-              Accept
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleRequest(request.id, false)}
-              disabled={processingIds.has(request.id)}
-            >
-              Reject
-            </Button>
-          </div>
-        </div>
-      ))}
-      {(!requests || requests.length === 0) && (
+        ))
+      ) : (
         <div className="text-center p-4 text-muted-foreground">
           No pending received requests
         </div>
