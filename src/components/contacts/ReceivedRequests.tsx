@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ export function ReceivedRequests() {
     queryKey: ['received-requests'],
     queryFn: async () => {
       try {
-        console.log('Fetching received requests...');
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -34,11 +32,19 @@ export function ReceivedRequests() {
           throw new Error('Not authenticated');
         }
 
-        toast.info(`Fetching requests for user: ${user.id}`);
-
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
-          .select('id, sender_id, recipient_id, status')
+          .select(`
+            id, 
+            sender_id,
+            recipient_id,
+            status,
+            profile:profiles!contact_requests_sender_id_fkey (
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
@@ -48,40 +54,9 @@ export function ReceivedRequests() {
           throw requestsError;
         }
 
-        toast.info(`Found ${requestsData?.length || 0} pending requests`);
-
-        if (!requestsData || requestsData.length === 0) {
-          return [];
-        }
-
-        // For each request, fetch the sender's profile
-        const requestsWithProfiles = await Promise.all(
-          requestsData.map(async (request) => {
-            const { data: profile, error: profileError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, avatar_url')
-              .eq('id', request.sender_id)
-              .single();
-
-            if (profileError) {
-              toast.error(`Error fetching profile for ${request.sender_id}`);
-              console.error('Profile fetch error:', profileError);
-            }
-
-            return {
-              ...request,
-              profile: profileError ? null : profile
-            };
-          })
-        );
-
-        toast.success('Data fetched successfully', {
-          description: `Found ${requestsWithProfiles.length} requests with profiles`,
-        });
-
-        console.log('Final data:', requestsWithProfiles);
-        return requestsWithProfiles;
+        return requestsData || [];
       } catch (error) {
+        console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
         throw error;
       }
@@ -144,23 +119,8 @@ export function ReceivedRequests() {
     }
   };
 
-  // Render minimal UI to focus on data
   return (
     <div className="space-y-2">
-      <Button 
-        onClick={() => {
-          if (requests) {
-            toast.info('Current requests data:', {
-              description: JSON.stringify(requests, null, 2),
-              duration: 10000
-            });
-          }
-        }}
-        className="mb-4"
-      >
-        Show Raw Data
-      </Button>
-
       {requests?.map((request) => (
         <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
           <div className="flex items-center gap-3">
