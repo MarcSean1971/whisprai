@@ -37,7 +37,7 @@ export default function ProfileSetup() {
   useEffect(() => {
     if (profile && !isLoading) {
       Object.entries(profile).forEach(([key, value]) => {
-        if (value !== null && key in form.getValues()) {
+        if (value !== null) {
           form.setValue(key as keyof ProfileFormValues, value);
         }
       });
@@ -52,12 +52,12 @@ export default function ProfileSetup() {
     navigate('/');
   };
 
-  const onSubmit = form.handleSubmit(async (data) => {
+  const onSubmit = async (data: ProfileFormValues) => {
     const success = await updateProfile(data);
     if (success) {
       navigate('/home');
     }
-  });
+  };
 
   if (isLoading) {
     return (

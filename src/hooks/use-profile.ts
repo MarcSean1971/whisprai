@@ -28,7 +28,20 @@ export function useProfile() {
         .maybeSingle();
 
       if (error) throw error;
-      setProfile(data);
+
+      if (data) {
+        const formattedProfile: ProfileFormValues = {
+          firstName: data.first_name || '',
+          lastName: data.last_name || '',
+          tagline: data.tagline || '',
+          birthdate: data.birthdate || '',
+          bio: data.bio || '',
+          language: data.language || '',
+          interests: Array.isArray(data.interests) ? data.interests : [],
+          avatarUrl: data.avatar_url || ''
+        };
+        setProfile(formattedProfile);
+      }
     } catch (error) {
       console.error('Error fetching profile:', error);
       toast.error('Failed to load profile');
@@ -46,10 +59,19 @@ export function useProfile() {
         .from('profiles')
         .upsert({
           id: user.id,
-          ...values
+          first_name: values.firstName,
+          last_name: values.lastName,
+          tagline: values.tagline,
+          birthdate: values.birthdate,
+          bio: values.bio,
+          language: values.language,
+          interests: values.interests,
+          avatar_url: values.avatarUrl,
+          updated_at: new Date().toISOString()
         });
 
       if (error) throw error;
+      await fetchProfile(); // Refresh the profile data
       toast.success('Profile updated successfully');
       return true;
     } catch (error) {
