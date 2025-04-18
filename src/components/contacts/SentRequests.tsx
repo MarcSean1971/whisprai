@@ -115,7 +115,7 @@ export function SentRequests() {
               size="icon"
               onClick={() => {
                 setSelectedContact({
-                  id: request.recipient?.profile?.id || '',
+                  id: '',  // We don't have access to the ID directly
                   email: request.recipient_email,
                   profile: request.recipient?.profile || null
                 });
