@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -20,10 +19,10 @@ export function PendingRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  // Fetch the current user's email on component mount
   useEffect(() => {
     const fetchUserEmail = async () => {
       const { data } = await supabase.auth.getUser();
+      console.log('Current authenticated user:', data.user);
       setUserEmail(data.user?.email || null);
     };
     
@@ -34,25 +33,47 @@ export function PendingRequests() {
     queryKey: ['pending-requests'],
     queryFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Not authenticated');
+      if (!userData.user) {
+        console.log('No authenticated user found');
+        throw new Error('Not authenticated');
+      }
+      console.log('Fetching requests for user:', userData.user.email);
 
-      // Query pending requests - RLS will handle visibility
+      // Query pending requests - log the query params
+      console.log('Querying contact_requests table for pending requests');
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
         .select('id, sender_id, recipient_email, status')
         .eq('status', 'pending');
 
-      if (requestsError) throw requestsError;
-      if (!requestsData || requestsData.length === 0) return [];
+      if (requestsError) {
+        console.error('Error fetching contact requests:', requestsError);
+        throw requestsError;
+      }
+      
+      console.log('Contact requests raw data:', requestsData);
+
+      if (!requestsData || requestsData.length === 0) {
+        console.log('No pending requests found');
+        return [];
+      }
 
       // Fetch sender profiles for each request
+      console.log('Fetching profiles for requests...');
       const processedRequests: ContactRequest[] = await Promise.all(
         requestsData.map(async (request) => {
-          const { data: profileData } = await supabase
+          console.log('Processing request:', request);
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('first_name, last_name, avatar_url')
             .eq('id', request.sender_id)
             .single();
+
+          if (profileError) {
+            console.error('Error fetching profile for sender:', request.sender_id, profileError);
+          }
+
+          console.log('Profile data for sender:', request.sender_id, profileData);
 
           return {
             id: request.id,
@@ -66,6 +87,7 @@ export function PendingRequests() {
         })
       );
 
+      console.log('Final processed requests:', processedRequests);
       return processedRequests;
     },
   });
