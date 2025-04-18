@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -22,7 +21,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Shield, ShieldOff } from 'lucide-react';
+import { UserProfileDialog } from './UserProfileDialog';
+import { Shield, ShieldOff, UserCog } from 'lucide-react';
 
 interface User {
   id: string;
@@ -36,6 +36,7 @@ export function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -107,6 +108,18 @@ export function UserManagement() {
                 </span>
               </TableCell>
               <TableCell className="text-right">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="ml-2"
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setIsProfileOpen(true);
+                  }}
+                >
+                  <UserCog className="h-4 w-4 mr-1" />
+                  Profile
+                </Button>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button
@@ -154,6 +167,12 @@ export function UserManagement() {
           ))}
         </TableBody>
       </Table>
+
+      <UserProfileDialog 
+        userId={selectedUser?.id || null}
+        open={isProfileOpen}
+        onOpenChange={setIsProfileOpen}
+      />
     </div>
   );
 }
