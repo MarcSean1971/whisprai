@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ interface ContactRequest {
   sender_id: string;
   recipient_id: string;
   status: string;
-  profiles: Profile;
+  profile?: Profile;
 }
 
 export function ReceivedRequests() {
@@ -34,19 +35,10 @@ export function ReceivedRequests() {
           throw new Error('Not authenticated');
         }
 
+        // Get pending requests
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
-          .select(`
-            id,
-            sender_id,
-            recipient_id,
-            status,
-            profiles!contact_requests_sender_id_fkey (
-              first_name,
-              last_name,
-              avatar_url
-            )
-          `)
+          .select('id, sender_id, recipient_id, status')
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
@@ -56,11 +48,38 @@ export function ReceivedRequests() {
           throw requestsError;
         }
 
-        if (!requestsData) return [];
+        if (!requestsData || requestsData.length === 0) {
+          return [];
+        }
 
+        // Get profile information for each sender separately
+        const senderIds = requestsData.map(request => request.sender_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url')
+          .in('id', senderIds);
+
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          toast.error(`Error fetching profiles: ${profilesError.message}`);
+        }
+
+        // Create a map of profiles by user ID for quick lookup
+        const profilesMap = new Map();
+        if (profilesData) {
+          profilesData.forEach(profile => {
+            profilesMap.set(profile.id, {
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url
+            });
+          });
+        }
+
+        // Merge the request data with the profile data
         return requestsData.map(request => ({
           ...request,
-          profiles: request.profiles || {
+          profile: profilesMap.get(request.sender_id) || {
             first_name: null,
             last_name: null,
             avatar_url: null
@@ -132,15 +151,15 @@ export function ReceivedRequests() {
         <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={request.profiles.avatar_url || undefined} />
+              <AvatarImage src={request.profile?.avatar_url || undefined} />
               <AvatarFallback>
-                {request.profiles.first_name?.[0] || request.sender_id[0].toUpperCase()}
+                {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
-                {request.profiles.first_name
-                  ? `${request.profiles.first_name} ${request.profiles.last_name || ''}`
+                {request.profile?.first_name
+                  ? `${request.profile.first_name} ${request.profile.last_name || ''}`
                   : request.sender_id}
               </div>
               <div className="text-sm text-muted-foreground">
