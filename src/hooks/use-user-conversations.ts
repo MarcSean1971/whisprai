@@ -31,49 +31,23 @@ export function useUserConversations() {
   return useQuery({
     queryKey: ['user-conversations'],
     queryFn: async () => {
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error('Auth error:', userError);
-        throw userError;
-      }
-      if (!user) {
-        console.error('User not authenticated');
-        throw new Error('Not authenticated');
-      }
-
       try {
-        console.log("Fetching conversations for user:", user.id);
-        
-        // With our updated RLS policies, we can directly query conversations
-        // The RLS will automatically filter to only those the user has access to
-        const { data: conversations, error: conversationsError } = await supabase
-          .from('conversations')
-          .select('*')
-          .order('updated_at', { ascending: false });
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) throw new Error('Not authenticated');
 
-        if (conversationsError) {
-          console.error('Error fetching conversations:', conversationsError);
-          throw conversationsError;
-        }
-
-        if (!conversations || conversations.length === 0) {
-          console.log("No conversations found for user");
-          return []; // User has no conversations yet
-        }
-
-        console.log(`Found ${conversations.length} conversations`);
-        
-        // Get conversation IDs
-        const conversationIds = conversations.map(c => c.id);
-
-        // Get all participants for these conversations
-        const { data: allParticipants, error: participantsError } = await supabase
+        // Fetch conversations where user is a participant
+        const { data: userConversations, error: conversationsError } = await supabase
           .from('conversation_participants')
           .select(`
-            conversation_id,
-            user_id,
-            profiles:user_id (
+            conversation:conversations (
+              id,
+              is_group,
+              created_at,
+              updated_at
+            ),
+            user:profiles (
               id,
               first_name,
               last_name,
@@ -81,85 +55,40 @@ export function useUserConversations() {
               language
             )
           `)
-          .in('conversation_id', conversationIds);
+          .eq('user_id', user.id);
 
-        if (participantsError) {
-          console.error('Error fetching participants:', participantsError);
-          throw participantsError;
-        }
+        if (conversationsError) throw conversationsError;
+        if (!userConversations) return [];
 
-        // Get latest message for each conversation
-        const { data: latestMessages, error: messagesError } = await supabase
-          .from('messages')
-          .select('*')
-          .in('conversation_id', conversationIds)
-          .order('created_at', { ascending: false });
-
-        if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
-          throw messagesError;
-        }
-
-        // Group messages by conversation
-        const messagesByConversation = (latestMessages || []).reduce((acc, message) => {
-          if (!acc[message.conversation_id]) {
-            acc[message.conversation_id] = [];
-          }
-          acc[message.conversation_id].push(message);
-          return acc;
-        }, {});
-
-        // Group participants by conversation
-        const participantsByConversation = (allParticipants || []).reduce((acc, p) => {
-          if (!acc[p.conversation_id]) {
-            acc[p.conversation_id] = [];
-          }
-          acc[p.conversation_id].push({
-            user_id: p.user_id,
-            profile: p.profiles
+        // Process conversations
+        const processedConversations: Conversation[] = userConversations
+          .filter(uc => uc.conversation) // Filter out any null conversations
+          .map(uc => {
+            const conversation = uc.conversation;
+            return {
+              ...conversation,
+              participants: [{
+                user_id: uc.user.id,
+                profile: uc.user
+              }],
+              name: uc.user.first_name 
+                ? `${uc.user.first_name} ${uc.user.last_name || ''}`
+                : `User ${uc.user.id.slice(0, 8)}`,
+              avatar: uc.user.avatar_url
+            };
           });
-          return acc;
-        }, {});
 
-        // Process conversations with participants and latest message
-        const processedConversations: Conversation[] = conversations.map(conv => {
-          const participants = participantsByConversation[conv.id] || [];
-          
-          // Get other participant for 1:1 chats
-          const otherParticipant = participants.find(p => p.user_id !== user.id);
-          
-          // Set conversation name and avatar
-          let name, avatar;
-          
-          if (!conv.is_group && otherParticipant?.profile) {
-            name = `${otherParticipant.profile.first_name || ''} ${otherParticipant.profile.last_name || ''}`.trim() || `User ${otherParticipant.user_id.slice(0, 8)}`;
-            avatar = otherParticipant.profile.avatar_url;
-          } else {
-            name = 'Conversation';
-            avatar = null;
-          }
+        // Sort conversations by updated_at
+        return processedConversations.sort((a, b) => 
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
 
-          // Get latest message
-          const messages = messagesByConversation[conv.id] || [];
-          const lastMessage = messages.length > 0 ? messages[0] : null;
-
-          return {
-            ...conv,
-            participants,
-            name,
-            avatar,
-            lastMessage
-          };
-        });
-
-        console.log(`Processed ${processedConversations.length} conversations`);
-        return processedConversations;
       } catch (error) {
-        console.error('Error in useUserConversations:', error);
+        console.error('Error fetching conversations:', error);
         throw error;
       }
     },
     retry: 1,
-    staleTime: 30000 // 30 seconds cache
+    staleTime: 30000, // Cache for 30 seconds
   });
 }
