@@ -20,6 +20,19 @@ export default function Chats() {
   const { isAdmin } = useAdmin();
   const { data: conversations, isLoading, error, refetch } = useUserConversations();
 
+  // Check if user is authenticated
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate('/');
+      return;
+    }
+  };
+
+  React.useEffect(() => {
+    checkAuth();
+  }, []);
+
   const filteredConversations = searchQuery && conversations
     ? conversations.filter(convo => 
         convo.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -66,8 +79,8 @@ export default function Chats() {
           {isLoading ? (
             <div className="p-4 text-center">Loading conversations...</div>
           ) : error ? (
-            <div className="p-4 text-center text-red-500">
-              <p>Error loading conversations</p>
+            <div className="p-4 text-center">
+              <p className="text-red-500 mb-2">Unable to load conversations</p>
               <Button onClick={() => refetch()} variant="outline" className="mt-2">
                 Retry
               </Button>
@@ -80,7 +93,7 @@ export default function Chats() {
                 name={conversation.name || "Conversation"}
                 avatar={conversation.avatar || undefined}
                 lastMessage={conversation.lastMessage?.content}
-                timestamp={conversation.lastMessage ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
+                timestamp={conversation.lastMessage?.created_at ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
                 unreadCount={0}
                 isGroup={conversation.is_group}
                 onClick={() => handleConversationClick(conversation.id)}
@@ -89,7 +102,7 @@ export default function Chats() {
           ) : (
             <EmptyState
               icon={<Search className="h-6 w-6 text-muted-foreground" />}
-              title="No conversations found"
+              title={searchQuery ? "No conversations found" : "No conversations yet"}
               description={
                 searchQuery
                   ? `No results for "${searchQuery}"`
