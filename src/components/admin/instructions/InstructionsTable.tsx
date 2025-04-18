@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -17,6 +18,13 @@ import {
 } from "@/components/ui/pagination";
 import { Switch } from "@/components/ui/switch";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical, Pencil, Trash2 } from "lucide-react";
 import { EditInstructionDialog } from './EditInstructionDialog';
 import type { Instruction } from './types';
 
@@ -54,7 +62,7 @@ export function InstructionsTable({
               <TableHead className="w-[200px]">Name</TableHead>
               <TableHead>Content</TableHead>
               <TableHead className="w-[100px]">Active</TableHead>
-              <TableHead className="w-[120px]">Actions</TableHead>
+              <TableHead className="w-[70px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -73,19 +81,29 @@ export function InstructionsTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <EditInstructionDialog 
-                      instruction={instruction}
-                      onUpdate={onUpdate}
-                    />
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onDelete(instruction.id)}
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem asChild>
+                        <EditInstructionDialog 
+                          instruction={instruction}
+                          onUpdate={onUpdate}
+                        />
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => onDelete(instruction.id)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}

@@ -11,6 +11,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -19,10 +25,9 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { UserProfileDialog } from './UserProfileDialog';
-import { Shield, ShieldOff, UserCog } from 'lucide-react';
+import { MoreVertical, Shield, ShieldOff, UserCog } from 'lucide-react';
 
 interface User {
   id: string;
@@ -92,7 +97,7 @@ export function UserManagement() {
             <TableHead>Email</TableHead>
             <TableHead>Created At</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
+            <TableHead className="w-[70px]">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -107,61 +112,47 @@ export function UserManagement() {
                   {isUserSuspended(user) ? 'Suspended' : 'Active'}
                 </span>
               </TableCell>
-              <TableCell className="text-right">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="ml-2"
-                  onClick={() => {
-                    setSelectedUser(user);
-                    setIsProfileOpen(true);
-                  }}
-                >
-                  <UserCog className="h-4 w-4 mr-1" />
-                  Profile
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-2"
-                      disabled={isUpdating}
-                      onClick={() => setSelectedUser(user)}
-                    >
-                      {isUserSuspended(user) ? (
-                        <ShieldOff className="h-4 w-4 mr-1" />
-                      ) : (
-                        <Shield className="h-4 w-4 mr-1" />
-                      )}
-                      {isUserSuspended(user) ? 'Unsuspend' : 'Suspend'}
+              <TableCell>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                      <span className="sr-only">Open menu</span>
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>
-                        {isUserSuspended(user) ? 'Unsuspend User' : 'Suspend User'}
-                      </AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Are you sure you want to {isUserSuspended(user) ? 'unsuspend' : 'suspend'} this user?
-                        {user.email && ` (${user.email})`}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel onClick={() => setSelectedUser(null)}>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleUserAction(
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setIsProfileOpen(true);
+                      }}
+                    >
+                      <UserCog className="mr-2 h-4 w-4" />
+                      View Profile
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setSelectedUser(user);
+                        handleUserAction(
                           user.id,
                           isUserSuspended(user) ? 'unsuspend' : 'suspend'
-                        )}
-                      >
-                        Continue
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                        );
+                      }}
+                    >
+                      {isUserSuspended(user) ? (
+                        <>
+                          <ShieldOff className="mr-2 h-4 w-4" />
+                          Unsuspend
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="mr-2 h-4 w-4" />
+                          Suspend
+                        </>
+                      )}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </TableCell>
             </TableRow>
           ))}
