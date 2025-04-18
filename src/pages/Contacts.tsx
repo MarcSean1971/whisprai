@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
@@ -8,6 +9,7 @@ import { ContactsList } from "@/components/contacts/ContactsList";
 import { PendingRequests } from "@/components/contacts/PendingRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Contacts() {
   const navigate = useNavigate();
@@ -15,11 +17,25 @@ export default function Contacts() {
   
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear local storage to remove any cached user data
+      localStorage.clear();
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      // Navigate to the login page
       navigate("/");
+      
+      // Show success toast
+      toast.success("Successfully logged out");
     } catch (error) {
       console.error("Logout error:", error);
-      navigate("/");
+      toast.error("An unexpected error occurred during logout");
     }
   };
   

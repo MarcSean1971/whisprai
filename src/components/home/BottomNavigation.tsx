@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   MessageSquarePlus, 
@@ -7,6 +8,8 @@ import {
   LogOut 
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface BottomNavigationProps {
   activeTab?: 'chats' | 'contacts' | 'settings' | 'admin';
@@ -37,6 +40,33 @@ export function BottomNavigation({
       currentTab = 'chats';
     }
   }
+
+  const handleLogout = async () => {
+    try {
+      // Clear local storage to remove any cached user data
+      localStorage.clear();
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      // Clear any application state if needed
+      // You might want to use a global state management solution like context or zustand
+      
+      // Navigate to the login page
+      navigate("/");
+      
+      // Show success toast
+      toast.success("Successfully logged out");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("An unexpected error occurred during logout");
+    }
+  };
 
   return (
     <div className="border-t bg-background py-2 px-2 fixed bottom-0 left-0 right-0">
@@ -78,7 +108,7 @@ export function BottomNavigation({
         <Button
           variant="ghost"
           className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0 text-destructive hover:text-destructive"
-          onClick={onLogout}
+          onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />
           <span className="text-xs truncate">Logout</span>
