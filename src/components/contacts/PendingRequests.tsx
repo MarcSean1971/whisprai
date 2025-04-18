@@ -10,14 +10,11 @@ interface ContactRequest {
   id: string;
   sender_id: string;
   recipient_email: string;
-  sender: {
-    email: string;
-    profile: {
-      first_name: string | null;
-      last_name: string | null;
-      avatar_url: string | null;
-    } | null;
-  };
+  status: string;
+  sender_email: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
 }
 
 export function PendingRequests() {
@@ -29,24 +26,47 @@ export function PendingRequests() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      // First fetch the contact requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select(`
-          id,
-          sender_id,
-          recipient_email,
-          sender:auth.users!inner(email),
-          sender_profile:profiles!inner(
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('id, sender_id, recipient_email, status')
         .eq('recipient_email', userData.user.email)
         .eq('status', 'pending');
 
-      if (error) throw error;
-      return data;
+      if (requestsError) throw requestsError;
+      if (!requestsData || requestsData.length === 0) return [];
+
+      // Process each request to get sender details
+      const processedRequests: ContactRequest[] = await Promise.all(
+        requestsData.map(async (request) => {
+          // Get sender email
+          const { data: senderData } = await supabase
+            .from('auth.users')
+            .select('email')
+            .eq('id', request.sender_id)
+            .single();
+
+          // Get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', request.sender_id)
+            .single();
+
+          return {
+            id: request.id,
+            sender_id: request.sender_id,
+            recipient_email: request.recipient_email,
+            status: request.status,
+            sender_email: senderData?.email || 'Unknown',
+            first_name: profileData?.first_name || null,
+            last_name: profileData?.last_name || null,
+            avatar_url: profileData?.avatar_url || null
+          };
+        })
+      );
+
+      return processedRequests;
     },
   });
 
@@ -106,14 +126,14 @@ export function PendingRequests() {
           <div className="flex items-center gap-3">
             <Avatar>
               <AvatarFallback>
-                {request.sender_profile?.first_name?.[0] || request.sender.email[0].toUpperCase()}
+                {request.first_name?.[0] || request.sender_email[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
-                {request.sender_profile?.first_name
-                  ? `${request.sender_profile.first_name} ${request.sender_profile.last_name || ''}`
-                  : request.sender.email}
+                {request.first_name
+                  ? `${request.first_name} ${request.last_name || ''}`
+                  : request.sender_email}
               </div>
             </div>
           </div>
