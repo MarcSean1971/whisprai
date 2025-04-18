@@ -36,7 +36,7 @@ serve(async (req) => {
 
     console.log('Sending email via Resend...')
     const data = await resend.emails.send({
-      from: 'noreply@whisprai.app', // Simplified from address
+      from: 'noreply@whisprai.app',
       to: email,
       subject: 'Confirm your WhisprAI account',
       html,
@@ -73,4 +73,3 @@ serve(async (req) => {
     )
   }
 })
-

@@ -18,7 +18,7 @@ export function SignupForm() {
     setIsLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error: signupError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -26,8 +26,21 @@ export function SignupForm() {
         }
       });
 
-      if (error) {
-        toast.error(error.message);
+      if (signupError) {
+        toast.error(signupError.message);
+        return;
+      }
+
+      // Send custom confirmation email
+      const { error: emailError } = await supabase.functions.invoke('send-email', {
+        body: {
+          email,
+          confirmationUrl: data?.confirmation_url
+        },
+      });
+
+      if (emailError) {
+        toast.error("Failed to send confirmation email");
         return;
       }
 
