@@ -1,4 +1,5 @@
 
+import { Logo } from "@/components/Logo";
 import { BackButton } from '@/components/ui/back-button';
 
 interface AdminHeaderProps {
@@ -7,9 +8,9 @@ interface AdminHeaderProps {
 
 export function AdminHeader({ onExit }: AdminHeaderProps) {
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex items-center gap-4 mb-6">
       <BackButton onBack={onExit} />
-      <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+      <Logo size="md" />
     </div>
   );
 }

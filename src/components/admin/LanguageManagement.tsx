@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -80,21 +79,19 @@ export function LanguageManagement() {
   }
 
   return (
-    <div className="space-y-6 w-full">
-      <div className="space-y-4 w-full">
-        <h2 className="text-xl font-semibold">Language Management</h2>
-        
-        <AddLanguageForm 
-          languages={languages}
-          onLanguageAdded={setLanguages}
-        />
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold">Language Management</h2>
+      
+      <AddLanguageForm 
+        languages={languages}
+        onLanguageAdded={setLanguages}
+      />
 
-        <LanguageList 
-          languages={languages}
-          onLanguageDeleted={setLanguages}
-          onEditClick={handleEditClick}
-        />
-      </div>
+      <LanguageList 
+        languages={languages}
+        onLanguageDeleted={setLanguages}
+        onEditClick={handleEditClick}
+      />
 
       {editLanguage && (
         <EditLanguageDialog
