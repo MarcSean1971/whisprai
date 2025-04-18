@@ -1,10 +1,8 @@
 
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useState } from "react";
-import { toast } from "sonner";
+import { RequestListItem } from "./RequestListItem";
+import { useRequestHandler } from "@/hooks/use-request-handler";
 
 interface Profile {
   first_name: string | null;
@@ -21,8 +19,6 @@ interface ContactRequest {
 }
 
 export function ReceivedRequests() {
-  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
-
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
@@ -35,7 +31,6 @@ export function ReceivedRequests() {
 
         console.log('Fetching requests for user ID:', user.id);
         
-        // Get contact requests for the current user
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
           .select('id, sender_id, recipient_id, status')
@@ -47,15 +42,11 @@ export function ReceivedRequests() {
           throw new Error(`Error fetching requests: ${requestsError.message}`);
         }
 
-        console.log('Requests data:', requestsData);
-
         if (!requestsData || requestsData.length === 0) {
           return [] as ContactRequest[];
         }
 
-        // Get profiles for the senders
         const senderIds = requestsData.map(request => request.sender_id);
-        console.log('Fetching profiles for sender IDs:', senderIds);
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
@@ -67,9 +58,6 @@ export function ReceivedRequests() {
           throw new Error(`Error fetching profiles: ${profilesError.message}`);
         }
 
-        console.log('Profiles data:', profilesData);
-
-        // Create a map for quick profile lookup
         const profilesMap = new Map();
         if (profilesData) {
           profilesData.forEach(profile => {
@@ -81,7 +69,6 @@ export function ReceivedRequests() {
           });
         }
 
-        // Combine the data
         return requestsData.map(request => ({
           id: request.id,
           sender_id: request.sender_id,
@@ -96,72 +83,12 @@ export function ReceivedRequests() {
 
       } catch (error) {
         console.error('Failed to fetch requests:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to fetch requests');
         return [] as ContactRequest[];
       }
     },
   });
 
-  const handleRequest = async (requestId: string, accept: boolean) => {
-    setProcessingIds(prev => new Set(prev).add(requestId));
-    
-    try {
-      console.log(`Processing request ${requestId}, accept: ${accept}`);
-      
-      const { data: request, error: fetchError } = await supabase
-        .from('contact_requests')
-        .select('sender_id')
-        .eq('id', requestId)
-        .single();
-
-      if (fetchError || !request) {
-        console.error('Error fetching request details:', fetchError);
-        throw new Error('Request not found');
-      }
-
-      if (accept) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('Not authenticated');
-
-        console.log(`Creating contact: user_id=${user.id}, contact_id=${request.sender_id}`);
-        
-        const { error: insertError } = await supabase
-          .from('contacts')
-          .insert([
-            { user_id: user.id, contact_id: request.sender_id }
-          ]);
-
-        if (insertError) {
-          console.error('Error creating contact:', insertError);
-          throw insertError;
-        }
-      }
-
-      console.log(`Updating request status to: ${accept ? 'accepted' : 'rejected'}`);
-      
-      const { error: updateError } = await supabase
-        .from('contact_requests')
-        .update({ status: accept ? 'accepted' : 'rejected' })
-        .eq('id', requestId);
-
-      if (updateError) {
-        console.error('Error updating request:', updateError);
-        throw updateError;
-      }
-
-      toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
-      refetch();
-    } catch (error) {
-      console.error('Error processing request:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to process request');
-    } finally {
-      setProcessingIds(prev => {
-        const next = new Set(prev);
-        next.delete(requestId);
-        return next;
-      });
-    }
-  };
+  const { processingIds, handleRequest } = useRequestHandler(refetch);
 
   if (isLoading) {
     return <div className="p-4">Loading requests...</div>;
@@ -171,44 +98,15 @@ export function ReceivedRequests() {
     <div className="space-y-2">
       {requests && requests.length > 0 ? (
         requests.map((request) => (
-          <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-            <div className="flex items-center gap-3">
-              <Avatar>
-                <AvatarImage src={request.profile?.avatar_url || undefined} />
-                <AvatarFallback>
-                  {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="font-medium">
-                  {request.profile?.first_name
-                    ? `${request.profile.first_name} ${request.profile.last_name || ''}`
-                    : request.sender_id}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Wants to connect with you
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRequest(request.id, true)}
-                disabled={processingIds.has(request.id)}
-              >
-                Accept
-              </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => handleRequest(request.id, false)}
-                disabled={processingIds.has(request.id)}
-              >
-                Reject
-              </Button>
-            </div>
-          </div>
+          <RequestListItem
+            key={request.id}
+            id={request.id}
+            sender_id={request.sender_id}
+            profile={request.profile}
+            isProcessing={processingIds.has(request.id)}
+            onAccept={(id) => handleRequest(id, true)}
+            onReject={(id) => handleRequest(id, false)}
+          />
         ))
       ) : (
         <div className="text-center p-4 text-muted-foreground">
