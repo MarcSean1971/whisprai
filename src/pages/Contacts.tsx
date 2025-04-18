@@ -1,7 +1,8 @@
 
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
@@ -76,7 +77,7 @@ export default function Contacts() {
                 Sent
                 {requestCounts?.sent > 0 && (
                   <Badge 
-                    variant="secondary" 
+                    variant="whispr" 
                     className="absolute -top-2 -right-2 min-w-[20px] h-5"
                   >
                     {requestCounts.sent}
@@ -87,7 +88,7 @@ export default function Contacts() {
                 Received
                 {requestCounts?.received > 0 && (
                   <Badge 
-                    variant="secondary"
+                    variant="whispr"
                     className="absolute -top-2 -right-2 min-w-[20px] h-5"
                   >
                     {requestCounts.received}
