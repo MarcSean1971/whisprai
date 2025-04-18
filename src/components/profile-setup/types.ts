@@ -13,6 +13,7 @@ export const profileSchema = z.object({
   bio: z.string().optional(),
   language: z.string().min(1, 'Please select a language'),
   interests: z.array(z.string()).optional(),
+  avatarUrl: z.string().optional(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;

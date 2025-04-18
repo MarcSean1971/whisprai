@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,8 @@ export default function ProfileSetup() {
       birthdate: '',
       bio: '',
       language: '',
-      interests: []
+      interests: [],
+      avatarUrl: ''
     }
   });
 
