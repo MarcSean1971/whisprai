@@ -37,9 +37,9 @@ export function ConnectionsList() {
           .from('contacts')
           .select(`
             id,
+            contact_id,
             contact:contact_id (
               id,
-              email:get_user_email(id),
               profile:profiles (
                 first_name,
                 last_name,
@@ -56,14 +56,27 @@ export function ConnectionsList() {
           throw error;
         }
 
+        if (!data) return [];
+
         // Process the data to match our expected types
-        return data?.map(contact => ({
-          ...contact,
-          contact: {
-            ...contact.contact,
-            email: contact.contact.email || 'Unknown email',
-          }
-        })) || [];
+        const contactsWithEmail = await Promise.all(
+          data.map(async (contact) => {
+            // Fetch email separately using RPC
+            const { data: email } = await supabase
+              .rpc('get_user_email', { user_id: contact.contact_id });
+              
+            return {
+              id: contact.id,
+              contact: {
+                id: contact.contact_id,
+                email: email || 'Unknown email',
+                profile: contact.contact?.profile || null
+              }
+            };
+          })
+        );
+
+        return contactsWithEmail;
       } catch (err) {
         console.error('Failed to fetch contacts:', err);
         throw err;
