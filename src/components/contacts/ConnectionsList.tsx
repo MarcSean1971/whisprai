@@ -28,56 +28,56 @@ interface Contact {
 export function ConnectionsList() {
   const [selectedContact, setSelectedContact] = useState<Contact['contact'] | null>(null);
   
-  const { data: contacts, isLoading } = useQuery({
+  const { data: contacts, isLoading, error } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      // Get contacts with profiles in a single query
-      const { data, error } = await supabase
-        .from('contacts')
-        .select(`
-          id,
-          contact:contact_id (
+      try {
+        // Get contacts with profiles in a single query
+        const { data, error } = await supabase
+          .from('contacts')
+          .select(`
             id,
-            profiles:profiles (
-              first_name,
-              last_name,
-              avatar_url,
-              bio,
-              tagline,
-              birthdate
+            contact:contact_id (
+              id,
+              email:get_user_email(id),
+              profile:profiles (
+                first_name,
+                last_name,
+                avatar_url,
+                bio,
+                tagline,
+                birthdate
+              )
             )
-          )
-        `)
-        .returns<Contact[]>();
+          `);
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching contacts:', error);
+          throw error;
+        }
+
+        // Process the data to match our expected types
+        return data?.map(contact => ({
+          ...contact,
+          contact: {
+            ...contact.contact,
+            email: contact.contact.email || 'Unknown email',
+          }
+        })) || [];
+      } catch (err) {
+        console.error('Failed to fetch contacts:', err);
+        throw err;
       }
-
-      // Get emails in a separate query since we can't join with auth.users
-      const contactsWithEmails = await Promise.all(
-        data?.map(async (contact) => {
-          const { data: email } = await supabase
-            .rpc('get_user_email', { user_id: contact.contact.id });
-          
-          return {
-            ...contact,
-            contact: {
-              ...contact.contact,
-              email: email || 'Unknown email',
-              profile: contact.contact.profiles
-            }
-          };
-        }) || []
-      );
-
-      return contactsWithEmails;
     },
   });
 
   if (isLoading) {
     return <div className="p-4">Loading contacts...</div>;
+  }
+  
+  if (error) {
+    console.error('Error loading contacts:', error);
+    return <div className="p-4 text-red-500">Error loading contacts. Please try again later.</div>;
   }
 
   return (
