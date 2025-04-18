@@ -25,18 +25,16 @@ export default function Verify() {
       }
 
       try {
-        // Get the user data to verify the token
-        const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
-          filter: {
-            email: decodeURIComponent(email)
-          }
-        });
-
-        if (getUserError || !users?.length) {
+        // Get the user data by email
+        const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
+        
+        // Filter users on the client side since we can't use the filter parameter
+        const user = users?.find(user => user.email === decodeURIComponent(email));
+        
+        if (getUserError || !user) {
           throw new Error("User not found");
         }
 
-        const user = users[0];
         if (user.user_metadata.verification_token !== token) {
           throw new Error("Invalid verification token");
         }
