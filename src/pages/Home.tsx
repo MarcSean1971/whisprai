@@ -83,7 +83,6 @@ export default function Home() {
       
       <BottomNavigation 
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
         onLogout={handleLogout}
         isAdmin={isAdmin}
       />

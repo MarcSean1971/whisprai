@@ -73,7 +73,6 @@ export default function ProfileSetup() {
       
       <BottomNavigation 
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
         onLogout={handleLogout}
         isAdmin={isAdmin}
       />
