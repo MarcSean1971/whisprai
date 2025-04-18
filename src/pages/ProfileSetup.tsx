@@ -13,6 +13,8 @@ import { BottomNavigation } from '@/components/home/BottomNavigation';
 import { useAdmin } from '@/hooks/use-admin';
 import { Logo } from "@/components/Logo";
 import { useProfile } from '@/hooks/use-profile';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -48,7 +50,20 @@ export default function ProfileSetup() {
   };
 
   const handleLogout = async () => {
-    navigate('/');
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      toast.success("Successfully logged out");
+      navigate("/");
+    } catch (error) {
+      toast.error("An unexpected error occurred during logout");
+      console.error("Logout error:", error);
+    }
   };
 
   const onSubmit = async (data: ProfileFormValues) => {

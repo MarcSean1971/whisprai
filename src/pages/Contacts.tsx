@@ -1,3 +1,5 @@
+
+import { useState } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { useNavigate } from "react-router-dom";
@@ -6,10 +8,29 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContactsList } from "@/components/contacts/ContactsList";
 import { PendingRequests } from "@/components/contacts/PendingRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Contacts() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
+  
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        toast.error("Failed to log out. Please try again.");
+        return;
+      }
+      
+      toast.success("Successfully logged out");
+      navigate("/");
+    } catch (error) {
+      toast.error("An unexpected error occurred during logout");
+      console.error("Logout error:", error);
+    }
+  };
   
   return (
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
@@ -46,7 +67,7 @@ export default function Contacts() {
 
       <BottomNavigation 
         activeTab="contacts"
-        onLogout={() => navigate("/")}
+        onLogout={handleLogout}
         isAdmin={isAdmin}
       />
     </div>
