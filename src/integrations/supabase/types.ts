@@ -265,6 +265,10 @@ export type Database = {
         Args: { email_to_find: string }
         Returns: string
       }
+      is_user_in_conversation: {
+        Args: { conversation_uuid: string; user_uuid: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

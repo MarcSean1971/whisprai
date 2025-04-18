@@ -43,8 +43,6 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         return;
       }
 
-      console.log('Creating conversation between:', user.id, 'and', contact.contact.id);
-
       // First create the conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
@@ -55,14 +53,9 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .select()
         .single();
 
-      if (conversationError) {
-        console.error('Error creating conversation:', conversationError);
-        throw new Error(`Failed to create conversation: ${conversationError.message}`);
-      }
+      if (conversationError) throw conversationError;
 
-      console.log('Created conversation:', conversation.id);
-
-      // Then add both users as participants
+      // Then add participants - with the new policy this should work without recursion
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -70,10 +63,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
           { conversation_id: conversation.id, user_id: contact.contact.id }
         ]);
 
-      if (participantsError) {
-        console.error('Error adding participants:', participantsError);
-        throw new Error(`Failed to add participants: ${participantsError.message}`);
-      }
+      if (participantsError) throw participantsError;
 
       // Close dialog and navigate to chat
       toast.dismiss();
@@ -82,9 +72,9 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
       navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
-      console.error('Error creating conversation:', error);
       toast.dismiss();
-      toast.error(`Failed to create conversation: ${error instanceof Error ? error.message : 'Please try again'}`);
+      console.error('Error creating conversation:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to create conversation');
     } finally {
       setIsCreating(false);
     }
