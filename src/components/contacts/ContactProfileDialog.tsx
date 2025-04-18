@@ -33,6 +33,7 @@ export function ContactProfileDialog({ open, onOpenChange, contact }: ContactPro
   if (!contact) return null;
 
   const handleStartChat = () => {
+    // Use contact.id which is the actual user ID
     createConversation(contact.id);
   };
 

@@ -60,7 +60,7 @@ export function ContactsList() {
               variant="ghost"
               size="icon"
               onClick={() => setSelectedContact({
-                id: contact.contact_id,
+                id: contact.contact_id, // Use contact_id which is the actual user ID
                 email: "",
                 profile: {
                   first_name: profile?.first_name,
