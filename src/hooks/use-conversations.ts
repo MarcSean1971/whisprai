@@ -10,6 +10,7 @@ export function useConversations() {
       if (!user) throw new Error('Not authenticated');
 
       // Fetch contacts with a separate query to get their profiles
+      // Only get contacts where the current user is the user_id
       const { data, error } = await supabase
         .from('contacts')
         .select(`
