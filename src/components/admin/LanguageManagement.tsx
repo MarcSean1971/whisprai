@@ -1,17 +1,18 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { languageNames } from '@/lib/languages';
-import { Loader2, Trash2 } from 'lucide-react';
+import { Loader2, Trash2, Pencil } from 'lucide-react';
+import { EditLanguageDialog } from './EditLanguageDialog';
 
 export function LanguageManagement() {
   const [newLanguageCode, setNewLanguageCode] = useState('');
   const [newLanguageName, setNewLanguageName] = useState('');
-  const [languages, setLanguages] = useState<{ [key: string]: string }>({}); 
+  const [languages, setLanguages] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(true);
+  const [editLanguage, setEditLanguage] = useState<{ code: string; name: string } | null>(null);
 
   useEffect(() => {
     const loadLanguages = async () => {
@@ -23,7 +24,6 @@ export function LanguageManagement() {
           .single();
 
         if (error) {
-          // If no language list exists yet, initialize with default languages
           if (error.code === 'PGRST116') {
             await supabase
               .from('admin_settings')
@@ -95,7 +95,32 @@ export function LanguageManagement() {
     }
   };
 
-  // Sort languages by name
+  const handleEditClick = (code: string, name: string) => {
+    setEditLanguage({ code, name });
+  };
+
+  const handleEditComplete = () => {
+    const loadLanguages = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .select('value')
+          .eq('key', 'language_list')
+          .single();
+
+        if (error) throw error;
+        if (data?.value) {
+          setLanguages(data.value as { [key: string]: string });
+        }
+      } catch (error) {
+        console.error('Error reloading languages:', error);
+        toast.error('Failed to reload languages');
+      }
+    };
+
+    loadLanguages();
+  };
+
   const sortedLanguages = Object.entries(languages)
     .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB));
 
@@ -136,17 +161,37 @@ export function LanguageManagement() {
             className="flex items-center justify-between p-2 border rounded hover:bg-muted/50"
           >
             <span className="flex-1">{name} ({code})</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => handleDeleteLanguage(code)}
-              className="h-8 w-8"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleEditClick(code, name)}
+                className="h-8 w-8"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => handleDeleteLanguage(code)}
+                className="h-8 w-8"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
+
+      {editLanguage && (
+        <EditLanguageDialog
+          open={!!editLanguage}
+          onOpenChange={(open) => !open && setEditLanguage(null)}
+          languageCode={editLanguage.code}
+          languageName={editLanguage.name}
+          onSave={handleEditComplete}
+        />
+      )}
     </div>
   );
 }
