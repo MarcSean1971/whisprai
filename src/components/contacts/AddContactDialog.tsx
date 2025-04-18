@@ -41,13 +41,13 @@ export function AddContactDialog() {
         return;
       }
 
-      // Create the contact request
+      // Create the contact request with recipient_id
       const { error } = await supabase
         .from('contact_requests')
         .insert({
           sender_id: userData.user.id,
           recipient_id: recipientId,
-          recipient_email: email // Keep this for backward compatibility
+          recipient_email: email // Keep email for display purposes
         });
 
       if (error) throw error;

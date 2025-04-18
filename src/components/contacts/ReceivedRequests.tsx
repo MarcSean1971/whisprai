@@ -10,7 +10,6 @@ interface ContactRequest {
   id: string;
   sender_id: string;
   recipient_id: string;
-  recipient_email: string;
   status: string;
   profile: {
     first_name: string | null;
@@ -35,10 +34,20 @@ export function ReceivedRequests() {
 
       console.log('Current user ID:', user.id);
 
-      // First, get all pending requests where the current user is the recipient
+      // Get pending requests where current user is the recipient
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select('id, sender_id, recipient_id, recipient_email, status')
+        .select(`
+          id,
+          sender_id,
+          recipient_id,
+          status,
+          profile:profiles!contact_requests_sender_id_fkey (
+            first_name,
+            last_name,
+            avatar_url
+          )
+        `)
         .eq('recipient_id', user.id)
         .eq('status', 'pending');
 
@@ -47,37 +56,8 @@ export function ReceivedRequests() {
         throw requestsError;
       }
 
-      console.log('Fetched requests:', requestsData);
-
-      if (!requestsData || requestsData.length === 0) {
-        console.log('No pending requests found');
-        return [];
-      }
-
-      // For each request, fetch the sender's profile
-      const requestsWithProfiles = await Promise.all(
-        requestsData.map(async (request) => {
-          console.log('Fetching profile for sender:', request.sender_id);
-          
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', request.sender_id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching profile for sender:', request.sender_id, profileError);
-          }
-
-          return {
-            ...request,
-            profile: profileError ? null : profile
-          };
-        })
-      );
-
-      console.log('Final requests with profiles:', requestsWithProfiles);
-      return requestsWithProfiles;
+      console.log('Fetched requests with profiles:', requestsData);
+      return requestsData || [];
     },
   });
 
@@ -103,10 +83,7 @@ export function ReceivedRequests() {
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
-            {
-              user_id: user.id,
-              contact_id: request.sender_id,
-            }
+            { user_id: user.id, contact_id: request.sender_id }
           ]);
 
         if (insertError) throw insertError;
