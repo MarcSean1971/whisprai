@@ -31,22 +31,28 @@ export function SignupForm() {
         return;
       }
 
+      // Generate a confirmation URL manually since Supabase doesn't return one directly
+      const appUrl = window.location.origin;
+      const confirmationUrl = `${appUrl}/home?email=${encodeURIComponent(email)}`;
+
       // Send custom confirmation email
       const { error: emailError } = await supabase.functions.invoke('send-email', {
         body: {
           email,
-          confirmationUrl: data?.confirmation_url
+          confirmationUrl
         },
       });
 
       if (emailError) {
         toast.error("Failed to send confirmation email");
+        console.error("Email error:", emailError);
         return;
       }
 
       toast.info("Check your email for confirmation link");
     } catch (error) {
       toast.error("An unexpected error occurred");
+      console.error("Signup error:", error);
     } finally {
       setIsLoading(false);
     }
