@@ -10,8 +10,6 @@ export function useRequestHandler(onRequestProcessed: () => void) {
     setProcessingIds(prev => new Set(prev).add(requestId));
     
     try {
-      console.log(`Processing request ${requestId}, accept: ${accept}`);
-      
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -39,7 +37,7 @@ export function useRequestHandler(onRequestProcessed: () => void) {
       }
 
       if (accept) {
-        // First create the contact records
+        // Create two-way contact records
         const { error: contactsError } = await supabase
           .from('contacts')
           .insert([
@@ -51,34 +49,9 @@ export function useRequestHandler(onRequestProcessed: () => void) {
           console.error('Error creating contacts:', contactsError);
           throw contactsError;
         }
-
-        // Then create the conversation
-        const { data: conversation, error: conversationError } = await supabase
-          .from('conversations')
-          .insert([{ is_group: false }])
-          .select()
-          .single();
-
-        if (conversationError || !conversation) {
-          console.error('Error creating conversation:', conversationError);
-          throw conversationError;
-        }
-
-        // Finally add conversation participants
-        const { error: participantsError } = await supabase
-          .from('conversation_participants')
-          .insert([
-            { conversation_id: conversation.id, user_id: user.id },
-            { conversation_id: conversation.id, user_id: request.sender_id }
-          ]);
-
-        if (participantsError) {
-          console.error('Error adding conversation participants:', participantsError);
-          throw participantsError;
-        }
       }
 
-      // Update request status last, after all other operations are successful
+      // Update request status
       const { error: updateError } = await supabase
         .from('contact_requests')
         .update({ status: accept ? 'accepted' : 'rejected' })
