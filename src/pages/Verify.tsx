@@ -36,14 +36,14 @@ export default function Verify() {
       }
 
       try {
-        // Get user by email
-        const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers({
-          filter: {
-            email: decodeURIComponent(email)
-          }
+        // Get user by email - using the correct API parameters
+        const { data, error: getUserError } = await supabase.auth.admin.listUsers({
+          page: 1,
+          perPage: 1,
+          query: decodeURIComponent(email)
         });
 
-        const user = users?.[0] as SupabaseUser | undefined;
+        const user = data?.users?.[0] as SupabaseUser | undefined;
         
         if (getUserError || !user) {
           console.error("User fetch error:", getUserError);
