@@ -13,19 +13,31 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
   const [isCreating, setIsCreating] = useState(false);
 
   const createConversation = async (contactId: string) => {
-    if (isCreating) return null;
+    console.log("Starting conversation creation process");
+    console.log("Contact ID:", contactId);
+    
+    if (isCreating) {
+      console.log("Conversation creation already in progress");
+      return null;
+    }
     
     try {
       setIsCreating(true);
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      console.log("Current user:", user);
+      console.log("User error:", userError);
+      
       if (userError || !user) {
+        console.error("Authentication error:", userError);
         toast.error('Not authenticated');
         return null;
       }
 
-      // Create conversation (created_by will be automatically set by RLS default)
+      // Create conversation 
+      console.log("Attempting to create conversation");
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -35,13 +47,17 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         .select()
         .single();
 
+      console.log("Conversation creation result:", conversation);
+      console.log("Conversation creation error:", conversationError);
+
       if (conversationError) {
         console.error("Failed to create conversation:", conversationError);
         toast.error('Failed to create conversation');
         return null;
       }
 
-      // Add current user and contact as participants
+      // Add participants
+      console.log("Adding participants to conversation");
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -55,23 +71,28 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
           }
         ]);
 
+      console.log("Participants insertion error:", participantsError);
+
       if (participantsError) {
         console.error("Failed to add participants:", participantsError);
-        // Cleanup the conversation since participants couldn't be added
+        // Cleanup the conversation
         await supabase.from('conversations').delete().eq('id', conversation.id);
         toast.error('Failed to add participants to the conversation');
         return null;
       }
 
+      console.log("Conversation created successfully");
       toast.success("Conversation started");
+      
       if (onSuccess) {
         onSuccess();
       }
+      
       navigate(`/chat/${conversation.id}`);
       return conversation.id;
       
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Unexpected error in conversation creation:', error);
       toast.error('An unexpected error occurred');
       return null;
     } finally {
