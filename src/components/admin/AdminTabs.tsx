@@ -8,11 +8,11 @@ import { InstructionsManagement } from './InstructionsManagement';
 export function AdminTabs() {
   return (
     <Tabs defaultValue="languages" className="w-full">
-      <TabsList className="grid w-full grid-cols-4">
-        <TabsTrigger value="languages">Languages</TabsTrigger>
-        <TabsTrigger value="ai">AI Settings</TabsTrigger>
-        <TabsTrigger value="users">Users</TabsTrigger>
-        <TabsTrigger value="instructions">Instructions</TabsTrigger>
+      <TabsList className="flex w-full">
+        <TabsTrigger value="languages" className="flex-1">Languages</TabsTrigger>
+        <TabsTrigger value="ai" className="flex-1">AI Settings</TabsTrigger>
+        <TabsTrigger value="users" className="flex-1">Users</TabsTrigger>
+        <TabsTrigger value="instructions" className="flex-1">Instructions</TabsTrigger>
       </TabsList>
       
       <TabsContent value="languages">
@@ -33,3 +33,4 @@ export function AdminTabs() {
     </Tabs>
   );
 }
+
