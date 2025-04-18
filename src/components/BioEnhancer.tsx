@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
 type BioEnhancerProps = {
   currentBio: string;
@@ -14,21 +13,6 @@ type BioEnhancerProps = {
 export function BioEnhancer({ currentBio, onEnhance }: BioEnhancerProps) {
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch OpenAI settings from Supabase
-  const { data: aiSettings } = useQuery({
-    queryKey: ['aiSettings'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_settings')
-        .select('value')
-        .eq('key', 'openai_settings')
-        .single();
-      
-      if (error) throw error;
-      return data?.value;
-    }
-  });
-
   const enhanceBio = async () => {
     if (!currentBio.trim()) {
       toast.error("Please enter some text in your bio first");
@@ -37,20 +21,13 @@ export function BioEnhancer({ currentBio, onEnhance }: BioEnhancerProps) {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/enhance-bio', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ bio: currentBio, settings: aiSettings }),
+      const { data, error } = await supabase.functions.invoke('enhance-bio', {
+        body: { bio: currentBio }
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to enhance bio');
-      }
+      if (error) throw error;
+      if (!data?.enhancedBio) throw new Error('No enhanced bio received');
 
-      const data = await response.json();
       onEnhance(data.enhancedBio);
       toast.success("Bio enhanced successfully!");
     } catch (error) {
