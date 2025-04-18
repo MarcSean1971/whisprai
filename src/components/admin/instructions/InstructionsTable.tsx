@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -17,7 +16,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Switch } from "@/components/ui/switch";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,9 +68,9 @@ export function InstructionsTable({
               <TableRow key={instruction.id} className={instruction.suspended ? 'opacity-50' : ''}>
                 <TableCell className="font-medium">{instruction.name}</TableCell>
                 <TableCell>
-                  <ScrollArea className="h-[100px] w-full rounded-md border p-2">
+                  <div className="h-[100px] w-full rounded-md border p-2 overflow-auto">
                     {instruction.content}
-                  </ScrollArea>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Switch

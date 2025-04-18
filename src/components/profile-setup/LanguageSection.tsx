@@ -29,7 +29,7 @@ export function LanguageSection({ form }: LanguageSectionProps) {
                 <SelectValue placeholder="Select a language" />
               </SelectTrigger>
             </FormControl>
-            <SelectContent>
+            <SelectContent className="max-h-[200px]">
               {Object.entries(languageNames).map(([code, name]) => (
                 <SelectItem key={code} value={code}>
                   {name}
