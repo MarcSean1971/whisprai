@@ -140,57 +140,61 @@ export function LanguageManagement() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Language Management</h2>
-      
-      <div className="grid gap-4 md:grid-cols-2">
-        <Input
-          placeholder="Language Code (e.g., en)"
-          value={newLanguageCode}
-          onChange={(e) => setNewLanguageCode(e.target.value)}
-          maxLength={2}
-        />
-        <Input
-          placeholder="Language Name (e.g., English)"
-          value={newLanguageName}
-          onChange={(e) => setNewLanguageName(e.target.value)}
-        />
-      </div>
-      
-      <Button onClick={handleAddLanguage} className="w-full md:w-auto">
-        Add Language
-      </Button>
+    <div className="space-y-6 w-full">
+      <div className="space-y-4 w-full">
+        <h2 className="text-xl font-semibold">Language Management</h2>
+        
+        <div className="grid gap-4 md:grid-cols-2 w-full">
+          <Input
+            placeholder="Language Code (e.g., en)"
+            value={newLanguageCode}
+            onChange={(e) => setNewLanguageCode(e.target.value)}
+            maxLength={2}
+            className="w-full"
+          />
+          <Input
+            placeholder="Language Name (e.g., English)"
+            value={newLanguageName}
+            onChange={(e) => setNewLanguageName(e.target.value)}
+            className="w-full"
+          />
+        </div>
+        
+        <Button onClick={handleAddLanguage} className="w-full">
+          Add Language
+        </Button>
 
-      <div className="mt-4 grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-        {sortedLanguages.map(([code, name]) => (
-          <div 
-            key={code} 
-            className="flex items-center justify-between p-2 border rounded hover:bg-muted/50"
-          >
-            <span className="flex-1">{name} ({code})</span>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => handleEditClick(code, name)}
-                >
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleDeleteLanguage(code)}
-                  className="text-destructive"
-                >
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ))}
+        <div className="mt-4 grid gap-2 md:grid-cols-2 lg:grid-cols-3 w-full">
+          {sortedLanguages.map(([code, name]) => (
+            <div 
+              key={code} 
+              className="flex items-center justify-between p-2 border rounded hover:bg-muted/50 w-full"
+            >
+              <span className="flex-1">{name} ({code})</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreVertical className="h-4 w-4" />
+                    <span className="sr-only">Open menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => handleEditClick(code, name)}
+                  >
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => handleDeleteLanguage(code)}
+                    className="text-destructive"
+                  >
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          ))}
+        </div>
       </div>
 
       {editLanguage && (

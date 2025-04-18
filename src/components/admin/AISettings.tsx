@@ -66,17 +66,17 @@ export function AISettings() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6 w-full">
       <h2 className="text-xl font-semibold">AI Settings</h2>
       
-      <div className="space-y-4">
-        <div>
+      <div className="space-y-4 w-full">
+        <div className="w-full">
           <label className="text-sm font-medium">Model</label>
           <Select
             value={settings.model}
             onValueChange={(value) => setSettings(prev => ({ ...prev, model: value }))}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -86,7 +86,7 @@ export function AISettings() {
           </Select>
         </div>
 
-        <div>
+        <div className="w-full">
           <label className="text-sm font-medium">Temperature</label>
           <Input
             type="number"
@@ -95,16 +95,18 @@ export function AISettings() {
             step="0.1"
             value={settings.temperature}
             onChange={(e) => setSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+            className="w-full"
           />
         </div>
 
-        <div>
+        <div className="w-full">
           <label className="text-sm font-medium">Max Tokens</label>
           <Input
             type="number"
             min="1"
             value={settings.max_tokens}
             onChange={(e) => setSettings(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
+            className="w-full"
           />
         </div>
 
