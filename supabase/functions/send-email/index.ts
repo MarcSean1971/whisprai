@@ -36,7 +36,7 @@ serve(async (req) => {
 
     console.log('Sending email via Resend...')
     const data = await resend.emails.send({
-      from: 'WhisprAI <noreply@whisprai.app>',
+      from: 'noreply@whisprai.app', // Simplified from address
       to: email,
       subject: 'Confirm your WhisprAI account',
       html,
@@ -61,7 +61,11 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: errorMessage, details: error.message }),
+      JSON.stringify({ 
+        error: errorMessage, 
+        details: error.message,
+        fullError: error 
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -69,3 +73,4 @@ serve(async (req) => {
     )
   }
 })
+
