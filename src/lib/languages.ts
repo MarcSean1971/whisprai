@@ -1,8 +1,7 @@
 
 export const languageNames: { [key: string]: string } = {
-  'af': 'Afrikaans',
   'ar': 'Arabic',
-  'bn': 'Bengali',
+  'bn': 'Bengali', 
   'de': 'German',
   'en': 'English',
   'es': 'Spanish',
