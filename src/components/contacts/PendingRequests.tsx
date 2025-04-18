@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -43,17 +44,7 @@ export function PendingRequests() {
       console.log('Querying contact_requests table for pending requests');
       const { data: requestsData, error: requestsError } = await supabase
         .from('contact_requests')
-        .select(`
-          id,
-          sender_id,
-          recipient_email,
-          status,
-          profiles:sender_id (
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `)
+        .select('id, sender_id, recipient_email, status')
         .eq('status', 'pending')
         .eq('recipient_email', user.email);
 
@@ -69,16 +60,34 @@ export function PendingRequests() {
         return [];
       }
 
-      // Map the joined data to our interface
-      const processedRequests: ContactRequest[] = requestsData.map((request) => ({
-        id: request.id,
-        sender_id: request.sender_id,
-        recipient_email: request.recipient_email,
-        status: request.status,
-        first_name: request.profiles?.first_name || null,
-        last_name: request.profiles?.last_name || null,
-        avatar_url: request.profiles?.avatar_url || null
-      }));
+      // Fetch profile data for each sender in a separate query
+      const processedRequests: ContactRequest[] = [];
+      
+      // Use Promise.all to fetch all profiles in parallel
+      await Promise.all(
+        requestsData.map(async (request) => {
+          // Get profile data for the sender
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', request.sender_id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching profile for sender:', request.sender_id, profileError);
+          }
+
+          processedRequests.push({
+            id: request.id,
+            sender_id: request.sender_id,
+            recipient_email: request.recipient_email,
+            status: request.status,
+            first_name: profileData?.first_name || null,
+            last_name: profileData?.last_name || null,
+            avatar_url: profileData?.avatar_url || null
+          });
+        })
+      );
 
       console.log('Final processed requests:', processedRequests);
       return processedRequests;
