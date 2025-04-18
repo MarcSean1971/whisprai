@@ -1,7 +1,7 @@
 
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
@@ -14,12 +14,15 @@ import { useEffect } from "react";
 
 export default function Contacts() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAdmin } = useAdmin();
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Get the active tab from URL parameters or default to 'contacts'
   const activeTab = searchParams.get("tab") || "contacts";
   
+  // Set initial tab parameter if none exists
   useEffect(() => {
-    // Set initial tab parameter if none exists
     if (!searchParams.get("tab")) {
       setSearchParams({ tab: "contacts" });
     }

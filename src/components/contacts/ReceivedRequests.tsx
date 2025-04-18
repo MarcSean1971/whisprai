@@ -25,10 +25,15 @@ export function ReceivedRequests() {
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
+      console.log('Fetching received requests...');
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) {
+        console.error('No authenticated user found');
         throw new Error('Not authenticated');
       }
+
+      console.log('Current user ID:', user.id);
 
       // First, get all pending requests where the current user is the recipient
       const { data: requestsData, error: requestsError } = await supabase
@@ -42,11 +47,18 @@ export function ReceivedRequests() {
         throw requestsError;
       }
 
-      if (!requestsData || requestsData.length === 0) return [];
+      console.log('Fetched requests:', requestsData);
 
-      // For each request, fetch the sender's profile from the public profiles table
+      if (!requestsData || requestsData.length === 0) {
+        console.log('No pending requests found');
+        return [];
+      }
+
+      // For each request, fetch the sender's profile
       const requestsWithProfiles = await Promise.all(
         requestsData.map(async (request) => {
+          console.log('Fetching profile for sender:', request.sender_id);
+          
           const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('first_name, last_name, avatar_url')
@@ -64,6 +76,7 @@ export function ReceivedRequests() {
         })
       );
 
+      console.log('Final requests with profiles:', requestsWithProfiles);
       return requestsWithProfiles;
     },
   });
@@ -120,6 +133,8 @@ export function ReceivedRequests() {
       });
     }
   };
+
+  console.log('Rendering ReceivedRequests. Data:', { isLoading, requests });
 
   if (isLoading) {
     return <div className="p-4">Loading requests...</div>;
