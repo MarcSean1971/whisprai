@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,10 +25,8 @@ export function ReceivedRequests() {
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
-      console.log('Fetching received requests...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        console.error('No authenticated user found');
         throw new Error('Not authenticated');
       }
 
@@ -43,10 +42,9 @@ export function ReceivedRequests() {
         throw requestsError;
       }
 
-      console.log(`Found ${requestsData?.length || 0} pending requests`);
       if (!requestsData || requestsData.length === 0) return [];
 
-      // For each request, fetch the sender's profile
+      // For each request, fetch the sender's profile from the public profiles table
       const requestsWithProfiles = await Promise.all(
         requestsData.map(async (request) => {
           const { data: profile, error: profileError } = await supabase
@@ -66,13 +64,11 @@ export function ReceivedRequests() {
         })
       );
 
-      console.log('Successfully fetched requests with profiles');
       return requestsWithProfiles;
     },
   });
 
   const handleRequest = async (requestId: string, accept: boolean) => {
-    console.log(`Processing request ${requestId}, action: ${accept ? 'accept' : 'reject'}`);
     setProcessingIds(prev => new Set(prev).add(requestId));
     
     try {
@@ -83,38 +79,34 @@ export function ReceivedRequests() {
         .single();
 
       if (!request) {
-        console.error('Request not found:', requestId);
         throw new Error('Request not found');
       }
 
       if (accept) {
-        console.log('Creating bidirectional contact connection...');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+
+        // Create bidirectional contact connection
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
             {
-              user_id: request.sender_id,
-              contact_id: (await supabase.auth.getUser()).data.user?.id,
-            },
+              user_id: user.id,
+              contact_id: request.sender_id,
+            }
           ]);
 
-        if (insertError) {
-          console.error('Error creating contact connection:', insertError);
-          throw insertError;
-        }
+        if (insertError) throw insertError;
       }
 
+      // Update request status
       const { error: updateError } = await supabase
         .from('contact_requests')
         .update({ status: accept ? 'accepted' : 'rejected' })
         .eq('id', requestId);
 
-      if (updateError) {
-        console.error('Error updating request status:', updateError);
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      console.log(`Request ${requestId} successfully ${accept ? 'accepted' : 'rejected'}`);
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
       refetch();
     } catch (error) {
