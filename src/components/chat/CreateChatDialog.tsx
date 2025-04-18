@@ -30,7 +30,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
   const [isCreating, setIsCreating] = useState(false);
 
   const handleContactSelect = async (contact: Contact) => {
-    if (isCreating) return; // Prevent multiple clicks
+    if (isCreating) return;
     
     try {
       setIsCreating(true);
@@ -43,7 +43,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         return;
       }
 
-      // First create the conversation
+      // Create conversation and participants in a single transaction-like operation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -55,7 +55,7 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
 
       if (conversationError) throw conversationError;
 
-      // Then add participants - with the new policy this should work without recursion
+      // Add participants immediately after creating conversation
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -65,16 +65,15 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
 
       if (participantsError) throw participantsError;
 
-      // Close dialog and navigate to chat
       toast.dismiss();
-      toast.success("Conversation created successfully");
+      toast.success("Conversation created");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
       toast.dismiss();
       console.error('Error creating conversation:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create conversation');
+      toast.error('Failed to create conversation');
     } finally {
       setIsCreating(false);
     }
