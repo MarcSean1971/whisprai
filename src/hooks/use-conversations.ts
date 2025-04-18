@@ -15,7 +15,7 @@ export function useConversations() {
         .select(`
           id,
           contact_id,
-          profiles!profiles (
+          profiles!contact_id(
             id,
             first_name,
             last_name,
@@ -36,7 +36,7 @@ export function useConversations() {
       const transformedData = data.map(contact => ({
         id: contact.id,
         contact_id: contact.contact_id,
-        contact_profile: contact.profiles[0] || null
+        contact_profile: contact.profiles || null
       }));
 
       console.log('Fetched contacts:', transformedData);
