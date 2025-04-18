@@ -34,37 +34,50 @@ export function ConnectionsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get contacts without the profiles join first
-      const { data, error } = await supabase
+      // Get contacts where user is either user_id or contact_id
+      const { data: asUser, error: userError } = await supabase
         .from('contacts')
         .select('id, contact_id')
         .eq('user_id', user.id);
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
-      }
+      const { data: asContact, error: contactError } = await supabase
+        .from('contacts')
+        .select('id, user_id')
+        .eq('contact_id', user.id);
 
-      if (!data) return [];
+      if (userError) throw userError;
+      if (contactError) throw contactError;
 
-      // Process the data to match our expected types by fetching profiles separately
+      // Combine and process both sets of contacts
+      const allContacts = [
+        ...(asUser || []).map(contact => ({
+          id: contact.id,
+          otherId: contact.contact_id
+        })),
+        ...(asContact || []).map(contact => ({
+          id: contact.id,
+          otherId: contact.user_id
+        }))
+      ];
+
+      // Fetch details for all contacts
       const contactsWithDetails = await Promise.all(
-        data.map(async (contact) => {
-          // Fetch email separately using RPC
+        allContacts.map(async (contact) => {
+          // Fetch email using RPC
           const { data: email } = await supabase
-            .rpc('get_user_email', { user_id: contact.contact_id });
+            .rpc('get_user_email', { user_id: contact.otherId });
           
-          // Fetch profile separately
+          // Fetch profile
           const { data: profileData } = await supabase
             .from('profiles')
             .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
-            .eq('id', contact.contact_id)
+            .eq('id', contact.otherId)
             .maybeSingle();
             
           return {
             id: contact.id,
             contact: {
-              id: contact.contact_id,
+              id: contact.otherId,
               email: email || 'Unknown email',
               profile: profileData || null
             }
