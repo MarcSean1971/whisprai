@@ -1,0 +1,116 @@
+
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+
+export function AISettings() {
+  const [settings, setSettings] = useState({
+    api_key: '',
+    model: 'gpt-4o-mini',
+    temperature: 0.7,
+    max_tokens: 1000
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('admin_settings')
+          .select('value')
+          .eq('key', 'openai_settings')
+          .single();
+
+        if (error) throw error;
+        if (data) setSettings(data.value);
+      } catch (error) {
+        console.error('Error loading AI settings:', error);
+        toast.error('Failed to load AI settings');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      const { error } = await supabase
+        .from('admin_settings')
+        .update({ value: settings })
+        .eq('key', 'openai_settings');
+
+      if (error) throw error;
+      toast.success('AI settings saved successfully');
+    } catch (error) {
+      console.error('Error saving AI settings:', error);
+      toast.error('Failed to save AI settings');
+    }
+  };
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold">AI Settings</h2>
+      
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-medium">API Key</label>
+          <Input
+            type="password"
+            value={settings.api_key}
+            onChange={(e) => setSettings(prev => ({ ...prev, api_key: e.target.value }))}
+            placeholder="Enter OpenAI API Key"
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Model</label>
+          <Select
+            value={settings.model}
+            onValueChange={(value) => setSettings(prev => ({ ...prev, model: value }))}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gpt-4o-mini">GPT-4 Mini</SelectItem>
+              <SelectItem value="gpt-4o">GPT-4</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Temperature</label>
+          <Input
+            type="number"
+            min="0"
+            max="2"
+            step="0.1"
+            value={settings.temperature}
+            onChange={(e) => setSettings(prev => ({ ...prev, temperature: parseFloat(e.target.value) }))}
+          />
+        </div>
+
+        <div>
+          <label className="text-sm font-medium">Max Tokens</label>
+          <Input
+            type="number"
+            min="1"
+            value={settings.max_tokens}
+            onChange={(e) => setSettings(prev => ({ ...prev, max_tokens: parseInt(e.target.value) }))}
+          />
+        </div>
+
+        <Button onClick={handleSave} className="w-full">Save Settings</Button>
+      </div>
+    </div>
+  );
+}

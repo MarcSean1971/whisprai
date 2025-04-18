@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Logo } from "@/components/Logo";
@@ -17,6 +16,8 @@ import { Bell, MessageSquarePlus, Search, Settings, Users, X, LogOut } from "luc
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Shield } from "lucide-react";
+import { useAdmin } from "@/hooks/use-admin";
 
 // Sample data
 import { conversations } from "@/lib/sample-data";
@@ -26,6 +27,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredConversations, setFilteredConversations] = useState(conversations);
+  const { isAdmin } = useAdmin();
 
   useEffect(() => {
     if (searchQuery) {
@@ -89,6 +91,16 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/admin')}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Shield className="h-5 w-5" />
+                </Button>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
