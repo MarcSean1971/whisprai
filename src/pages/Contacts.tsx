@@ -11,12 +11,14 @@ import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { useRequestCounts } from "@/hooks/use-request-counts";
 
 export default function Contacts() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { isAdmin } = useAdmin();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { data: requestCounts } = useRequestCounts();
   
   // Get the active tab from URL parameters or default to 'contacts'
   const activeTab = searchParams.get("tab") || "contacts";
@@ -70,8 +72,28 @@ export default function Contacts() {
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
-              <TabsTrigger value="sent" className="flex-1">Sent</TabsTrigger>
-              <TabsTrigger value="received" className="flex-1">Received</TabsTrigger>
+              <TabsTrigger value="sent" className="flex-1 relative">
+                Sent
+                {requestCounts?.sent > 0 && (
+                  <Badge 
+                    variant="secondary" 
+                    className="absolute -top-2 -right-2 min-w-[20px] h-5"
+                  >
+                    {requestCounts.sent}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="received" className="flex-1 relative">
+                Received
+                {requestCounts?.received > 0 && (
+                  <Badge 
+                    variant="secondary"
+                    className="absolute -top-2 -right-2 min-w-[20px] h-5"
+                  >
+                    {requestCounts.received}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </div>
 
