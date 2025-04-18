@@ -13,7 +13,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
   const [isCreating, setIsCreating] = useState(false);
 
   const createConversation = async (contactId: string) => {
-    if (isCreating) return;
+    if (isCreating) return null;
     
     try {
       setIsCreating(true);
@@ -21,12 +21,9 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        console.error("Auth error:", userError);
         toast.error('Not authenticated');
         return null;
       }
-
-      console.log("Creating conversation with contact:", contactId);
 
       // Create conversation (created_by will be automatically set by RLS default)
       const { data: conversation, error: conversationError } = await supabase
