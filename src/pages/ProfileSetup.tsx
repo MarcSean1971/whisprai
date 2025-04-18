@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
@@ -20,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { languageNames } from '@/lib/languages';
+import { BioEnhancer } from '@/components/BioEnhancer';
 
 const profileSchema = z.object({
   bio: z.string().optional(),
@@ -125,6 +127,10 @@ export default function ProfileSetup() {
     }
   };
 
+  const handleEnhanceBio = (enhancedBio: string) => {
+    form.setValue('bio', enhancedBio);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -134,19 +140,19 @@ export default function ProfileSetup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-md space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 w-full max-w-full">
+      <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">Complete Your Profile</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="text-xl font-bold">Complete Your Profile</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Tell us a little about yourself to get started
           </p>
         </div>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="flex flex-col items-center gap-4">
-              <Avatar className="w-24 h-24">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="flex flex-col items-center gap-3">
+              <Avatar className="w-20 h-20">
                 <AvatarImage src={avatarUrl || ''} alt="Profile" />
                 <AvatarFallback>UP</AvatarFallback>
               </Avatar>
@@ -154,7 +160,7 @@ export default function ProfileSetup() {
                 type="file"
                 accept="image/*"
                 onChange={handleAvatarChange}
-                className="w-full max-w-xs"
+                className="w-full max-w-xs text-sm"
               />
             </div>
 
@@ -163,10 +169,10 @@ export default function ProfileSetup() {
               name="language"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Preferred Language *</FormLabel>
+                  <FormLabel className="text-sm">Preferred Language *</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="text-sm">
                         <SelectValue placeholder="Select a language" />
                       </SelectTrigger>
                     </FormControl>
@@ -188,11 +194,18 @@ export default function ProfileSetup() {
               name="bio"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Bio</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel className="text-sm">Bio</FormLabel>
+                    <BioEnhancer 
+                      currentBio={field.value || ''} 
+                      onEnhance={handleEnhanceBio} 
+                    />
+                  </div>
                   <FormControl>
                     <Textarea
                       placeholder="Tell us about yourself..."
                       {...field}
+                      className="text-sm"
                     />
                   </FormControl>
                   <FormMessage />

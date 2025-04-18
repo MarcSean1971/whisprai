@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Logo } from "@/components/Logo";
@@ -56,9 +57,9 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background w-full max-w-full">
       {/* Header - Mobile Optimized */}
-      <header className="flex items-center justify-between px-3 py-2 border-b">
+      <header className="flex items-center justify-between p-2 border-b">
         <Logo variant={isMobile ? "icon" : "full"} />
         <div className="flex items-center gap-1">
           {isSearching ? (
@@ -67,26 +68,26 @@ export default function Home() {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[180px] pr-8 h-9"
+                className="w-[150px] pr-8 h-8"
                 autoFocus
               />
               <Button
                 variant="ghost"
                 size="icon"
-                className="absolute right-0 h-9 w-9"
+                className="absolute right-0 h-8 w-8"
                 onClick={() => {
                   setSearchQuery("");
                   setIsSearching(false);
                 }}
               >
-                <Search className="h-4 w-4" />
+                <Search className="h-3.5 w-3.5" />
               </Button>
             </div>
           ) : (
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9"
+              className="h-8 w-8"
               onClick={() => setIsSearching(true)}
             >
               <Search className="h-4 w-4" />
@@ -126,12 +127,12 @@ export default function Home() {
                     Clear search
                   </Button>
                 }
-                className="h-[calc(100vh-10rem)]"
+                className="h-[calc(100vh-8rem)]"
               />
             )}
           </div>
         ) : (
-          <div className="h-[calc(100vh-10rem)]">
+          <div className="h-[calc(100vh-8rem)]">
             <EmptyState
               icon={<Users className="h-6 w-6 text-muted-foreground" />}
               title="Contact list will appear here"
@@ -142,47 +143,47 @@ export default function Home() {
       </div>
 
       {/* New Message Button - Mobile Optimized */}
-      <div className="fixed right-4 bottom-20 z-10">
-        <Button size="icon" className="h-12 w-12 rounded-full shadow-lg">
+      <div className="fixed right-3 bottom-16 z-10">
+        <Button size="icon" className="h-10 w-10 rounded-full shadow-lg">
           <MessageSquarePlus className="h-5 w-5" />
         </Button>
       </div>
 
       {/* Bottom Navigation Bar - Mobile Optimized */}
-      <div className="border-t bg-background py-2 px-4">
+      <div className="border-t bg-background py-1 px-2">
         <div className="grid grid-cols-4 gap-1">
           <Button
             variant={activeTab === 'messages' ? 'default' : 'ghost'}
-            className="h-12 flex flex-col items-center justify-center space-y-1"
+            className="h-10 flex flex-col items-center justify-center py-1"
             onClick={() => setActiveTab('messages')}
           >
-            <MessageSquarePlus className="h-5 w-5" />
-            {!isMobile && <span className="text-xs">Messages</span>}
+            <MessageSquarePlus className="h-4 w-4" />
+            {!isMobile && <span className="text-xs mt-1">Messages</span>}
           </Button>
           <Button
             variant={activeTab === 'contacts' ? 'default' : 'ghost'}
-            className="h-12 flex flex-col items-center justify-center space-y-1"
+            className="h-10 flex flex-col items-center justify-center py-1"
             onClick={() => setActiveTab('contacts')}
           >
-            <Users className="h-5 w-5" />
-            {!isMobile && <span className="text-xs">Contacts</span>}
+            <Users className="h-4 w-4" />
+            {!isMobile && <span className="text-xs mt-1">Contacts</span>}
           </Button>
           <Button
             variant="ghost"
-            className="h-12 flex flex-col items-center justify-center space-y-1"
+            className="h-10 flex flex-col items-center justify-center py-1"
             onClick={() => navigate('/profile-setup')}
           >
-            <Settings className="h-5 w-5" />
-            {!isMobile && <span className="text-xs">Settings</span>}
+            <Settings className="h-4 w-4" />
+            {!isMobile && <span className="text-xs mt-1">Settings</span>}
           </Button>
           {isAdmin && (
             <Button
               variant="ghost"
-              className="h-12 flex flex-col items-center justify-center space-y-1"
+              className="h-10 flex flex-col items-center justify-center py-1"
               onClick={() => navigate('/admin')}
             >
-              <Shield className="h-5 w-5" />
-              {!isMobile && <span className="text-xs">Admin</span>}
+              <Shield className="h-4 w-4" />
+              {!isMobile && <span className="text-xs mt-1">Admin</span>}
             </Button>
           )}
         </div>
