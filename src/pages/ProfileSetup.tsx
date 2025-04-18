@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -51,18 +50,11 @@ export default function ProfileSetup() {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        toast.error("Failed to log out. Please try again.");
-        return;
-      }
-      
-      toast.success("Successfully logged out");
+      await supabase.auth.signOut();
       navigate("/");
     } catch (error) {
-      toast.error("An unexpected error occurred during logout");
       console.error("Logout error:", error);
+      navigate("/");
     }
   };
 
