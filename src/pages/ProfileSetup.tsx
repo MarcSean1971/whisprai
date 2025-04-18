@@ -67,12 +67,18 @@ export default function ProfileSetup() {
     setIsSubmitting(true);
 
     try {
+      // Get the current user to log for debugging
+      const { data: authData } = await supabase.auth.getUser();
+      console.log('Current auth user:', authData.user);
+      
       const success = await updateProfile(data);
       console.log('Profile update result:', success);
 
       if (success) {
         toast.success('Profile updated successfully');
-        navigate('/home');
+        setTimeout(() => {
+          navigate('/home');
+        }, 1000); // Short delay to let the toast be visible
       } else {
         toast.error('Failed to update profile');
       }
