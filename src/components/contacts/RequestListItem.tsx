@@ -1,11 +1,15 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { UserRound } from "lucide-react";
 
 interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+  birthdate: string | null;
 }
 
 interface RequestListItemProps {
@@ -15,6 +19,7 @@ interface RequestListItemProps {
   isProcessing: boolean;
   onAccept: (requestId: string) => Promise<void>;
   onReject: (requestId: string) => Promise<void>;
+  onViewProfile: () => void;
 }
 
 export function RequestListItem({
@@ -24,6 +29,7 @@ export function RequestListItem({
   isProcessing,
   onAccept,
   onReject,
+  onViewProfile,
 }: RequestListItemProps) {
   return (
     <div className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
@@ -45,7 +51,14 @@ export function RequestListItem({
           </div>
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onViewProfile}
+        >
+          <UserRound className="h-4 w-4" />
+        </Button>
         <Button
           variant="outline"
           size="sm"

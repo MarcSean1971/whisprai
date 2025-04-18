@@ -3,11 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { RequestListItem } from "./RequestListItem";
 import { useRequestHandler } from "@/hooks/use-request-handler";
+import { ContactProfileDialog } from "./ContactProfileDialog";
+import { useState } from "react";
 
 interface Profile {
   first_name: string | null;
   last_name: string | null;
   avatar_url: string | null;
+  bio: string | null;
+  tagline: string | null;
+  birthdate: string | null;
 }
 
 interface ContactRequest {
@@ -19,6 +24,7 @@ interface ContactRequest {
 }
 
 export function ReceivedRequests() {
+  const [selectedRequest, setSelectedRequest] = useState<ContactRequest | null>(null);
   const { data: requests, isLoading, refetch } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
@@ -50,7 +56,7 @@ export function ReceivedRequests() {
         
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, first_name, last_name, avatar_url')
+          .select('id, first_name, last_name, avatar_url, bio, tagline, birthdate')
           .in('id', senderIds);
 
         if (profilesError) {
@@ -61,23 +67,19 @@ export function ReceivedRequests() {
         const profilesMap = new Map();
         if (profilesData) {
           profilesData.forEach(profile => {
-            profilesMap.set(profile.id, {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              avatar_url: profile.avatar_url
-            });
+            profilesMap.set(profile.id, profile);
           });
         }
 
         return requestsData.map(request => ({
-          id: request.id,
-          sender_id: request.sender_id,
-          recipient_id: request.recipient_id,
-          status: request.status,
+          ...request,
           profile: profilesMap.get(request.sender_id) || {
             first_name: null,
             last_name: null,
-            avatar_url: null
+            avatar_url: null,
+            bio: null,
+            tagline: null,
+            birthdate: null
           }
         })) as ContactRequest[];
 
@@ -106,6 +108,7 @@ export function ReceivedRequests() {
             isProcessing={processingIds.has(request.id)}
             onAccept={(id) => handleRequest(id, true)}
             onReject={(id) => handleRequest(id, false)}
+            onViewProfile={() => setSelectedRequest(request)}
           />
         ))
       ) : (
@@ -113,6 +116,16 @@ export function ReceivedRequests() {
           No pending received requests
         </div>
       )}
+
+      <ContactProfileDialog
+        open={!!selectedRequest}
+        onOpenChange={() => setSelectedRequest(null)}
+        contact={selectedRequest ? {
+          id: selectedRequest.id,
+          email: `contact-${selectedRequest.sender_id}@example.com`,
+          profile: selectedRequest.profile
+        } : undefined}
+      />
     </div>
   );
 }
