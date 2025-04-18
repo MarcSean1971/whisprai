@@ -57,6 +57,7 @@ export default function Contacts() {
         searchQuery=""
         onSearchChange={() => {}}
         onSearchToggle={() => {}}
+        rightAction={<AddContactDialog />}
       />
       
       <div className="flex-1 overflow-y-auto">
@@ -90,12 +91,7 @@ export default function Contacts() {
           </div>
 
           <TabsContent value="contacts" className="mt-0">
-            <div className="relative">
-              <div className="absolute right-4 top-4">
-                <AddContactDialog />
-              </div>
-              <ConnectionsList />
-            </div>
+            <ConnectionsList />
           </TabsContent>
 
           <TabsContent value="sent" className="mt-0">

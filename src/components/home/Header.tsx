@@ -8,13 +8,15 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
   onSearchToggle: () => void;
+  rightAction?: React.ReactNode;
 }
 
 export function Header({
   isSearching,
   searchQuery,
   onSearchChange,
-  onSearchToggle
+  onSearchToggle,
+  rightAction
 }: HeaderProps) {
   const location = useLocation();
   const getHeaderContent = () => {
@@ -42,13 +44,16 @@ export function Header({
         <Logo variant="full" />
       </div>
       
-      <div className="px-4 py-2">
-        <SearchBar 
-          isSearching={isSearching} 
-          searchQuery={searchQuery} 
-          onSearchChange={onSearchChange} 
-          onSearchToggle={onSearchToggle} 
-        />
+      <div className="flex items-center justify-between gap-2 px-4 py-2">
+        <div className="flex-1">
+          <SearchBar 
+            isSearching={isSearching} 
+            searchQuery={searchQuery} 
+            onSearchChange={onSearchChange} 
+            onSearchToggle={onSearchToggle} 
+          />
+        </div>
+        {rightAction}
       </div>
     </header>
   );
