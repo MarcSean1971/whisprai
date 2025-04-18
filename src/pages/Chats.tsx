@@ -22,7 +22,7 @@ export default function Chats() {
 
   const filteredConversations = searchQuery && conversations
     ? conversations.filter(convo => 
-        convo.name.toLowerCase().includes(searchQuery.toLowerCase())
+        convo.name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : conversations;
 
@@ -77,8 +77,8 @@ export default function Chats() {
               <ConversationItem
                 key={conversation.id}
                 id={conversation.id}
-                name={conversation.name}
-                avatar={conversation.avatar}
+                name={conversation.name || "Conversation"}
+                avatar={conversation.avatar || undefined}
                 lastMessage={conversation.lastMessage?.content}
                 timestamp={conversation.lastMessage ? new Date(conversation.lastMessage.created_at).toLocaleTimeString() : undefined}
                 unreadCount={0} // TODO: Implement unread count logic
