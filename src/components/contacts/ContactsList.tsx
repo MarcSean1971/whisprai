@@ -18,7 +18,7 @@ interface Profile {
 interface Contact {
   id: string;
   contact_id: string;
-  contact_profiles: Profile[];
+  contact_profile: Profile | null;
 }
 
 export function ContactsList() {
@@ -32,7 +32,7 @@ export function ContactsList() {
   return (
     <div className="space-y-2">
       {contacts?.map((contact: Contact) => {
-        const profile = contact.contact_profiles[0];
+        const profile = contact.contact_profile;
         
         return (
           <div key={contact.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
