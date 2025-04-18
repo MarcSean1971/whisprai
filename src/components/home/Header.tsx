@@ -1,7 +1,6 @@
 
 import { Logo } from "@/components/Logo";
 import { SearchBar } from "./SearchBar";
-import { MessageSquare, Users } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 interface HeaderProps {
@@ -22,9 +21,9 @@ export function Header({
   const getHeaderContent = () => {
     switch (location.pathname) {
       case '/chats':
-        return { title: 'Chats', icon: <MessageSquare className="h-5 w-5" /> };
+        return { title: 'Chats', icon: null };
       case '/contacts':
-        return { title: 'Contacts', icon: <Users className="h-5 w-5" /> };
+        return { title: 'Contacts', icon: null };
       default:
         return null;
     }
@@ -37,12 +36,6 @@ export function Header({
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-4">
           <Logo variant="full" />
-          {headerContent && (
-            <div className="flex items-center gap-2">
-              {headerContent.icon}
-              <h1 className="text-xl font-semibold">{headerContent.title}</h1>
-            </div>
-          )}
         </div>
       </div>
       
@@ -57,3 +50,4 @@ export function Header({
     </header>
   );
 }
+
