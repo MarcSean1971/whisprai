@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -17,7 +16,7 @@ interface ContactRequest {
   sender_id: string;
   recipient_id: string;
   status: string;
-  profile: Profile | null;
+  profiles: Profile;
 }
 
 export function ReceivedRequests() {
@@ -35,10 +34,19 @@ export function ReceivedRequests() {
           throw new Error('Not authenticated');
         }
 
-        // First, get the contact requests
         const { data: requestsData, error: requestsError } = await supabase
           .from('contact_requests')
-          .select('id, sender_id, recipient_id, status')
+          .select(`
+            id,
+            sender_id,
+            recipient_id,
+            status,
+            profiles!contact_requests_sender_id_fkey (
+              first_name,
+              last_name,
+              avatar_url
+            )
+          `)
           .eq('recipient_id', user.id)
           .eq('status', 'pending');
 
@@ -48,36 +56,16 @@ export function ReceivedRequests() {
           throw requestsError;
         }
 
-        // If there are no requests, return empty array
-        if (!requestsData || requestsData.length === 0) {
-          return [];
-        }
+        if (!requestsData) return [];
 
-        // For each request, fetch the sender's profile
-        const requestsWithProfiles = await Promise.all(
-          requestsData.map(async (request) => {
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name, avatar_url')
-              .eq('id', request.sender_id)
-              .single();
-
-            if (profileError) {
-              console.error('Error fetching profile for sender:', profileError);
-              return {
-                ...request,
-                profile: null
-              };
-            }
-
-            return {
-              ...request,
-              profile: profileData as Profile
-            };
-          })
-        );
-
-        return requestsWithProfiles;
+        return requestsData.map(request => ({
+          ...request,
+          profiles: request.profiles || {
+            first_name: null,
+            last_name: null,
+            avatar_url: null
+          }
+        }));
       } catch (error) {
         console.error('Failed to fetch requests:', error);
         toast.error('Failed to fetch requests');
@@ -86,7 +74,6 @@ export function ReceivedRequests() {
     },
   });
 
-  // Show loading state in toast
   if (isLoading) {
     return <div className="p-4">Loading requests...</div>;
   }
@@ -109,7 +96,6 @@ export function ReceivedRequests() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('Not authenticated');
 
-        // Create bidirectional contact connection
         const { error: insertError } = await supabase
           .from('contacts')
           .insert([
@@ -119,7 +105,6 @@ export function ReceivedRequests() {
         if (insertError) throw insertError;
       }
 
-      // Update request status
       const { error: updateError } = await supabase
         .from('contact_requests')
         .update({ status: accept ? 'accepted' : 'rejected' })
@@ -147,15 +132,15 @@ export function ReceivedRequests() {
         <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
           <div className="flex items-center gap-3">
             <Avatar>
-              <AvatarImage src={request.profile?.avatar_url || undefined} />
+              <AvatarImage src={request.profiles.avatar_url || undefined} />
               <AvatarFallback>
-                {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
+                {request.profiles.first_name?.[0] || request.sender_id[0].toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="font-medium">
-                {request.profile?.first_name
-                  ? `${request.profile.first_name} ${request.profile.last_name || ''}`
+                {request.profiles.first_name
+                  ? `${request.profiles.first_name} ${request.profiles.last_name || ''}`
                   : request.sender_id}
               </div>
               <div className="text-sm text-muted-foreground">
