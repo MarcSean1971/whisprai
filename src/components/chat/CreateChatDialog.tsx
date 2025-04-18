@@ -34,16 +34,16 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
     
     try {
       setIsCreating(true);
-      toast.loading("Creating conversation...");
+      console.log("Starting conversation creation...");
       
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('You must be logged in to start a conversation');
-        return;
+        throw new Error('You must be logged in to start a conversation');
       }
 
-      // Create conversation and participants in a single transaction-like operation
+      console.log("Creating conversation...");
+      // Create conversation
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
@@ -53,9 +53,13 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
         .select()
         .single();
 
-      if (conversationError) throw conversationError;
+      if (conversationError) {
+        console.error("Conversation creation error:", conversationError);
+        throw conversationError;
+      }
 
-      // Add participants immediately after creating conversation
+      console.log("Adding participants...");
+      // Add participants
       const { error: participantsError } = await supabase
         .from('conversation_participants')
         .insert([
@@ -63,17 +67,19 @@ export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) 
           { conversation_id: conversation.id, user_id: contact.contact.id }
         ]);
 
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        console.error("Adding participants error:", participantsError);
+        throw participantsError;
+      }
 
-      toast.dismiss();
+      console.log("Conversation created successfully!");
       toast.success("Conversation created");
       onOpenChange(false);
       navigate(`/chat/${conversation.id}`);
       
     } catch (error) {
-      toast.dismiss();
       console.error('Error creating conversation:', error);
-      toast.error('Failed to create conversation');
+      toast.error(error instanceof Error ? error.message : 'Failed to create conversation');
     } finally {
       setIsCreating(false);
     }
