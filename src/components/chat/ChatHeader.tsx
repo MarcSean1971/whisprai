@@ -19,33 +19,35 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
   }>({ name: "Chat" });
 
   useEffect(() => {
-    // Fetch conversation participants
     const fetchConversationDetails = async () => {
       try {
+        const { data: currentUser } = await supabase.auth.getUser();
+        
         const { data: participants } = await supabase
           .from('conversation_participants')
           .select(`
             user_id,
-            profiles:user_id(
-              first_name,
-              last_name,
-              avatar_url
+            user:user_id(
+              profiles:profiles(
+                first_name,
+                last_name,
+                avatar_url
+              )
             )
           `)
           .eq('conversation_id', conversationId);
 
         if (participants && participants.length > 0) {
-          // For now just use the first participant that isn't the current user
-          const currentUser = await supabase.auth.getUser();
           const otherParticipant = participants.find(
             p => p.user_id !== currentUser.data.user?.id
           );
 
-          if (otherParticipant && otherParticipant.profiles) {
+          if (otherParticipant?.user?.profiles) {
+            const profile = otherParticipant.user.profiles;
             setContact({
-              name: `${otherParticipant.profiles.first_name || ''} ${otherParticipant.profiles.last_name || ''}`.trim(),
-              avatar: otherParticipant.profiles.avatar_url,
-              isOnline: true // This would require a presence system to be accurate
+              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
+              avatar: profile.avatar_url,
+              isOnline: true
             });
           }
         }
