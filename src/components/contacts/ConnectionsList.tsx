@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserRound } from "lucide-react";
 import { ContactProfileDialog } from "./ContactProfileDialog";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface Profile {
   first_name: string | null;
@@ -28,74 +29,112 @@ interface Contact {
 export function ConnectionsList() {
   const [selectedContact, setSelectedContact] = useState<Contact['contact'] | null>(null);
   
-  const { data: contacts, isLoading, error } = useQuery({
-    queryKey: ['contacts'],
+  const { data: contacts, isLoading, error, refetch } = useQuery({
+    queryKey: ['connections'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('Not authenticated');
+        
+        console.log('Fetching connections for user:', user.id);
 
-      // Get contacts where user is either user_id or contact_id
-      const { data: asUser, error: userError } = await supabase
-        .from('contacts')
-        .select('id, contact_id')
-        .eq('user_id', user.id);
+        // Get contacts where user is the user_id
+        const { data: asUser, error: userError } = await supabase
+          .from('contacts')
+          .select('id, contact_id')
+          .eq('user_id', user.id);
 
-      const { data: asContact, error: contactError } = await supabase
-        .from('contacts')
-        .select('id, user_id')
-        .eq('contact_id', user.id);
+        if (userError) {
+          console.error('Error fetching as user:', userError);
+          throw userError;
+        }
 
-      if (userError) throw userError;
-      if (contactError) throw contactError;
+        // Get contacts where user is the contact_id
+        const { data: asContact, error: contactError } = await supabase
+          .from('contacts')
+          .select('id, user_id')
+          .eq('contact_id', user.id);
 
-      // Combine and process both sets of contacts
-      const allContacts = [
-        ...(asUser || []).map(contact => ({
-          id: contact.id,
-          otherId: contact.contact_id
-        })),
-        ...(asContact || []).map(contact => ({
-          id: contact.id,
-          otherId: contact.user_id
-        }))
-      ];
+        if (contactError) {
+          console.error('Error fetching as contact:', contactError);
+          throw contactError;
+        }
 
-      // Fetch details for all contacts
-      const contactsWithDetails = await Promise.all(
-        allContacts.map(async (contact) => {
-          // Fetch email using RPC
-          const { data: email } = await supabase
-            .rpc('get_user_email', { user_id: contact.otherId });
-          
-          // Fetch profile
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
-            .eq('id', contact.otherId)
-            .maybeSingle();
-            
-          return {
+        console.log('Found contacts as user:', asUser?.length || 0);
+        console.log('Found contacts as contact:', asContact?.length || 0);
+
+        // Combine and process both sets of contacts
+        const allContacts = [
+          ...(asUser || []).map(contact => ({
             id: contact.id,
-            contact: {
-              id: contact.otherId,
-              email: email || 'Unknown email',
-              profile: profileData || null
-            }
-          };
-        })
-      );
+            otherId: contact.contact_id
+          })),
+          ...(asContact || []).map(contact => ({
+            id: contact.id,
+            otherId: contact.user_id
+          }))
+        ];
 
-      return contactsWithDetails;
+        console.log('Total connections:', allContacts.length);
+
+        // Fetch details for all contacts
+        const contactsWithDetails = await Promise.all(
+          allContacts.map(async (contact) => {
+            // Fetch email using RPC
+            const { data: email } = await supabase
+              .rpc('get_user_email', { user_id: contact.otherId });
+            
+            // Fetch profile
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, avatar_url, bio, tagline, birthdate')
+              .eq('id', contact.otherId)
+              .maybeSingle();
+              
+            return {
+              id: contact.id,
+              contact: {
+                id: contact.otherId,
+                email: email || 'Unknown email',
+                profile: profileData || null
+              }
+            };
+          })
+        );
+
+        return contactsWithDetails;
+      } catch (error) {
+        console.error('Error in connection fetching:', error);
+        throw error;
+      }
     },
   });
 
   if (isLoading) {
-    return <div className="p-4">Loading contacts...</div>;
+    return <div className="p-4">Loading connections...</div>;
   }
   
   if (error) {
-    console.error('Error loading contacts:', error);
-    return <div className="p-4 text-red-500">Error loading contacts. Please try again later.</div>;
+    console.error('Error loading connections:', error);
+    return (
+      <div className="p-4 text-red-500">
+        <div>Error loading connections. Please try again later.</div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="mt-2" 
+          onClick={() => { 
+            toast.promise(refetch(), {
+              loading: 'Refreshing...',
+              success: 'Refreshed successfully',
+              error: 'Failed to refresh'
+            });
+          }}
+        >
+          Refresh
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -133,7 +172,7 @@ export function ConnectionsList() {
       ))}
       {(!contacts || contacts.length === 0) && (
         <div className="text-center p-4 text-muted-foreground">
-          No contacts yet
+          No connections yet
         </div>
       )}
 
