@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,64 +20,143 @@ interface ContactRequest {
 export function ReceivedRequests() {
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
-  const { data: requests, isLoading, refetch } = useQuery({
+  const { data: requests, isLoading } = useQuery({
     queryKey: ['received-requests'],
     queryFn: async () => {
-      console.log('Fetching received requests...');
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.error('No authenticated user found');
-        throw new Error('Not authenticated');
+      try {
+        console.log('Fetching received requests...');
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.error('No authenticated user found');
+          toast.error('Authentication error');
+          throw new Error('Not authenticated');
+        }
+
+        toast.info(`Fetching requests for user: ${user.id}`);
+
+        const { data: requestsData, error: requestsError } = await supabase
+          .from('contact_requests')
+          .select('id, sender_id, recipient_id, status')
+          .eq('recipient_id', user.id)
+          .eq('status', 'pending');
+
+        if (requestsError) {
+          console.error('Error fetching requests:', requestsError);
+          toast.error(`Error fetching requests: ${requestsError.message}`);
+          throw requestsError;
+        }
+
+        toast.info(`Found ${requestsData?.length || 0} pending requests`);
+
+        if (!requestsData || requestsData.length === 0) {
+          return [];
+        }
+
+        // For each request, fetch the sender's profile
+        const requestsWithProfiles = await Promise.all(
+          requestsData.map(async (request) => {
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name, avatar_url')
+              .eq('id', request.sender_id)
+              .single();
+
+            if (profileError) {
+              toast.error(`Error fetching profile for ${request.sender_id}`);
+              console.error('Profile fetch error:', profileError);
+            }
+
+            return {
+              ...request,
+              profile: profileError ? null : profile
+            };
+          })
+        );
+
+        toast.success('Data fetched successfully', {
+          description: `Found ${requestsWithProfiles.length} requests with profiles`,
+        });
+
+        console.log('Final data:', requestsWithProfiles);
+        return requestsWithProfiles;
+      } catch (error) {
+        toast.error('Failed to fetch requests');
+        throw error;
       }
-
-      console.log('Current user ID:', user.id);
-
-      // First, get all pending requests where current user is the recipient
-      const { data: requestsData, error: requestsError } = await supabase
-        .from('contact_requests')
-        .select('id, sender_id, recipient_id, status')
-        .eq('recipient_id', user.id)
-        .eq('status', 'pending');
-
-      if (requestsError) {
-        console.error('Error fetching requests:', requestsError);
-        throw requestsError;
-      }
-
-      console.log('Fetched requests:', requestsData);
-
-      if (!requestsData || requestsData.length === 0) {
-        console.log('No pending requests found');
-        return [];
-      }
-
-      // For each request, fetch the sender's profile separately
-      const requestsWithProfiles = await Promise.all(
-        requestsData.map(async (request) => {
-          console.log('Fetching profile for sender:', request.sender_id);
-          
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, avatar_url')
-            .eq('id', request.sender_id)
-            .single();
-
-          if (profileError) {
-            console.error('Error fetching profile for sender:', request.sender_id, profileError);
-          }
-
-          return {
-            ...request,
-            profile: profileError ? null : profile
-          };
-        })
-      );
-
-      console.log('Final requests with profiles:', requestsWithProfiles);
-      return requestsWithProfiles;
     },
   });
+
+  // Show loading state in toast
+  if (isLoading) {
+    toast.info('Loading requests...');
+    return <div className="p-4">Loading requests...</div>;
+  }
+
+  // Render minimal UI to focus on data
+  return (
+    <div className="space-y-2">
+      <Button 
+        onClick={() => {
+          if (requests) {
+            toast.info('Current requests data:', {
+              description: JSON.stringify(requests, null, 2),
+              duration: 10000
+            });
+          }
+        }}
+        className="mb-4"
+      >
+        Show Raw Data
+      </Button>
+
+      {requests?.map((request) => (
+        <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarImage src={request.profile?.avatar_url || undefined} />
+              <AvatarFallback>
+                {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="font-medium">
+                {request.profile?.first_name
+                  ? `${request.profile.first_name} ${request.profile.last_name || ''}`
+                  : request.sender_id}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Wants to connect with you
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleRequest(request.id, true)}
+              disabled={processingIds.has(request.id)}
+            >
+              Accept
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => handleRequest(request.id, false)}
+              disabled={processingIds.has(request.id)}
+            >
+              Reject
+            </Button>
+          </div>
+        </div>
+      ))}
+      {(!requests || requests.length === 0) && (
+        <div className="text-center p-4 text-muted-foreground">
+          No pending received requests
+        </div>
+      )}
+    </div>
+  );
 
   const handleRequest = async (requestId: string, accept: boolean) => {
     setProcessingIds(prev => new Set(prev).add(requestId));
@@ -129,60 +207,4 @@ export function ReceivedRequests() {
       });
     }
   };
-
-  console.log('Rendering ReceivedRequests. Data:', { isLoading, requests });
-
-  if (isLoading) {
-    return <div className="p-4">Loading requests...</div>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {requests?.map((request) => (
-        <div key={request.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-secondary">
-          <div className="flex items-center gap-3">
-            <Avatar>
-              <AvatarImage src={request.profile?.avatar_url || undefined} />
-              <AvatarFallback>
-                {request.profile?.first_name?.[0] || request.sender_id[0].toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <div className="font-medium">
-                {request.profile?.first_name
-                  ? `${request.profile.first_name} ${request.profile.last_name || ''}`
-                  : request.sender_id}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                Wants to connect with you
-              </div>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleRequest(request.id, true)}
-              disabled={processingIds.has(request.id)}
-            >
-              Accept
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => handleRequest(request.id, false)}
-              disabled={processingIds.has(request.id)}
-            >
-              Reject
-            </Button>
-          </div>
-        </div>
-      ))}
-      {(!requests || requests.length === 0) && (
-        <div className="text-center p-4 text-muted-foreground">
-          No pending received requests
-        </div>
-      )}
-    </div>
-  );
 }
