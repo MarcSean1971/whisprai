@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { ConversationItem } from "@/components/ConversationItem";
 import { Logo } from "@/components/Logo";
@@ -5,18 +6,10 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Bell, MessageSquarePlus, Search, Settings, Users, X, LogOut } from "lucide-react";
+import { MessageSquarePlus, Search, Settings, Users, LogOut, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Shield } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 
 // Sample data
@@ -27,6 +20,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredConversations, setFilteredConversations] = useState(conversations);
+  const [activeTab, setActiveTab] = useState<'messages' | 'contacts'>('messages');
   const { isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -63,18 +57,17 @@ export default function Home() {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
+      {/* Header - Simplified */}
       <header className="flex items-center justify-between p-4 border-b">
         <Logo />
-        
         <div className="flex items-center gap-2">
           {isSearching ? (
             <div className="flex items-center relative">
               <Input
-                placeholder="Search conversations..."
+                placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 pr-8"
+                className="w-48 md:w-64 pr-8"
                 autoFocus
               />
               <Button
@@ -86,135 +79,111 @@ export default function Home() {
                   setIsSearching(false);
                 }}
               >
-                <X className="h-4 w-4" />
+                <Search className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <>
-              {isAdmin && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/admin')}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <Shield className="h-5 w-5" />
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSearching(true)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Search className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <Settings className="h-5 w-5" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate("/profile-setup")}>
-                    Profile Settings
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
-              <ThemeToggle />
-            </>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSearching(true)}
+            >
+              <Search className="h-5 w-5" />
+            </Button>
           )}
         </div>
       </header>
       
       {/* Main Content */}
-      <div className="flex-1 overflow-hidden">
-        <Tabs defaultValue="messages" className="h-full flex flex-col">
-          <TabsList className="mx-4 mt-4 grid w-auto grid-cols-2">
-            <TabsTrigger value="messages">Messages</TabsTrigger>
-            <TabsTrigger value="contacts">Contacts</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="messages" className="flex-1 overflow-hidden">
-            <div className="p-4 h-full overflow-y-auto space-y-1">
-              {filteredConversations.length > 0 ? (
-                filteredConversations.map((conversation) => (
-                  <ConversationItem
-                    key={conversation.id}
-                    id={conversation.id}
-                    name={conversation.name}
-                    avatar={conversation.avatar}
-                    lastMessage={conversation.lastMessage}
-                    timestamp={conversation.timestamp}
-                    unreadCount={conversation.unreadCount}
-                    isPinned={conversation.isPinned}
-                    isGroup={conversation.isGroup}
-                    participants={conversation.participants}
-                    onClick={() => handleConversationClick(conversation.id)}
-                  />
-                ))
-              ) : (
-                <EmptyState
-                  icon={<Search className="h-6 w-6 text-muted-foreground" />}
-                  title="No conversations found"
-                  description={
-                    searchQuery
-                      ? `No results for "${searchQuery}"`
-                      : "Start a new conversation or join a group"
-                  }
-                  action={
-                    <Button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setIsSearching(false);
-                      }}
-                    >
-                      Clear search
-                    </Button>
-                  }
-                  className="h-full"
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'messages' ? (
+          <div className="p-4 space-y-1">
+            {filteredConversations.length > 0 ? (
+              filteredConversations.map((conversation) => (
+                <ConversationItem
+                  key={conversation.id}
+                  {...conversation}
+                  onClick={() => handleConversationClick(conversation.id)}
                 />
-              )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="contacts" className="flex-1 overflow-hidden">
-            <div className="p-4 h-full overflow-y-auto">
+              ))
+            ) : (
               <EmptyState
-                icon={<Users className="h-6 w-6 text-muted-foreground" />}
-                title="Contact list will appear here"
-                description="This feature will be available in the next update"
+                icon={<Search className="h-6 w-6 text-muted-foreground" />}
+                title="No conversations found"
+                description={
+                  searchQuery
+                    ? `No results for "${searchQuery}"`
+                    : "Start a new conversation"
+                }
+                action={
+                  <Button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setIsSearching(false);
+                    }}
+                  >
+                    Clear search
+                  </Button>
+                }
                 className="h-full"
               />
-            </div>
-          </TabsContent>
-        </Tabs>
+            )}
+          </div>
+        ) : (
+          <div className="p-4">
+            <EmptyState
+              icon={<Users className="h-6 w-6 text-muted-foreground" />}
+              title="Contact list will appear here"
+              description="This feature will be available in the next update"
+              className="h-full"
+            />
+          </div>
+        )}
       </div>
-      
-      {/* New Message Button */}
-      <div className="absolute bottom-6 right-6">
+
+      {/* New Message Button - Repositioned */}
+      <div className="absolute right-4 bottom-20 z-10">
         <Button size="lg" className="h-14 w-14 rounded-full shadow-lg">
           <MessageSquarePlus className="h-6 w-6" />
         </Button>
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <div className="border-t bg-background flex items-center justify-around p-4">
+        <Button
+          variant={activeTab === 'messages' ? 'default' : 'ghost'}
+          className="flex-1 mx-1"
+          onClick={() => setActiveTab('messages')}
+        >
+          <MessageSquarePlus className="h-5 w-5 mr-2" />
+          Messages
+        </Button>
+        <Button
+          variant={activeTab === 'contacts' ? 'default' : 'ghost'}
+          className="flex-1 mx-1"
+          onClick={() => setActiveTab('contacts')}
+        >
+          <Users className="h-5 w-5 mr-2" />
+          Contacts
+        </Button>
+        <Button
+          variant="ghost"
+          className="flex-1 mx-1"
+          onClick={() => navigate('/profile-setup')}
+        >
+          <Settings className="h-5 w-5 mr-2" />
+          Settings
+        </Button>
+        {isAdmin && (
+          <Button
+            variant="ghost"
+            className="flex-1 mx-1"
+            onClick={() => navigate('/admin')}
+          >
+            <Shield className="h-5 w-5 mr-2" />
+            Admin
+          </Button>
+        )}
       </div>
     </div>
   );
