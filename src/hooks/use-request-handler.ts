@@ -14,13 +14,30 @@ export function useRequestHandler(onRequestProcessed: () => void) {
       
       const { data: request, error: fetchError } = await supabase
         .from('contact_requests')
-        .select('sender_id')
+        .select('sender_id, status')
         .eq('id', requestId)
         .single();
 
       if (fetchError || !request) {
         console.error('Error fetching request details:', fetchError);
         throw new Error('Request not found');
+      }
+
+      if (request.status !== 'pending') {
+        throw new Error('Request has already been processed');
+      }
+
+      // First update the request status
+      console.log(`Updating request status to: ${accept ? 'accepted' : 'rejected'}`);
+      
+      const { error: updateError } = await supabase
+        .from('contact_requests')
+        .update({ status: accept ? 'accepted' : 'rejected' })
+        .eq('id', requestId);
+
+      if (updateError) {
+        console.error('Error updating request:', updateError);
+        throw updateError;
       }
 
       if (accept) {
@@ -68,18 +85,6 @@ export function useRequestHandler(onRequestProcessed: () => void) {
           console.error('Error adding participants to conversation:', participantsError);
           throw participantsError;
         }
-      }
-
-      console.log(`Updating request status to: ${accept ? 'accepted' : 'rejected'}`);
-      
-      const { error: updateError } = await supabase
-        .from('contact_requests')
-        .update({ status: accept ? 'accepted' : 'rejected' })
-        .eq('id', requestId);
-
-      if (updateError) {
-        console.error('Error updating request:', updateError);
-        throw updateError;
       }
 
       toast.success(`Request ${accept ? 'accepted' : 'rejected'} successfully`);
