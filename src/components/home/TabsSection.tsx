@@ -9,7 +9,7 @@ import { ConversationItem } from "@/components/ConversationItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface TabsSectionProps {
-  activeTab: 'messages' | 'contacts';
+  activeTab: 'chats' | 'contacts';
   filteredConversations: Array<any>;
   searchQuery: string;
   onConversationClick: (id: string) => void;
@@ -27,14 +27,7 @@ export function TabsSection({
 }: TabsSectionProps) {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-      <div className="px-2 border-b">
-        <TabsList className="w-full justify-start">
-          <TabsTrigger value="messages" className="flex-1">Messages</TabsTrigger>
-          <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
-        </TabsList>
-      </div>
-
-      <TabsContent value="messages" className="mt-0">
+      <TabsContent value="chats" className="mt-0">
         <div className="space-y-0.5">
           {filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => (
@@ -65,18 +58,27 @@ export function TabsSection({
       </TabsContent>
 
       <TabsContent value="contacts" className="mt-0">
-        <div className="space-y-4">
-          <div className="relative">
-            <div className="absolute right-4 top-4">
-              <AddContactDialog />
+        <Tabs defaultValue="contacts" className="w-full">
+          <div className="px-2 border-b">
+            <TabsList className="w-full justify-start">
+              <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
+              <TabsTrigger value="pending" className="flex-1">Pending</TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="contacts" className="mt-0">
+            <div className="relative">
+              <div className="absolute right-4 top-4">
+                <AddContactDialog />
+              </div>
+              <ContactsList />
             </div>
-            <ContactsList />
-          </div>
-          <div className="pt-4 border-t">
-            <h3 className="px-4 text-sm font-medium mb-2">Pending Requests</h3>
+          </TabsContent>
+
+          <TabsContent value="pending" className="mt-0">
             <PendingRequests />
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
       </TabsContent>
     </Tabs>
   );

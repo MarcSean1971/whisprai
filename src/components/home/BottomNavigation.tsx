@@ -10,8 +10,8 @@ import {
 import { useNavigate } from "react-router-dom";
 
 interface BottomNavigationProps {
-  activeTab: 'messages' | 'contacts';
-  setActiveTab: (tab: 'messages' | 'contacts') => void;
+  activeTab: 'chats' | 'contacts';
+  setActiveTab: (tab: 'chats' | 'contacts') => void;
   onLogout: () => void;
   isAdmin: boolean;
 }
@@ -28,12 +28,12 @@ export function BottomNavigation({
     <div className="border-t bg-background py-2 px-2">
       <div className="grid grid-cols-4 gap-1">
         <Button
-          variant={activeTab === 'messages' ? 'default' : 'ghost'}
+          variant={activeTab === 'chats' ? 'default' : 'ghost'}
           className="h-auto flex flex-col items-center justify-center py-1 gap-1"
-          onClick={() => setActiveTab('messages')}
+          onClick={() => setActiveTab('chats')}
         >
           <MessageSquarePlus className="h-5 w-5" />
-          <span className="text-xs">Messages</span>
+          <span className="text-xs">Chats</span>
         </Button>
         <Button
           variant={activeTab === 'contacts' ? 'default' : 'ghost'}

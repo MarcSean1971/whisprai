@@ -19,7 +19,7 @@ export default function Home() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredConversations, setFilteredConversations] = useState(conversations);
-  const [activeTab, setActiveTab] = useState<'messages' | 'contacts'>('messages');
+  const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
   const { isAdmin } = useAdmin();
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function Home() {
           searchQuery={searchQuery}
           onConversationClick={handleConversationClick}
           onClearSearch={handleClearSearch}
-          onTabChange={(value) => setActiveTab(value as 'messages' | 'contacts')}
+          onTabChange={(value) => setActiveTab(value as 'chats' | 'contacts')}
         />
       </div>
 
