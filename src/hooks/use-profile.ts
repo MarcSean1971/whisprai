@@ -30,6 +30,11 @@ export function useProfile() {
       if (error) throw error;
 
       if (data) {
+        // Ensure interests is always a string array
+        const interests = Array.isArray(data.interests) 
+          ? data.interests.map(i => String(i))
+          : [];
+
         const formattedProfile: ProfileFormValues = {
           firstName: data.first_name || '',
           lastName: data.last_name || '',
@@ -37,7 +42,7 @@ export function useProfile() {
           birthdate: data.birthdate || '',
           bio: data.bio || '',
           language: data.language || '',
-          interests: Array.isArray(data.interests) ? data.interests : [],
+          interests: interests,
           avatarUrl: data.avatar_url || ''
         };
         setProfile(formattedProfile);
