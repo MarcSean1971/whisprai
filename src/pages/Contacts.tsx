@@ -1,7 +1,7 @@
 
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
@@ -10,12 +10,24 @@ import { SentRequests } from "@/components/contacts/SentRequests";
 import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect } from "react";
 
 export default function Contacts() {
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const [activeTab, setActiveTab] = useState("contacts");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "contacts";
+  
+  useEffect(() => {
+    // Set initial tab parameter if none exists
+    if (!searchParams.get("tab")) {
+      setSearchParams({ tab: "contacts" });
+    }
+  }, []);
+
+  const handleTabChange = (value: string) => {
+    setSearchParams({ tab: value });
+  };
   
   const handleLogout = async () => {
     try {
@@ -51,7 +63,7 @@ export default function Contacts() {
       />
       
       <div className="flex-1 overflow-y-auto">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <div className="px-2 border-b">
             <TabsList className="w-full justify-start">
               <TabsTrigger value="contacts" className="flex-1">Contacts</TabsTrigger>
