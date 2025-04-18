@@ -2,10 +2,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ConnectionsList } from "@/components/contacts/ConnectionsList";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useCreateConversation } from "@/hooks/use-create-conversation";
 
 interface Contact {
   id: string;
@@ -26,77 +24,13 @@ interface CreateChatDialogProps {
 }
 
 export function CreateChatDialog({ open, onOpenChange }: CreateChatDialogProps) {
-  const navigate = useNavigate();
-  const [isCreating, setIsCreating] = useState(false);
+  const { isCreating, createConversation } = useCreateConversation({
+    onSuccess: () => onOpenChange(false)
+  });
 
   const handleContactSelect = async (contact: Contact) => {
     if (isCreating) return;
-    
-    try {
-      setIsCreating(true);
-      
-      // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        console.error("Auth error:", userError);
-        throw new Error('Not authenticated');
-      }
-      if (!user) {
-        throw new Error('Not authenticated');
-      }
-
-      // Create conversation
-      const { data: conversation, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({
-          is_group: false,
-          updated_at: new Date().toISOString()
-        })
-        .select()
-        .single();
-
-      if (conversationError) {
-        console.error("Failed to create conversation:", conversationError);
-        throw new Error('Failed to create conversation');
-      }
-
-      if (!conversation) {
-        throw new Error('No conversation was created');
-      }
-
-      // Add participants
-      const participants = [
-        { conversation_id: conversation.id, user_id: user.id },
-        { conversation_id: conversation.id, user_id: contact.contact.id }
-      ];
-
-      const { error: participantsError } = await supabase
-        .from('conversation_participants')
-        .insert(participants);
-
-      if (participantsError) {
-        // If adding participants fails, cleanup the conversation
-        const { error: cleanupError } = await supabase
-          .from('conversations')
-          .delete()
-          .eq('id', conversation.id);
-          
-        if (cleanupError) {
-          console.error("Failed to cleanup conversation:", cleanupError);
-        }
-        throw new Error('Failed to add participants');
-      }
-
-      toast.success("Conversation started");
-      onOpenChange(false);
-      navigate(`/chat/${conversation.id}`);
-      
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to create conversation');
-    } finally {
-      setIsCreating(false);
-    }
+    createConversation(contact.contact.id);
   };
 
   return (
