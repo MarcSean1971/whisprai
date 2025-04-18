@@ -29,9 +29,13 @@ export default function Verify() {
         const { data: { users }, error: getUserError } = await supabase.auth.admin.listUsers();
         
         // Filter users on the client side since we can't use the filter parameter
-        // Use type assertion to tell TypeScript that users contains objects with email property
-        const user = users?.find(user => user.user_metadata?.email === decodeURIComponent(email) || 
-                                         user.email === decodeURIComponent(email));
+        // Type assertion to handle the users array properly
+        const user = users && users.length > 0 
+          ? users.find(u => 
+              (u.user_metadata && u.user_metadata.email === decodeURIComponent(email)) || 
+              (u.email === decodeURIComponent(email))
+            ) 
+          : null;
         
         if (getUserError || !user) {
           throw new Error("User not found");
