@@ -11,6 +11,7 @@ import { UseFormReturn } from "react-hook-form";
 import { ProfileFormValues } from "./types";
 import { AvatarUpload } from "./AvatarUpload";
 import { useAvatarUpload } from "@/hooks/use-avatar-upload";
+import { BirthdateSection } from "./BirthdateSection";
 
 interface BasicInfoProps {
   form: UseFormReturn<ProfileFormValues>;
@@ -78,6 +79,8 @@ export function BasicInfo({ form }: BasicInfoProps) {
           )}
         />
       </div>
+      
+      <BirthdateSection form={form} />
     </div>
   );
 }
