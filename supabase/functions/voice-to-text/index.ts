@@ -25,62 +25,101 @@ serve(async (req) => {
     const binaryAudio = processBase64Chunks(audio);
     console.log('Converted base64 to binary, size:', binaryAudio.length, 'bytes');
     
-    if (binaryAudio.length < 100) {
+    if (binaryAudio.length < 1000) { // Increased minimum size threshold
       throw new Error('Audio data is too small or empty');
     }
     
     // Prepare form data for transcription
     const formData = new FormData()
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' })
+    const blob = new Blob([binaryAudio], { type: 'audio/webm;codecs=opus' }) // Explicitly set codec
     formData.append('file', blob, 'audio.webm')
     formData.append('model', 'whisper-1')
 
-    // Transcribe audio
-    console.log('Sending audio to OpenAI for transcription');
-    const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-      },
-      body: formData,
-    })
+    // Transcribe audio with retries
+    let transcriptionResult;
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    if (!transcriptionResponse.ok) {
-      const errorText = await transcriptionResponse.text();
-      console.error('OpenAI API error:', errorText);
-      throw new Error(`OpenAI API error: ${errorText}`);
+    while (retryCount < maxRetries) {
+      try {
+        console.log(`Attempt ${retryCount + 1}/${maxRetries}: Sending audio to OpenAI for transcription`);
+        const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          },
+          body: formData,
+        });
+
+        if (!transcriptionResponse.ok) {
+          const errorText = await transcriptionResponse.text();
+          console.error(`OpenAI API error (attempt ${retryCount + 1}):`, errorText);
+          
+          if (retryCount === maxRetries - 1) {
+            throw new Error(`OpenAI API error: ${errorText}`);
+          }
+          
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait before retrying
+          continue;
+        }
+
+        transcriptionResult = await transcriptionResponse.json();
+        console.log('Transcription successful:', transcriptionResult.text.substring(0, 50) + '...');
+        break;
+      } catch (error) {
+        if (retryCount === maxRetries - 1) throw error;
+        console.error(`Attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
 
-    const transcriptionResult = await transcriptionResponse.json();
-    console.log('Transcription successful:', transcriptionResult.text.substring(0, 50) + '...');
-
-    // Generate a unique filename for the voice message that doesn't start with "voice_messages/"
+    // Generate a unique filename for the voice message
     const timestamp = new Date().getTime();
-    const filename = `${userId}/${conversationId}/${timestamp}.webm`;
+    const filename = `voice_messages/${userId}/${conversationId}/${timestamp}.webm`;
     
     console.log('Uploading voice message to path:', filename);
 
-    // Upload to Supabase Storage
-    const uploadResponse = await fetch(
-      `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/voice_messages/${filename}`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-          'Content-Type': 'audio/webm',
-          'x-upsert': 'true'
-        },
-        body: binaryAudio,
+    // Upload to Supabase Storage with retries
+    retryCount = 0;
+    while (retryCount < maxRetries) {
+      try {
+        const uploadResponse = await fetch(
+          `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/${filename}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              'Content-Type': 'audio/webm',
+              'x-upsert': 'true'
+            },
+            body: binaryAudio,
+          }
+        );
+
+        if (!uploadResponse.ok) {
+          const uploadError = await uploadResponse.text();
+          console.error(`Storage upload error (attempt ${retryCount + 1}):`, uploadError);
+          
+          if (retryCount === maxRetries - 1) {
+            throw new Error('Failed to upload voice message');
+          }
+          
+          retryCount++;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
+
+        console.log('Voice message uploaded successfully to:', filename);
+        break;
+      } catch (error) {
+        if (retryCount === maxRetries - 1) throw error;
+        console.error(`Upload attempt ${retryCount + 1} failed:`, error);
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
-    );
-
-    if (!uploadResponse.ok) {
-      const uploadError = await uploadResponse.text();
-      console.error('Storage upload error:', uploadError);
-      throw new Error('Failed to upload voice message');
     }
-
-    console.log('Voice message uploaded successfully to:', filename);
 
     return new Response(
       JSON.stringify({ 
