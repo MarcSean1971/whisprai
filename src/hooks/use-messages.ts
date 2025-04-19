@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -46,15 +45,13 @@ export function useMessages(conversationId: string) {
 
     console.log('Setting up realtime subscription for conversation:', conversationId);
     
-    const channel = supabase.channel('messages')
-      .on(
-        'postgres_changes', 
-        {
+    const channel = supabase.channel(`messages:${conversationId}`)
+      .on('postgres_changes', {
           event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
-        },
+        }, 
         (payload: RealtimePayload) => {
           console.log('Realtime event received:', payload);
           
