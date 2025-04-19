@@ -20,7 +20,6 @@ export function useVoiceMessageDeletion({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Get the current user ID on component mount
     const fetchUserId = async () => {
       const { data } = await supabase.auth.getUser();
       setCurrentUserId(data.user?.id || null);
@@ -35,6 +34,27 @@ export function useVoiceMessageDeletion({
       setIsDeleting(true);
       console.log('Attempting to delete message:', messageId, 'from conversation:', conversationId);
       
+      // First, update the message to remove the voiceMessage from metadata
+      const { error: updateError } = await supabase
+        .from('messages')
+        .update({
+          metadata: supabase.rpc('jsonb_delete_path', {
+            json: { 
+              voiceMessage: null 
+            },
+            path: '{voiceMessage}'
+          })
+        })
+        .eq('id', messageId)
+        .eq('conversation_id', conversationId)
+        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${currentUserId})`);
+
+      if (updateError) {
+        console.error('Error updating message metadata:', updateError);
+        throw new Error('Failed to update message');
+      }
+
+      // Then delete the voice file if it exists
       if (voiceMessagePath) {
         const voicePath = voiceMessagePath.replace(/^voice_messages\/*/, '');
         console.log('Normalized voice message path for deletion:', voicePath);
@@ -70,19 +90,6 @@ export function useVoiceMessageDeletion({
         }
       }
       
-      const { error: deleteError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('id', messageId)
-        .eq('conversation_id', conversationId)
-        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${currentUserId})`);
-        
-      if (deleteError) {
-        console.error('Error deleting message:', deleteError);
-        throw new Error('Failed to delete message');
-      }
-      
-      console.log('Message deleted successfully:', messageId);
       toast.success('Message deleted');
       if (onSuccess) onSuccess();
     } catch (error) {
