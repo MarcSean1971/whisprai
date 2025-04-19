@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -17,6 +17,16 @@ export function useVoiceMessageDeletion({
   onSuccess
 }: UseVoiceMessageDeletionProps) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get the current user ID on component mount
+    const fetchUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    fetchUserId();
+  }, []);
 
   const handleDelete = async () => {
     if (isDeleting || !messageId) return;
@@ -65,7 +75,7 @@ export function useVoiceMessageDeletion({
         .delete()
         .eq('id', messageId)
         .eq('conversation_id', conversationId)
-        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${userId})`);
+        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${currentUserId})`);
         
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
