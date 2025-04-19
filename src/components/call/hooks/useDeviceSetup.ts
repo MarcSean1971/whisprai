@@ -7,73 +7,64 @@ export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
       // Create a proper EventEmitter class with correct prototype chain
-      class EventEmitter {
-        private events: Record<string, Function[]>;
-        
-        constructor() {
+      function EventEmitter() {
+        this.events = {};
+      }
+      
+      EventEmitter.prototype.on = function(event, listener) {
+        if (!this.events[event]) {
+          this.events[event] = [];
+        }
+        this.events[event].push(listener);
+        return this;
+      };
+      
+      EventEmitter.prototype.removeListener = function(event, listener) {
+        if (!this.events[event]) return this;
+        this.events[event] = this.events[event].filter(l => l !== listener);
+        return this;
+      };
+      
+      EventEmitter.prototype.emit = function(event, ...args) {
+        if (!this.events[event]) return false;
+        this.events[event].forEach(listener => listener(...args));
+        return true;
+      };
+
+      // Add other EventEmitter methods that Twilio might use
+      EventEmitter.prototype.once = function(event, listener) {
+        const onceWrapper = (...args) => {
+          listener(...args);
+          this.removeListener(event, onceWrapper);
+        };
+        this.on(event, onceWrapper);
+        return this;
+      };
+
+      EventEmitter.prototype.removeAllListeners = function(event) {
+        if (event) {
+          delete this.events[event];
+        } else {
           this.events = {};
         }
-        
-        on(event: string, listener: Function) {
-          if (!this.events[event]) {
-            this.events[event] = [];
-          }
-          this.events[event].push(listener);
-          return this;
-        }
-        
-        removeListener(event: string, listener: Function) {
-          if (!this.events[event]) return this;
-          this.events[event] = this.events[event].filter(l => l !== listener);
-          return this;
-        }
-        
-        emit(event: string, ...args: any[]) {
-          if (!this.events[event]) return false;
-          this.events[event].forEach(listener => listener(...args));
-          return true;
-        }
+        return this;
+      };
 
-        // Add other EventEmitter methods that Twilio might use
-        once(event: string, listener: Function) {
-          const onceWrapper = (...args: any[]) => {
-            listener(...args);
-            this.removeListener(event, onceWrapper);
-          };
-          this.on(event, onceWrapper);
-          return this;
-        }
-
-        removeAllListeners(event?: string) {
-          if (event) {
-            delete this.events[event];
-          } else {
-            this.events = {};
-          }
-          return this;
-        }
-      }
-
-      // Ensure EventEmitter.prototype is properly set up
-      const emitterProto = EventEmitter.prototype;
-      
-      // Set up EventEmitter on window
-      (window as any).EventEmitter = EventEmitter;
-      
-      // Create events module structure that Twilio expects
-      (window as any).events = {
-        EventEmitter,
+      // Directly set these properties on window for maximum compatibility
+      window.EventEmitter = EventEmitter;
+      window.events = {
+        EventEmitter: EventEmitter,
         defaultMaxListeners: 10,
         setMaxListeners: function() { return this; }
       };
       
       // Ensure proper exports for both named and default
-      (window as any).events.default = (window as any).events;
+      window.events.default = window.events;
       
       // Define process for Node.js compatibility
-      if (!(window as any).process) {
-        (window as any).process = {
-          nextTick: (fn: Function) => setTimeout(fn, 0),
+      if (!window.process) {
+        window.process = {
+          nextTick: (fn) => setTimeout(fn, 0),
           env: { NODE_ENV: 'production' },
           version: '',
           versions: { node: '14.0.0' },
@@ -82,17 +73,17 @@ export function useDeviceSetup() {
       }
       
       // Define Buffer for Node.js compatibility
-      if (!(window as any).Buffer) {
-        (window as any).Buffer = {
+      if (!window.Buffer) {
+        window.Buffer = {
           isBuffer: () => false,
-          from: (value: any) => ({ value }),
-          alloc: (size: number) => new Uint8Array(size)
+          from: (value) => ({ value }),
+          alloc: (size) => new Uint8Array(size)
         };
       }
 
       // Define global for Node.js compatibility
-      if (!(window as any).global) {
-        (window as any).global = window;
+      if (!window.global) {
+        window.global = window;
       }
     }
   };
