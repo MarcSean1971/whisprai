@@ -1,4 +1,3 @@
-
 -- Enable RLS on conversations table
 ALTER TABLE public.conversations ENABLE ROW LEVEL SECURITY;
 
@@ -44,3 +43,17 @@ CREATE POLICY "Users can view conversation participants"
 ON public.conversation_participants
 FOR SELECT
 USING (public.is_conversation_member(conversation_id, auth.uid()));
+
+-- Update the message deletion policy to allow any conversation participant to delete AI messages
+CREATE POLICY "Users can delete AI messages in their conversations"
+ON public.messages
+FOR DELETE
+USING (
+  EXISTS (
+    SELECT 1 
+    FROM conversation_participants 
+    WHERE conversation_id = messages.conversation_id 
+    AND user_id = auth.uid()
+  )
+  AND messages.sender_id IS NULL -- Only AI messages can be deleted
+);

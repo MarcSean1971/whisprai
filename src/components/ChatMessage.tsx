@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -54,7 +53,7 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  const canDelete = isOwn || (isAI && viewerId === userId);
+  const canDelete = isAI;
 
   const handleLocationClick = () => {
     if (location) {
