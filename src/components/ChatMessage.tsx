@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -31,6 +32,7 @@ interface ChatMessageProps {
   userId?: string | null;
   viewerId?: string | null;
   conversationId: string;
+  userLanguage?: string;
   metadata?: {
     isAIPrompt?: boolean;
     location?: {
@@ -54,14 +56,15 @@ export function ChatMessage({
   location,
   onDelete,
   userId,
-  conversationId
+  conversationId,
+  userLanguage
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   
-  const showTranslationToggle = hasTranslation;
+  const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
   
   const isAIMessage = isAI || metadata?.isAIPrompt;
   const isAIPrompt = metadata?.isAIPrompt;
@@ -73,6 +76,7 @@ export function ChatMessage({
     hasTranslation,
     showTranslationToggle,
     originalLanguage,
+    userLanguage,
     translatedContent,
     content
   });

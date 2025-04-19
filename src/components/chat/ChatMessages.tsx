@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -111,7 +110,6 @@ export function ChatMessages({
         const showSender = !isOwn && !isAI && !isAIPrompt && 
                           (index === 0 || messages[index - 1].sender_id !== message.sender_id);
         
-        // Simplified translation check - translate all non-own messages in different languages
         const needsTranslation = !isOwn && 
           !isAI && 
           !isAIPrompt && 
@@ -161,6 +159,7 @@ export function ChatMessages({
             conversationId={message.conversation_id}
             onDelete={handleMessageDelete}
             metadata={message.metadata}
+            userLanguage={profile?.language}
           />
         );
       })}
