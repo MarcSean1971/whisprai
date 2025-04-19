@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { AccessToken } from "https://esm.sh/@twilio/jwt-token-validator@1.7.1"
+import { AccessToken } from "npm:twilio@4.19.0/jwt/access-token.js"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -48,7 +48,8 @@ serve(async (req) => {
       );
 
       // Create a Voice grant
-      const grant = new AccessToken.VoiceGrant({
+      const VoiceGrant = AccessToken.VoiceGrant;
+      const grant = new VoiceGrant({
         outgoingApplicationSid: twilioTwimlAppSid,
         incomingAllow: true,
       });
