@@ -9,20 +9,24 @@ type Codec = any;
 export function useDeviceSetup() {
   const setupBrowserEnvironment = () => {
     try {
+      console.log('Setting up browser environment for Twilio');
       initializeTwilioEnvironment();
-      console.log('Browser environment initialized for Twilio');
+      console.log('Browser environment initialized successfully');
     } catch (err) {
-      console.error('Failed to initialize browser environment for Twilio:', err);
+      console.error('Failed to initialize browser environment:', err);
       throw err;
     }
   };
 
   const initializeDevice = async (userId: string): Promise<Device> => {
+    console.log('Initializing Twilio device for user:', userId);
+    
     const { data, error: tokenError } = await supabase.functions.invoke('twilio-token', {
       body: { identity: userId }
     });
 
     if (tokenError || !data?.token) {
+      console.error('Failed to get Twilio token:', tokenError);
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
@@ -30,14 +34,14 @@ export function useDeviceSetup() {
       console.log('Creating new Twilio device instance');
       const device = new Device();
       
-      console.log('Setting up Twilio device with token');
+      console.log('Setting up device with token');
       await device.setup(data.token, {
-        debug: true,
+        debug: true, // Enable debug mode for better logging
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'] as unknown as Codec[] // Type assertion to fix the TypeScript error
+        codecPreferences: ['opus', 'pcmu'] as unknown as Codec[]
       });
-      
-      console.log('Twilio device setup successful');
+
+      console.log('Device setup completed successfully');
       return device;
     } catch (err) {
       console.error('Error in device setup:', err);

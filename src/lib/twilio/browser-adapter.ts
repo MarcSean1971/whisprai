@@ -1,5 +1,7 @@
 
 // Minimal browser environment adapter for Twilio Client
+import { EventEmitter } from 'events';
+
 class TwilioEnvironment {
   private static instance: TwilioEnvironment;
 
@@ -33,39 +35,8 @@ class TwilioEnvironment {
 
   private setupEventEmitter() {
     if (typeof window !== 'undefined') {
-      // Define a proper EventEmitter class with prototype inheritance
-      const EventEmitter = function(this: any) {
-        this.events = {};
-        return this;
-      } as any;
-
-      EventEmitter.prototype.on = function(this: any, event: string, listener: Function) {
-        if (!this.events[event]) {
-          this.events[event] = [];
-        }
-        this.events[event].push(listener);
-        return this;
-      };
-
-      EventEmitter.prototype.emit = function(this: any, event: string, ...args: any[]) {
-        if (!this.events[event]) return false;
-        this.events[event].forEach((listener: Function) => listener(...args));
-        return true;
-      };
-
-      EventEmitter.prototype.removeAllListeners = function(this: any, event?: string) {
-        if (event) {
-          delete this.events[event];
-        } else {
-          this.events = {};
-        }
-        return this;
-      };
-
-      // Make EventEmitter available globally
+      // Use the proper events package
       window.EventEmitter = EventEmitter;
-      
-      // Set up the events module properly
       window.events = {
         EventEmitter: EventEmitter,
         defaultMaxListeners: 10,
