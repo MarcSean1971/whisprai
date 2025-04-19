@@ -29,6 +29,17 @@ export function useChat(conversationId: string) {
         throw error;
       }
 
+      // Add a new message for the AI response with the viewer_id
+      await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content: data.message,
+          sender_id: null, // AI messages have null sender_id
+          viewer_id: userId, // Set viewer_id to track who triggered the AI
+          status: 'sent'
+        });
+
       return data.message;
     } catch (error) {
       console.error('Error processing AI message:', error);

@@ -53,7 +53,7 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  const canDelete = isOwn || (isAI && viewerId === userId);
+  const canDelete = isAI && viewerId === userId;
 
   const handleLocationClick = () => {
     if (location) {
