@@ -71,7 +71,7 @@ export function ChatMessage({
               : "bg-secondary"
           )}>
             <div className="text-sm">{displayContent}</div>
-            <div className="text-[10px] opacity-70 text-right mt-0.25">
+            <div className="text-[10px] opacity-70 text-right mt-0.5">
               {timestamp}
             </div>
           </div>
