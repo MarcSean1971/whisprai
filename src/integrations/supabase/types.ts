@@ -63,6 +63,48 @@ export type Database = {
         }
         Relationships: []
       }
+      calls: {
+        Row: {
+          caller_id: string
+          created_at: string
+          duration: number | null
+          ended_at: string | null
+          id: string
+          recipient_id: string
+          started_at: string | null
+          status: string
+          twilio_call_sid: string | null
+          twilio_room_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          caller_id: string
+          created_at?: string
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          recipient_id: string
+          started_at?: string | null
+          status: string
+          twilio_call_sid?: string | null
+          twilio_room_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          caller_id?: string
+          created_at?: string
+          duration?: number | null
+          ended_at?: string | null
+          id?: string
+          recipient_id?: string
+          started_at?: string | null
+          status?: string
+          twilio_call_sid?: string | null
+          twilio_room_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_requests: {
         Row: {
           created_at: string

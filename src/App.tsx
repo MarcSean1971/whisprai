@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,14 +14,37 @@ import Verify from "./pages/Verify";
 import Admin from "./pages/Admin";
 import Chats from "./pages/Chats";
 import Contacts from "./pages/Contacts";
+import { CallInterface } from "@/components/call/CallInterface";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+
   useEffect(() => {
     if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       document.documentElement.classList.add("dark");
     }
+  }, []);
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || null);
+    };
+    
+    fetchUserId();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUserId(session?.user?.id || null);
+      }
+    );
+    
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -29,6 +53,7 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          {userId && <CallInterface userId={userId} />}
           <Routes>
             <Route path="/" element={<Auth />} />
             <Route path="/verify" element={<Verify />} />
