@@ -14,7 +14,7 @@ interface ChatInputProps {
     content: string, 
     voiceMessageData?: { base64Audio: string; audioPath?: string }, 
     location?: { latitude: number; longitude: number; accuracy: number },
-    attachment?: { url: string; name: string; type: string }
+    attachments?: { url: string; name: string; type: string }[]
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
@@ -32,28 +32,18 @@ export function ChatInput({
 
   const handleSendMessage = async (
     content: string, 
-    attachment?: { url: string; name: string; type: string }
+    attachments?: { url: string; name: string; type: string }[]
   ) => {
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
     const mightNeedLocation = locationKeywords.some(keyword => 
       content.toLowerCase().includes(keyword)
     );
 
-    const metadata = attachment 
-      ? { 
-          attachment: { 
-            url: attachment.url, 
-            name: attachment.name, 
-            type: attachment.type 
-          } 
-        } 
-      : undefined;
-
     if (mightNeedLocation) {
       const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined, attachment);
+      onSendMessage(content, undefined, location || undefined, attachments);
     } else {
-      onSendMessage(content, undefined, undefined, attachment);
+      onSendMessage(content, undefined, undefined, attachments);
     }
   };
 

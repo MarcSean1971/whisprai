@@ -37,7 +37,7 @@ export function useVoiceMessageDeletion({
       // First, get the current message metadata
       const { data: currentMessage, error: fetchError } = await supabase
         .from('messages')
-        .select('metadata')
+        .select('metadata, sender_id')
         .eq('id', messageId)
         .eq('conversation_id', conversationId)
         .single();
@@ -58,17 +58,34 @@ export function useVoiceMessageDeletion({
         }
       }
       
-      // Update the message metadata
-      const { error: updateError } = await supabase
-        .from('messages')
-        .update({ metadata: updatedMetadata })
-        .eq('id', messageId)
-        .eq('conversation_id', conversationId)
-        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${currentUserId})`);
+      const isAIMessage = currentMessage.sender_id === null;
+      
+      if (isAIMessage) {
+        // For AI messages, delete the entire message
+        const { error: deleteError } = await supabase
+          .from('messages')
+          .delete()
+          .eq('id', messageId)
+          .eq('conversation_id', conversationId)
+          .is('sender_id', null);
+          
+        if (deleteError) {
+          console.error('Error deleting AI message:', deleteError);
+          throw new Error('Failed to delete AI message');
+        }
+      } else {
+        // For user messages, just update the metadata
+        const { error: updateError } = await supabase
+          .from('messages')
+          .update({ metadata: updatedMetadata })
+          .eq('id', messageId)
+          .eq('conversation_id', conversationId)
+          .eq('sender_id', currentUserId);
 
-      if (updateError) {
-        console.error('Error updating message metadata:', updateError);
-        throw new Error('Failed to update message');
+        if (updateError) {
+          console.error('Error updating message metadata:', updateError);
+          throw new Error('Failed to update message');
+        }
       }
 
       // Then delete the voice file if it exists

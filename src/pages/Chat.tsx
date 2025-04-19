@@ -29,9 +29,9 @@ export default function Chat() {
     content: string, 
     voiceMessageData?: { base64Audio: string; audioPath?: string }, 
     location?: { latitude: number; longitude: number; accuracy: number },
-    attachment?: { url: string; name: string; type: string }
+    attachments?: { url: string; name: string; type: string }[]
   ) => {
-    await sendMessage(content, voiceMessageData, location, attachment);
+    await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
     refetch();
   };
