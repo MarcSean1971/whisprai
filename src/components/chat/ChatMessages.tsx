@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -95,10 +96,14 @@ export function ChatMessages({
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
-        const isAI = message.sender_id === null;
-        const showSender = !isOwn && !isAI && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
+        // Check if this is an AI message (either real AI or user prompt with AI: prefix)
+        const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
+        const isAIPrompt = message.metadata?.isAIPrompt;
         
-        const needsTranslation = !isOwn && !isAI && 
+        const showSender = !isOwn && !isAI && !isAIPrompt && 
+                          (index === 0 || messages[index - 1].sender_id !== message.sender_id);
+        
+        const needsTranslation = !isOwn && !isAI && !isAIPrompt && 
           message.original_language && 
           message.original_language !== profile?.language &&
           message.original_language !== 'en';
@@ -110,6 +115,15 @@ export function ChatMessages({
           latitude: message.metadata.location.latitude,
           longitude: message.metadata.location.longitude
         } : undefined;
+
+        console.log("Rendering message:", {
+          id: message.id, 
+          content: message.content,
+          isOwn,
+          isAI,
+          isAIPrompt: message.metadata?.isAIPrompt,
+          metadata: message.metadata
+        });
 
         return (
           <ChatMessage
@@ -132,6 +146,7 @@ export function ChatMessages({
             userId={currentUserId}
             conversationId={message.conversation_id}
             onDelete={handleMessageDelete}
+            metadata={message.metadata}
           />
         );
       })}

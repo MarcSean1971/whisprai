@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -61,8 +62,13 @@ export function ChatMessage({
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
-  const isAIMessage = isAI || metadata?.isAIPrompt;
   
+  // Check if this is an AI message (either generated AI response or user's AI prompt)
+  const isAIMessage = isAI || metadata?.isAIPrompt;
+  // Is this an AI prompt specifically (user typing "AI: something")
+  const isAIPrompt = metadata?.isAIPrompt;
+  
+  // Only allow deletion of AI-related messages
   const canDelete = isAIMessage;
 
   const handleLocationClick = () => {
@@ -110,7 +116,7 @@ export function ChatMessage({
       "flex gap-2 w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
-      {!isOwn && !isAIMessage && sender && (
+      {!isOwn && !isAIPrompt && sender && (
         <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarImage src={sender.avatar} alt={sender.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs">

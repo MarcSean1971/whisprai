@@ -19,6 +19,8 @@ export function useChat(conversationId: string) {
 
   const handleAIMessage = async (content: string) => {
     try {
+      console.log("Processing AI message:", content);
+      
       // Save the original user's "AI:" message without trimming the prefix
       const { error: userMessageError } = await supabase
         .from('messages')
@@ -38,6 +40,8 @@ export function useChat(conversationId: string) {
 
       // Process with AI using the trimmed content
       const trimmedContent = content.replace(/^AI:\s*/, '').trim();
+      console.log("Trimmed content for AI processing:", trimmedContent);
+      
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
           content: trimmedContent, 
@@ -70,6 +74,7 @@ export function useChat(conversationId: string) {
 
     // Check if this is an AI message
     if (content.toLowerCase().startsWith('ai:')) {
+      console.log("Detected AI message, handling specially:", content);
       return handleAIMessage(content);
     }
     
