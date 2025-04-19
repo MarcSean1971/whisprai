@@ -3,6 +3,8 @@ import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 
+type TwilioCodec = 'opus' | 'pcmu';
+
 export function useDeviceSetup() {
   const setupBrowserEnvironment = () => {
     initializeTwilioEnvironment();
@@ -23,7 +25,7 @@ export function useDeviceSetup() {
       await device.setup(data.token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu']
+        codecPreferences: ['opus' as TwilioCodec, 'pcmu' as TwilioCodec]
       });
       
       return device;
