@@ -15,20 +15,29 @@ export function useUserConversations() {
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
-        // Get conversation IDs using the database function
-        const { data: conversationIds, error: conversationIdsError } = await supabase
-          .rpc('get_user_conversation_ids', { user_uuid: user.id });
+        console.log('Fetching conversations for user:', user.id);
 
-        if (conversationIdsError) {
-          console.error('Error fetching conversation IDs:', conversationIdsError);
-          throw conversationIdsError;
+        // First, directly check if the user is participating in any conversations
+        const { data: participations, error: participationsError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+
+        if (participationsError) {
+          console.error('Error fetching participations:', participationsError);
+          throw participationsError;
         }
 
-        // Handle null or empty array case
-        if (!conversationIds || !Array.isArray(conversationIds) || conversationIds.length === 0) {
+        // Extract conversation IDs
+        const conversationIds = participations?.map(p => p.conversation_id) || [];
+        
+        // Handle no conversations case
+        if (!conversationIds.length) {
           console.log('No conversations found for user');
           return [];
         }
+        
+        console.log('Found conversation IDs:', conversationIds);
         
         // Fetch conversations using the IDs
         const { data: conversations, error: conversationsError } = await supabase
@@ -41,6 +50,8 @@ export function useUserConversations() {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
         }
+
+        console.log('Successfully fetched conversations:', conversations?.length);
 
         // For each conversation, get the participants and newest message
         const conversationsWithDetails = await Promise.all(conversations.map(async (conversation) => {
@@ -113,7 +124,7 @@ export function useUserConversations() {
         // Filter out any null results from errors in the Promise.all
         const validConversations = conversationsWithDetails.filter(conv => conv !== null) as Conversation[];
         
-        console.log('Successfully fetched conversations:', validConversations.length);
+        console.log('Successfully processed conversations:', validConversations.length);
         return validConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
