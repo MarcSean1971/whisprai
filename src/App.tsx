@@ -17,37 +17,68 @@ import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import Contacts from "./pages/Contacts";
 import { CallInterface } from "@/components/call/CallInterface";
+import { toast } from "sonner";
 
+// Create a new query client with proper cache invalidation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000,
+      cacheTime: 10 * 60 * 1000,
     },
   },
 });
 
 const App = () => {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
     // Get the current user ID
     const fetchUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || null);
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUserId(data.user?.id || null);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        toast.error('Error initializing session');
+      } finally {
+        setIsInitializing(false);
+      }
     };
 
     fetchUserId();
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUserId(session?.user?.id || null);
+    // Set up auth state listener with improved error handling
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
+      
+      if (event === 'SIGNED_OUT') {
+        console.log('User signed out, cleaning up...');
+        // Clear all query cache on logout
+        queryClient.clear();
+        // Reset local state
+        setUserId(null);
+        // Force reload after short delay to ensure clean state
+        setTimeout(() => {
+          window.location.href = '/auth';
+        }, 100);
+      } else if (event === 'SIGNED_IN') {
+        console.log('User signed in');
+        setUserId(session?.user?.id || null);
+      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  if (isInitializing) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="ui-theme">

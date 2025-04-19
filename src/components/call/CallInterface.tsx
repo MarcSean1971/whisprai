@@ -16,12 +16,40 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [hasError, setHasError] = useState(false);
   const [retryCounter, setRetryCounter] = useState(0);
   const [polyfillsSetup, setPolyfillsSetup] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { setupBrowserEnvironment } = useDeviceSetup();
   const setupAttemptRef = useRef(false);
 
+  // Handle online/offline status
   useEffect(() => {
-    // Only set up the browser environment if we have a userId
-    if (!userId) {
+    const handleOnline = () => {
+      console.log('Network is online');
+      setIsOnline(true);
+      // Reset error state to allow for reconnection attempt
+      if (hasError) {
+        setHasError(false);
+        setRetryCounter(0);
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('Network is offline');
+      setIsOnline(false);
+      toast.error('Network connection lost');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [hasError]);
+
+  useEffect(() => {
+    // Only set up the browser environment if we have a userId and we're online
+    if (!userId || !isOnline) {
       return;
     }
     
@@ -39,10 +67,10 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         toast.error('Failed to initialize call system');
       }
     }
-  }, [userId]);
+  }, [userId, isOnline]);
 
   useEffect(() => {
-    if (hasError && retryCounter < 3) {
+    if (hasError && retryCounter < 3 && isOnline) {
       const retryDelay = 2000 + (retryCounter * 1000); // Incremental backoff
       console.log(`Scheduling retry attempt ${retryCounter + 1}/3 in ${retryDelay}ms`);
       
@@ -65,10 +93,10 @@ export function CallInterface({ userId }: CallInterfaceProps) {
       console.error('Max retry attempts reached');
       toast.error('Unable to initialize call service. Please refresh the page.');
     }
-  }, [hasError, retryCounter, setupBrowserEnvironment]);
+  }, [hasError, retryCounter, isOnline, setupBrowserEnvironment]);
 
-  // If no userId is provided, don't render anything
-  if (!userId) {
+  // If no userId is provided or we're offline, don't render anything
+  if (!userId || !isOnline) {
     return null;
   }
 
