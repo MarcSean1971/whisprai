@@ -8,6 +8,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { UseFormReturn } from "react-hook-form";
 import { ProfileFormValues } from "./types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface BirthdateSectionProps {
   form: UseFormReturn<ProfileFormValues>;
@@ -50,6 +57,9 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
                 }
                 initialFocus
                 className={cn("p-3 pointer-events-auto")}
+                captionLayout="dropdown-buttons"
+                fromYear={1900}
+                toYear={new Date().getFullYear()}
               />
             </PopoverContent>
           </Popover>
