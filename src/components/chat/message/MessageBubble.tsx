@@ -1,8 +1,9 @@
 
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 interface MessageBubbleProps {
   content: string;
@@ -31,6 +32,8 @@ export function MessageBubble({
   attachment,
   attachments 
 }: MessageBubbleProps) {
+  const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
+
   const getAttachmentIcon = (file: { type: string }) => {
     const iconProps = { className: "h-6 w-6 mr-2 text-muted-foreground" };
     
@@ -42,21 +45,36 @@ export function MessageBubble({
     return <File {...iconProps} />;
   };
 
-  const handleDownload = (e: React.MouseEvent<HTMLAnchorElement>, file: { url: string; name: string }) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleDownload = async (file: { url: string; name: string }) => {
+    try {
+      setDownloadingFiles(prev => ({ ...prev, [file.url]: true }));
+      
+      const response = await fetch(file.url);
+      if (!response.ok) throw new Error('Download failed');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success(`Downloaded ${file.name}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error(`Failed to download ${file.name}`);
+    } finally {
+      setDownloadingFiles(prev => ({ ...prev, [file.url]: false }));
+    }
   };
 
   const renderFileAttachment = (file: { url: string; name: string; type: string }) => {
+    const isDownloading = downloadingFiles[file.url];
+    
     if (file.type.startsWith('image/')) {
       return (
         <div className="mt-2 max-w-full relative group" key={file.url}>
@@ -70,11 +88,12 @@ export function MessageBubble({
               size="sm"
               variant="ghost"
               className="text-white hover:text-white hover:bg-white/20"
-              onClick={(e) => handleDownload(e as any, file)}
+              onClick={() => handleDownload(file)}
+              disabled={isDownloading}
               aria-label={`Download ${file.name}`}
             >
               <Download className="h-5 w-5 mr-1" />
-              Download
+              {isDownloading ? 'Downloading...' : 'Download'}
             </Button>
           </div>
         </div>
@@ -91,10 +110,15 @@ export function MessageBubble({
           size="sm"
           variant="ghost"
           className="shrink-0"
-          onClick={(e) => handleDownload(e as any, file)}
+          onClick={() => handleDownload(file)}
+          disabled={isDownloading}
           aria-label={`Download ${file.name}`}
         >
-          <Download className="h-4 w-4" />
+          {isDownloading ? (
+            <span className="text-xs">Downloading...</span>
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
         </Button>
       </div>
     );
@@ -128,4 +152,3 @@ export function MessageBubble({
     </div>
   );
 }
-
