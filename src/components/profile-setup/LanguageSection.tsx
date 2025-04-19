@@ -47,11 +47,13 @@ export function LanguageSection({ form }: LanguageSectionProps) {
               sideOffset={4}
               side="bottom"
             >
-              {Object.entries(languages).map(([code, name]) => (
-                <SelectItem key={code} value={code} className="cursor-pointer">
-                  {name}
-                </SelectItem>
-              ))}
+              {Object.entries(languages)
+                .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB))
+                .map(([code, name]) => (
+                  <SelectItem key={code} value={code} className="cursor-pointer">
+                    {name}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
           <FormMessage />
