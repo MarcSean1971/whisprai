@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { EditLanguageDialog } from './EditLanguageDialog';
 import { AddLanguageForm } from './languages/AddLanguageForm';
 import { LanguageList } from './languages/LanguageList';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export function LanguageManagement() {
   const [languages, setLanguages] = useState<{ [key: string]: string }>({});
@@ -86,27 +87,29 @@ export function LanguageManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <AddLanguageForm 
-        languages={languages}
-        onLanguageAdded={setLanguages}
-      />
-
-      <LanguageList 
-        languages={languages}
-        onLanguageDeleted={setLanguages}
-        onEditClick={handleEditClick}
-      />
-
-      {editLanguage && (
-        <EditLanguageDialog
-          open={!!editLanguage}
-          onOpenChange={(open) => !open && setEditLanguage(null)}
-          languageCode={editLanguage.code}
-          languageName={editLanguage.name}
-          onSave={handleEditComplete}
+    <ScrollArea className="h-[calc(100vh-13rem)]">
+      <div className="space-y-6 p-6">
+        <AddLanguageForm 
+          languages={languages}
+          onLanguageAdded={setLanguages}
         />
-      )}
-    </div>
+
+        <LanguageList 
+          languages={languages}
+          onLanguageDeleted={setLanguages}
+          onEditClick={handleEditClick}
+        />
+
+        {editLanguage && (
+          <EditLanguageDialog
+            open={!!editLanguage}
+            onOpenChange={(open) => !open && setEditLanguage(null)}
+            languageCode={editLanguage.code}
+            languageName={editLanguage.name}
+            onSave={handleEditComplete}
+          />
+        )}
+      </div>
+    </ScrollArea>
   );
 }

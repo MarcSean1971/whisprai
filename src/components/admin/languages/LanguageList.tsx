@@ -41,13 +41,13 @@ export function LanguageList({ languages, onLanguageDeleted, onEditClick }: Lang
     .sort(([, nameA], [, nameB]) => nameA.localeCompare(nameB));
 
   return (
-    <div className="mt-4 grid gap-2 md:grid-cols-2 lg:grid-cols-3 w-full">
+    <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
       {sortedLanguages.map(([code, name]) => (
         <div 
           key={code} 
-          className="flex items-center justify-between p-2 border rounded hover:bg-muted/50 w-full"
+          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50"
         >
-          <span className="flex-1">{name} ({code})</span>
+          <span className="flex-1 truncate mr-2">{name} ({code})</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
