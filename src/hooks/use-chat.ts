@@ -19,13 +19,12 @@ export function useChat(conversationId: string) {
 
   const handleAIMessage = async (content: string) => {
     try {
-      // First, save the user's message as an AI prompt with null sender_id
-      const userContent = content.replace(/^AI:\s*/, '').trim();
+      // Save the original user's "AI:" message without trimming the prefix
       const { error: userMessageError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          content: userContent,
+          content: content,
           sender_id: null,
           status: 'sent',
           metadata: { isAIPrompt: true }
@@ -37,10 +36,11 @@ export function useChat(conversationId: string) {
         throw userMessageError;
       }
 
-      // Then process with AI
+      // Process with AI using the trimmed content
+      const trimmedContent = content.replace(/^AI:\s*/, '').trim();
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
-          content: userContent, 
+          content: trimmedContent, 
           conversationId, 
           userId 
         }
