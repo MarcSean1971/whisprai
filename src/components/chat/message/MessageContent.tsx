@@ -16,6 +16,11 @@ interface MessageContentProps {
   canDelete: boolean;
   onDelete: () => void;
   isDeleting: boolean;
+  attachment?: {
+    url: string;
+    name: string;
+    type: string;
+  };
 }
 
 export function MessageContent({
@@ -30,7 +35,8 @@ export function MessageContent({
   onLocationClick,
   canDelete,
   onDelete,
-  isDeleting
+  isDeleting,
+  attachment
 }: MessageContentProps) {
   return (
     <div className="flex items-start gap-2">
@@ -39,6 +45,7 @@ export function MessageContent({
         timestamp={timestamp}
         isOwn={isOwn}
         isAIMessage={isAIMessage}
+        attachment={attachment}
       />
 
       <MessageControls

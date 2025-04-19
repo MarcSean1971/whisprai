@@ -118,7 +118,7 @@ export function ChatMessage({
         canDelete={canDelete}
         onDelete={handleDelete}
         isDeleting={isDeleting}
-        attachment={metadata?.attachment}
+        attachment={attachment}
       />
 
       {voiceMessagePath && (

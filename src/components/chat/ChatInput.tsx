@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 interface ChatInputProps {
   conversationId: string;
-  onSendMessage: (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }) => void;
+  onSendMessage: (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }, attachment?: { url: string; name: string; type: string }) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
 }
@@ -25,7 +25,10 @@ export function ChatInput({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (
+    content: string, 
+    attachment?: { url: string; name: string; type: string }
+  ) => {
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
     const mightNeedLocation = locationKeywords.some(keyword => 
       content.toLowerCase().includes(keyword)
@@ -33,9 +36,9 @@ export function ChatInput({
 
     if (mightNeedLocation) {
       const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined);
+      onSendMessage(content, undefined, location || undefined, attachment);
     } else {
-      onSendMessage(content);
+      onSendMessage(content, undefined, undefined, attachment);
     }
   };
 
@@ -43,8 +46,6 @@ export function ChatInput({
     try {
       setIsProcessingVoice(true);
       toast.info('Processing voice message...');
-      
-      console.log('Sending voice data to transcription service, length:', base64Audio.length);
       
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -74,11 +75,6 @@ export function ChatInput({
         throw new Error('No audio path received');
       }
 
-      console.log('Voice message processed successfully. Text:', data.text.substring(0, 50) + '...');
-      console.log('Audio path:', data.audioPath);
-      
-      toast.success('Voice message transcribed');
-      
       onSendMessage(data.text, { 
         base64Audio, 
         audioPath: data.audioPath 
