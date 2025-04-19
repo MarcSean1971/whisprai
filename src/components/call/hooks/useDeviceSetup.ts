@@ -55,7 +55,7 @@ export function useDeviceSetup() {
 
       if (!window.process) {
         window.process = {
-          nextTick: (fn: Function) => setTimeout(fn, 0),
+          nextTick: (fn: Function, ...args: any[]): void => { setTimeout(() => fn(...args), 0) },
           env: { 
             NODE_ENV: 'production',
             PATH: '/usr/local/bin:/usr/bin:/bin',
@@ -80,7 +80,7 @@ export function useDeviceSetup() {
           argv: ['node', 'browser'],
           pid: 1,
           title: 'browser',
-          arch: "x64", // Changed from "browser" to a valid architecture
+          arch: "x64",
           cwd: () => '/',
           exit: (code?: number) => { throw new Error(`Process exited with code ${code}`); },
           argv0: 'node',
@@ -92,8 +92,41 @@ export function useDeviceSetup() {
             console.log(`Mock kill called with pid ${pid} and signal ${signal}`);
             return true;
           },
-          ppid: 0
-        };
+          ppid: 0,
+          debugPort: 9229,
+          dlopen: () => { /* Mock implementation */ },
+          emitWarning: () => { /* Mock implementation */ },
+          binding: (name: string) => ({}),
+          features: { inspector: true },
+          hrtime: () => [0, 0],
+          memoryUsage: () => ({ 
+            rss: 0, 
+            heapTotal: 0, 
+            heapUsed: 0, 
+            external: 0,
+            arrayBuffers: 0 
+          }),
+          umask: () => 0,
+          uptime: () => 0,
+          on: (event: string, listener: Function) => window.process as Process,
+          once: (event: string, listener: Function) => window.process as Process,
+          removeListener: (event: string, listener: Function) => window.process as Process,
+          removeAllListeners: (event?: string) => window.process as Process,
+          setMaxListeners: (n: number) => window.process as Process,
+          getMaxListeners: () => 10,
+          listeners: (event: string) => [],
+          emit: (event: string, ...args: any[]) => false,
+          prependListener: (event: string, listener: Function) => window.process as Process,
+          prependOnceListener: (event: string, listener: Function) => window.process as Process,
+          listenerCount: (type: string) => 0,
+          cpuUsage: () => ({ user: 0, system: 0 }),
+          resourceUsage: () => ({
+            userCPUTime: 0,
+            systemCPUTime: 0,
+            maxRSS: 0,
+            sharedMemorySize: 0
+          })
+        } as Process;
       }
 
       if (!window.Buffer) {

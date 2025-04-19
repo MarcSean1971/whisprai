@@ -24,6 +24,10 @@ interface Process {
   abort(): never;
   chdir(directory: string): void;
   cwd(): string;
+  debugPort?: number;
+  dlopen?(): void;
+  emitWarning?(): void;
+  finalization?(): void;
   exit(code?: number): never;
   kill(pid: number, signal?: string | number): true;
   pid: number;
@@ -31,6 +35,49 @@ interface Process {
   title: string;
   arch: string;
   platform: "darwin" | "win32" | "linux" | "aix" | "android" | "freebsd" | "haiku" | "openbsd" | "sunos" | "cygwin" | "netbsd";
+  // Add additional properties from the error message
+  mainModule?: any;
+  hasUncaughtExceptionCaptureCallback?: boolean;
+  version: string;
+  versions: ProcessVersions;
+  binding?: (name: string) => any;
+  config?: any;
+  env: { [key: string]: string };
+  features?: { [key: string]: boolean };
+  hrtime?: () => [number, number];
+  memoryUsage?: () => any;
+  nextTick: (callback: Function, ...args: any[]) => void;
+  release?: { [key: string]: string };
+  resourceUsage?: () => any;
+  umask?: () => number;
+  uptime?: () => number;
+  disconnect?: () => void;
+  addListener?: (event: string, listener: Function) => Process;
+  domain?: any;
+  eventNames?: () => string[];
+  getMaxListeners?: () => number;
+  listenerCount?: (type: string) => number;
+  listeners?: (event: string) => Function[];
+  off?: (event: string, listener: Function) => Process;
+  on?: (event: string, listener: Function) => Process;
+  once?: (event: string, listener: Function) => Process;
+  prependListener?: (event: string, listener: Function) => Process;
+  prependOnceListener?: (event: string, listener: Function) => Process;
+  rawListeners?: (event: string) => Function[];
+  removeAllListeners?: (event?: string) => Process;
+  removeListener?: (event: string, listener: Function) => Process;
+  setMaxListeners?: (n: number) => Process;
+  setUncaughtExceptionCaptureCallback?: (cb: ((err: Error) => void) | null) => void;
+  allowedNodeEnvironmentFlags?: Set<string>;
+  cpuUsage?: (previousValue?: { user: number; system: number }) => { user: number; system: number };
+  moduleLoadList?: string[];
+  reporterAccessors?: any;
+  setegid?: (id: number | string) => void;
+  seteuid?: (id: number | string) => void;
+  setgid?: (id: number | string) => void;
+  setgroups?: (groups: Array<string | number>) => void;
+  setuid?: (id: number | string) => void;
+  report?: any;
   // Add other required Process properties
 }
 
