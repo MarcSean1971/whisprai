@@ -5,10 +5,6 @@ import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
 import { useNavigate } from "react-router-dom";
 import { useAdmin } from "@/hooks/use-admin";
-import { EmptyState } from "@/components/EmptyState";
-import { Search, AlertCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ConversationItem } from "@/components/ConversationItem";
 import { useUserConversations } from "@/hooks/use-user-conversations";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,11 +39,6 @@ export default function Chats() {
     navigate(`/chat/${id}`);
   };
 
-  const handleClearSearch = () => {
-    setSearchQuery("");
-    setIsSearching(false);
-  };
-
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -75,55 +66,27 @@ export default function Chats() {
       />
       
       <div className="flex-1 overflow-y-auto">
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center h-[70vh] p-4">
-            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-            <p className="text-muted-foreground">Loading conversations...</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center h-[70vh] p-4">
-            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
-            <h3 className="font-medium mb-2">Error loading conversations</h3>
-            <p className="text-sm text-muted-foreground text-center mb-4">
-              {error instanceof Error ? error.message : 'An unexpected error occurred'}
-            </p>
-            <Button onClick={() => refetch()} variant="outline">
-              Try Again
-            </Button>
-          </div>
-        ) : filteredConversations && filteredConversations.length > 0 ? (
-          <div className="space-y-0.5">
-            {filteredConversations.map((conversation) => (
-              <ConversationItem
-                key={conversation.id}
-                id={conversation.id}
-                name={conversation.name || "Conversation"}
-                avatar={conversation.avatar || undefined}
-                lastMessage={conversation.lastMessage?.content}
-                timestamp={conversation.lastMessage?.created_at ? new Date(conversation.lastMessage.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : undefined}
-                unreadCount={0}
-                isGroup={conversation.is_group}
-                onClick={() => handleConversationClick(conversation.id)}
-              />
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            icon={<Search className="h-6 w-6 text-muted-foreground" />}
-            title={searchQuery ? "No conversations found" : "No conversations yet"}
-            description={
-              searchQuery
-                ? `No results for "${searchQuery}"`
-                : "Start a new conversation by clicking the + button"
-            }
-            action={
-              searchQuery ? (
-                <Button onClick={handleClearSearch}>Clear search</Button>
-              ) : undefined
-            }
-            className="h-[calc(100vh-8rem)]"
-          />
-        )}
+        <div className="space-y-0.5">
+          {filteredConversations?.map((conversation) => (
+            <div 
+              key={conversation.id}
+              className="p-4 hover:bg-accent cursor-pointer"
+              onClick={() => handleConversationClick(conversation.id)}
+            >
+              <div className="font-medium">{conversation.name}</div>
+              {conversation.lastMessage && (
+                <div className="text-sm text-muted-foreground truncate">
+                  {conversation.lastMessage.content}
+                </div>
+              )}
+            </div>
+          ))}
+          {(!filteredConversations || filteredConversations.length === 0) && (
+            <div className="text-center p-4 text-muted-foreground">
+              No conversations found
+            </div>
+          )}
+        </div>
       </div>
 
       <NewMessageButton />

@@ -17,20 +17,6 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
         
-        // First verify we can access the conversation_participants table
-        const { data: participantsTest, error: participantsTestError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id)
-          .limit(1);
-          
-        if (participantsTestError) {
-          console.error('Error accessing conversation_participants:', participantsTestError);
-          throw new Error(`Cannot access conversation participants: ${participantsTestError.message}`);
-        }
-        
-        console.log('Successfully accessed conversation_participants');
-
         // Now fetch the actual conversations with all data
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
