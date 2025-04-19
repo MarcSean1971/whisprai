@@ -45,21 +45,28 @@ export function useUserConversations() {
       }
 
       return conversations.map(conversation => {
-        // Filter participants to exclude the current user and safely handle the profile data
+        // Filter participants to exclude the current user
         const participants = conversation.conversation_participants
           .filter(p => p.user_id !== user.id)
           .map(p => {
-            // Make a safe check if profiles exists and has the required properties
-            const profile = p.profiles ? {
-              id: p.profiles.id || p.user_id,
-              first_name: p.profiles.first_name || null,
-              last_name: p.profiles.last_name || null,
-              avatar_url: p.profiles.avatar_url || null
-            } : {
-              id: p.user_id,
-              first_name: null,
-              last_name: null,
-              avatar_url: null
+            // Handle the profiles data safely with type checking
+            // TypeScript needs more explicit type checking here
+            const profileData = p.profiles || null;
+            
+            // Create a safe profile object with defaults
+            const profile = {
+              id: typeof profileData === 'object' && profileData !== null && 'id' in profileData 
+                ? String(profileData.id) 
+                : p.user_id,
+              first_name: typeof profileData === 'object' && profileData !== null && 'first_name' in profileData 
+                ? String(profileData.first_name || '') 
+                : null,
+              last_name: typeof profileData === 'object' && profileData !== null && 'last_name' in profileData 
+                ? String(profileData.last_name || '') 
+                : null,
+              avatar_url: typeof profileData === 'object' && profileData !== null && 'avatar_url' in profileData 
+                ? String(profileData.avatar_url || '') 
+                : null
             };
             
             return {
@@ -72,9 +79,11 @@ export function useUserConversations() {
         const primaryProfile = participants[0]?.profile;
         
         // Create a safe display name with null checks
-        const displayName = primaryProfile?.first_name 
-          ? `${primaryProfile.first_name || ''} ${primaryProfile.last_name || ''}`.trim()
-          : `User ${primaryProfile?.id.slice(0, 8) || 'Unknown'}`;
+        const displayName = primaryProfile 
+          ? (primaryProfile.first_name 
+              ? `${primaryProfile.first_name || ''} ${primaryProfile.last_name || ''}`.trim()
+              : `User ${primaryProfile.id.slice(0, 8) || 'Unknown'}`)
+          : 'Unknown User';
 
         return {
           ...conversation,
