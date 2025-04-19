@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +35,22 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       setCallStatus(CallStatus.IDLE);
       setError(null);
 
+      // Add comprehensive browser polyfills for Twilio client
+      if (typeof window !== 'undefined') {
+        // This helps with EventEmitter issues
+        window.EventEmitter = null;
+        
+        // Additional polyfills for browser compatibility
+        if (!window.global) {
+          window.global = window;
+        }
+        
+        // Ensure process.nextTick is available (used by some Twilio dependencies)
+        if (!window.process) {
+          window.process = { nextTick: (fn: Function) => setTimeout(fn, 0) };
+        }
+      }
+
       // Fetch access token from our edge function
       const { data, error: tokenError } = await supabase.functions.invoke('twilio-token', {
         body: { identity: userId }
@@ -41,12 +58,6 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
 
       if (tokenError || !data?.token) {
         throw new Error(tokenError?.message || 'Failed to get access token');
-      }
-
-      // Add a polyfill to avoid issues with the Twilio client
-      if (typeof window !== 'undefined') {
-        // @ts-ignore - This is necessary for compatibility with the Twilio client
-        window.EventEmitter = null;
       }
 
       // Initialize the device with the token
@@ -108,7 +119,10 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         // Setup the device with the token
         await newDevice.setup(data.token, {
           // Adding debug option to help with troubleshooting
-          debug: true
+          debug: true,
+          // Add additional options for better browser compatibility
+          allowIncomingWhileBusy: true,
+          codecPreferences: ['opus', 'pcmu']
         });
         setDevice(newDevice);
       } catch (setupError) {
@@ -176,40 +190,73 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   // Answer an incoming call
   const answerCall = useCallback(() => {
     if (activeCall && callStatus === CallStatus.RINGING) {
-      activeCall.accept();
-      setCallStatus(CallStatus.IN_PROGRESS);
+      try {
+        activeCall.accept();
+        setCallStatus(CallStatus.IN_PROGRESS);
+      } catch (err) {
+        console.error('Error accepting call:', err);
+        setError(err.message);
+        setCallStatus(CallStatus.FAILED);
+        toast.error(`Error accepting call: ${err.message}`);
+      }
     }
   }, [activeCall, callStatus]);
 
   // End a call
   const endCall = useCallback(() => {
     if (activeCall) {
-      activeCall.disconnect();
-      setCallStatus(CallStatus.COMPLETED);
-      setActiveCall(null);
-      setRemoteParticipant(null);
+      try {
+        activeCall.disconnect();
+        setCallStatus(CallStatus.COMPLETED);
+        setActiveCall(null);
+        setRemoteParticipant(null);
+      } catch (err) {
+        console.error('Error ending call:', err);
+        setError(err.message);
+        toast.error(`Error ending call: ${err.message}`);
+        // Force reset state even if disconnect fails
+        setCallStatus(CallStatus.COMPLETED);
+        setActiveCall(null);
+        setRemoteParticipant(null);
+      }
     }
   }, [activeCall]);
 
   // Reject an incoming call
   const rejectCall = useCallback(() => {
     if (activeCall && callStatus === CallStatus.RINGING) {
-      activeCall.reject();
-      setCallStatus(CallStatus.IDLE);
-      setActiveCall(null);
-      setRemoteParticipant(null);
+      try {
+        activeCall.reject();
+        setCallStatus(CallStatus.IDLE);
+        setActiveCall(null);
+        setRemoteParticipant(null);
+      } catch (err) {
+        console.error('Error rejecting call:', err);
+        setError(err.message);
+        toast.error(`Error rejecting call: ${err.message}`);
+        // Force reset state even if reject fails
+        setCallStatus(CallStatus.IDLE);
+        setActiveCall(null);
+        setRemoteParticipant(null);
+      }
     }
   }, [activeCall, callStatus]);
 
   // Toggle mute status
   const toggleMute = useCallback(() => {
     if (activeCall) {
-      if (isMuted) {
-        activeCall.mute(false);
-        setIsMuted(false);
-      } else {
-        activeCall.mute(true);
-        setIsMuted(true);
+      try {
+        if (isMuted) {
+          activeCall.mute(false);
+          setIsMuted(false);
+        } else {
+          activeCall.mute(true);
+          setIsMuted(true);
+        }
+      } catch (err) {
+        console.error('Error toggling mute:', err);
+        setError(err.message);
+        toast.error(`Error toggling mute: ${err.message}`);
       }
     }
   }, [activeCall, isMuted]);

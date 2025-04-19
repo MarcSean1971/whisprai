@@ -222,19 +222,35 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     
     useCallStore.setState({
       acceptCall: () => {
-        twilioAnswerCall();
+        try {
+          twilioAnswerCall();
+        } catch (error) {
+          console.error('Error in acceptCall:', error);
+        }
         originalAcceptCall();
       },
       rejectCall: () => {
-        twilioRejectCall();
+        try {
+          twilioRejectCall();
+        } catch (error) {
+          console.error('Error in rejectCall:', error);
+        }
         originalRejectCall();
       },
       endCall: () => {
-        twilioEndCall();
+        try {
+          twilioEndCall();
+        } catch (error) {
+          console.error('Error in endCall:', error);
+        }
         originalEndCall();
       },
       toggleMute: () => {
-        twilioToggleMute();
+        try {
+          twilioToggleMute();
+        } catch (error) {
+          console.error('Error in toggleMute:', error);
+        }
         originalToggleMute();
       }
     });
