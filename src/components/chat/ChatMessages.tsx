@@ -23,6 +23,7 @@ export function ChatMessages({
   const { profile } = useProfile();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -91,6 +92,11 @@ export function ChatMessages({
     processTranslations();
   }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
+  const handleMessageDelete = () => {
+    // Force a refresh of the messages
+    setRefreshKey(prev => prev + 1);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
@@ -113,7 +119,8 @@ export function ChatMessages({
 
         return (
           <ChatMessage
-            key={message.id}
+            key={`${message.id}-${refreshKey}`}
+            id={message.id}
             content={message.content}
             timestamp={formattedTimestamp}
             isOwn={isOwn}
@@ -128,6 +135,9 @@ export function ChatMessages({
             originalLanguage={message.original_language}
             translatedContent={translatedContent}
             location={location}
+            userId={currentUserId}
+            viewerId={message.viewer_id}
+            onDelete={handleMessageDelete}
           />
         );
       })}

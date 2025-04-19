@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -9,6 +8,8 @@ import { useChat } from "@/hooks/use-chat";
 import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
@@ -22,13 +23,35 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!);
   
+  useEffect(() => {
+    if (!id) return;
+    
+    const subscription = supabase
+      .channel(`messages:${id}`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'messages',
+          filter: `conversation_id=eq.${id}`
+        }, 
+        () => {
+          refetch();
+        })
+      .subscribe();
+      
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [id, refetch]);
+  
   const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
     await sendMessage(content, location);
-    clearSuggestions(); // Clear suggestions after sending a message
+    clearSuggestions();
   };
 
   const handleNewReceivedMessage = () => {
-    generateSuggestions(); // Generate new suggestions when a message is received
+    generateSuggestions();
   };
 
   if (!id) {

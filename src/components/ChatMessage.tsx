@@ -3,11 +3,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
 import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { MapPin, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
 interface ChatMessageProps {
+  id: string;
   content: string;
   timestamp: string;
   isOwn?: boolean;
@@ -25,9 +28,13 @@ interface ChatMessageProps {
     latitude: number;
     longitude: number;
   };
+  onDelete?: () => void;
+  userId?: string | null;
+  viewerId?: string | null;
 }
 
 export function ChatMessage({
+  id,
   content,
   timestamp,
   isOwn = false,
@@ -36,12 +43,19 @@ export function ChatMessage({
   isAI = false,
   originalLanguage,
   translatedContent,
-  location
+  location,
+  onDelete,
+  userId,
+  viewerId
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
+  
+  // Show delete button only for AI messages and only to the viewer
+  const canDelete = isAI && viewerId === userId;
 
   const handleLocationClick = () => {
     if (location) {
@@ -49,6 +63,32 @@ export function ChatMessage({
         `https://www.google.com/maps?q=${location.latitude},${location.longitude}`,
         '_blank'
       );
+    }
+  };
+
+  const handleDelete = async () => {
+    if (isDeleting || !id) return;
+    
+    try {
+      setIsDeleting(true);
+      
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', id);
+        
+      if (error) {
+        console.error('Error deleting message:', error);
+        toast.error('Failed to delete message');
+        throw error;
+      }
+      
+      toast.success('Message deleted');
+      if (onDelete) onDelete();
+    } catch (error) {
+      console.error('Error deleting message:', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -113,6 +153,17 @@ export function ChatMessage({
               originalLanguage={originalLanguage || 'unknown'}
               onClick={() => setShowOriginal(!showOriginal)}
             />
+          )}
+          
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="p-1 rounded-full hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
+              title="Delete message"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>
