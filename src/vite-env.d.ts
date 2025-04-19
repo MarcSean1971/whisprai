@@ -1,6 +1,17 @@
 
 /// <reference types="vite/client" />
 
+interface ProcessVersions {
+  node: string;
+  v8: string;
+  uv: string;
+  zlib: string;
+  ares: string;
+  modules: string;
+  http_parser: string;
+  openssl: string;
+}
+
 interface EventEmitter {
   events: { [key: string]: Function[] };
   on(event: string, listener: Function): this;
@@ -18,6 +29,13 @@ interface EventEmitterConstructor {
 interface NodeBuffer extends Uint8Array {
   write(string: string, encoding?: BufferEncoding): number;
   toString(encoding?: BufferEncoding): string;
+  // Add minimal Node.js Buffer compatibility methods
+  equals(otherBuffer: Uint8Array): boolean;
+  compare(target: Uint8Array): number;
+  copy(target: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
+  slice(start?: number, end?: number): Buffer;
+  toJSON(): { type: string; data: number[] };
+  [Symbol.species]: NodeBuffer;
 }
 
 interface Window {
@@ -32,15 +50,7 @@ interface Window {
     nextTick: (fn: Function) => void;
     env: { NODE_ENV: string };
     version: string;
-    versions: {
-      node: string;
-      v8: string;
-      uv: string;
-      zlib: string;
-      ares: string;
-      modules: string;
-      http_parser: string;
-    };
+    versions: ProcessVersions;
     platform: string;
   };
   Buffer?: {

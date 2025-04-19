@@ -1,3 +1,4 @@
+
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -67,15 +68,16 @@ export function useDeviceSetup() {
             zlib: '1.0.0',
             ares: '1.0.0',
             modules: '83',
-            http_parser: '2.9.3'
-          },
-          platform: 'browser' as any
+            http_parser: '2.9.3',
+            openssl: '1.1.1' // Added the missing openssl version
+          } as ProcessVersions,
+          platform: 'browser'
         };
       }
 
       // Set up Buffer
       if (!window.Buffer) {
-        class NodeBuffer extends Uint8Array {
+        class NodeBufferImpl extends Uint8Array implements NodeBuffer {
           write(string: string, encoding?: BufferEncoding): number {
             // Simple implementation
             const buf = new TextEncoder().encode(string);
@@ -86,17 +88,76 @@ export function useDeviceSetup() {
           toString(encoding?: BufferEncoding): string {
             return new TextDecoder().decode(this);
           }
+
+          // Add minimal implementations for required methods
+          equals(otherBuffer: Uint8Array): boolean {
+            if (this.length !== otherBuffer.length) return false;
+            for (let i = 0; i < this.length; i++) {
+              if (this[i] !== otherBuffer[i]) return false;
+            }
+            return true;
+          }
+
+          compare(target: Uint8Array): number {
+            const len = Math.min(this.length, target.length);
+            for (let i = 0; i < len; i++) {
+              if (this[i] !== target[i]) {
+                return this[i] < target[i] ? -1 : 1;
+              }
+            }
+            if (this.length < target.length) return -1;
+            if (this.length > target.length) return 1;
+            return 0;
+          }
+
+          copy(target: Uint8Array, targetStart = 0, sourceStart = 0, sourceEnd = this.length): number {
+            const len = Math.min(sourceEnd - sourceStart, target.length - targetStart, this.length - sourceStart);
+            for (let i = 0; i < len; i++) {
+              target[targetStart + i] = this[sourceStart + i];
+            }
+            return len;
+          }
+
+          slice(start = 0, end = this.length): Buffer {
+            const newBuf = new NodeBufferImpl(end - start);
+            for (let i = 0; i < end - start; i++) {
+              newBuf[i] = this[i + start];
+            }
+            return newBuf as unknown as Buffer;
+          }
+
+          toJSON(): { type: string; data: number[] } {
+            return {
+              type: 'Buffer',
+              data: Array.from(this)
+            };
+          }
         }
 
+        // Add Symbol.species if supported by the environment
+        if (typeof Symbol !== 'undefined' && Symbol.species) {
+          Object.defineProperty(NodeBufferImpl, Symbol.species, {
+            get: function() { return NodeBufferImpl; }
+          });
+        }
+
+        // Create type-compatible Buffer methods
+        const bufferFrom = (value: any): NodeBuffer => {
+          if (typeof value === 'string') {
+            return new NodeBufferImpl(new TextEncoder().encode(value)) as NodeBuffer;
+          }
+          return new NodeBufferImpl(value) as NodeBuffer;
+        };
+
+        const bufferAlloc = (size: number): NodeBuffer => {
+          return new NodeBufferImpl(size) as NodeBuffer;
+        };
+
+        // Use type assertion to satisfy the complex TypeScript interface
         window.Buffer = {
           isBuffer: (obj): obj is Buffer => obj instanceof Uint8Array,
-          from: (value: any): NodeBuffer => {
-            if (typeof value === 'string') {
-              return new NodeBuffer(new TextEncoder().encode(value));
-            }
-            return new NodeBuffer(value);
-          },
-          alloc: (size: number): NodeBuffer => new NodeBuffer(size)
+          from: bufferFrom as any,
+          alloc: bufferAlloc as any
         };
       }
 
