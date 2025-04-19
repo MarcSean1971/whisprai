@@ -66,13 +66,6 @@ export function ChatMessage({
         </Avatar>
       )}
 
-      {hasTranslation && !isOwn && (
-        <TranslationIcon 
-          originalLanguage={originalLanguage || 'unknown'}
-          onClick={() => setShowOriginal(!showOriginal)}
-        />
-      )}
-
       <div className={cn(
         "flex flex-col max-w-[75%]",
         isOwn ? "items-end" : "items-start"
@@ -83,29 +76,31 @@ export function ChatMessage({
           </span>
         )}
         
-        <div className={cn(
-          "rounded-lg py-2 px-3",
-          isOwn
-            ? "bg-primary text-primary-foreground"
-            : isAI
-            ? "bg-accent/10 border border-accent/20"
-            : "bg-secondary"
-        )}>
-          <div className="text-sm">{displayContent}</div>
-          
-          <div className="flex items-center gap-1 mt-0.5 text-[10px] opacity-70">
-            <span>{timestamp}</span>
-            {isOwn && getStatusIcon()}
+        <div className="flex items-start gap-2">
+          <div className={cn(
+            "rounded-lg py-2 px-3",
+            isOwn
+              ? "bg-primary text-primary-foreground"
+              : isAI
+              ? "bg-accent/10 border border-accent/20"
+              : "bg-secondary"
+          )}>
+            <div className="text-sm">{displayContent}</div>
+            
+            <div className="flex items-center gap-1 mt-0.5 text-[10px] opacity-70">
+              <span>{timestamp}</span>
+              {isOwn && getStatusIcon()}
+            </div>
           </div>
+
+          {hasTranslation && (
+            <TranslationIcon 
+              originalLanguage={originalLanguage || 'unknown'}
+              onClick={() => setShowOriginal(!showOriginal)}
+            />
+          )}
         </div>
       </div>
-
-      {hasTranslation && isOwn && (
-        <TranslationIcon 
-          originalLanguage={originalLanguage || 'unknown'}
-          onClick={() => setShowOriginal(!showOriginal)}
-        />
-      )}
     </div>
   );
 }
