@@ -63,41 +63,70 @@ export function useMessages(conversationId: string) {
         throw new Error('No conversation ID provided');
       }
 
-      // Fetch messages with sender profiles using a simplified join
-      const { data: messages, error } = await supabase
+      // First, fetch messages without the join
+      const { data: messages, error: messagesError } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:profiles!messages_sender_id_fkey (
-            id,
-            first_name,
-            last_name,
-            avatar_url,
-            language
-          )
-        `)
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching messages:', error);
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
         toast.error('Failed to load messages');
-        throw error;
+        throw messagesError;
       }
 
-      // Transform the data to match our Message interface
-      return messages.map(msg => ({
-        ...msg,
-        sender: msg.sender ? {
-          id: msg.sender.id,
-          profiles: {
-            first_name: msg.sender.first_name,
-            last_name: msg.sender.last_name,
-            avatar_url: msg.sender.avatar_url,
-            language: msg.sender.language
-          }
-        } : undefined
-      })) as Message[];
+      // Get unique sender IDs (excluding null values)
+      const senderIds = messages
+        .map(msg => msg.sender_id)
+        .filter((id): id is string => id !== null);
+      
+      const uniqueSenderIds = [...new Set(senderIds)];
+
+      // If there are sender IDs, fetch their profiles
+      let profilesMap: Record<string, any> = {};
+      
+      if (uniqueSenderIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, language')
+          .in('id', uniqueSenderIds);
+          
+        if (profilesError) {
+          console.error('Error fetching profiles:', profilesError);
+          // Continue without profiles rather than failing completely
+        } else if (profiles) {
+          // Create a map of profiles by ID for easy lookup
+          profilesMap = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      // Combine messages with sender profiles
+      const messagesWithProfiles = messages.map(message => {
+        if (!message.sender_id) {
+          return message; // Return message as is if no sender_id (AI message)
+        }
+        
+        const profile = profilesMap[message.sender_id];
+        
+        return {
+          ...message,
+          sender: profile ? {
+            id: message.sender_id,
+            profiles: {
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              avatar_url: profile.avatar_url,
+              language: profile.language
+            }
+          } : { id: message.sender_id }
+        };
+      });
+
+      return messagesWithProfiles as Message[];
     }
   });
 }
