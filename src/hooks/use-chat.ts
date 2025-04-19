@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -90,28 +89,29 @@ export function useChat(conversationId: string) {
 
   const sendMessage = async (
     content: string,
+    voiceMessageData?: { 
+      base64Audio: string; 
+      audioPath?: string 
+    },
     location?: { latitude: number; longitude: number; accuracy: number }
   ) => {
-    if (!conversationId || !content.trim()) {
+    if (!conversationId || (!content.trim() && !voiceMessageData)) {
       console.error("Cannot send message: missing conversation ID or content");
       return false;
     }
 
-    // Check if this is an AI message
+    // Handle AI messages
     if (content.toLowerCase().startsWith('ai:')) {
-      console.log("Detected AI message, handling specially:", content);
       return handleAIMessage(content);
     }
     
     if (!userId) {
-      console.error("Cannot send message: missing user ID");
       toast.error('Please log in to send messages');
       return false;
     }
     
     try {
       const detectedLanguage = await detectLanguage(content);
-      console.log("Detected language:", detectedLanguage);
       
       const messageData = {
         conversation_id: conversationId,
@@ -119,7 +119,10 @@ export function useChat(conversationId: string) {
         original_language: detectedLanguage,
         sender_id: userId,
         status: 'sent',
-        metadata: location ? { location } : null
+        metadata: {
+          ...(location ? { location } : {}),
+          ...(voiceMessageData?.audioPath ? { voiceMessage: voiceMessageData.audioPath } : {})
+        }
       };
       
       const { error } = await supabase

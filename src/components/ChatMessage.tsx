@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { MessageAvatar } from "./chat/message/MessageAvatar";
 import { MessageControls } from "./chat/message/MessageControls";
 import { MessageBubble } from "./chat/message/MessageBubble";
+import { Play, Pause } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -38,6 +40,7 @@ interface ChatMessageProps {
       latitude: number;
       longitude: number;
     };
+    voiceMessage?: string;
   };
 }
 
@@ -60,12 +63,16 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
   const isAIMessage = isAI || metadata?.isAIPrompt;
   const canDelete = isAIMessage;
   const isAIPrompt = metadata?.isAIPrompt;
+  const voiceMessagePath = metadata?.voiceMessage;
 
   const handleLocationClick = () => {
     if (location) {
@@ -104,6 +111,28 @@ export function ChatMessage({
       toast.error('Failed to delete message');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handlePlayPauseVoiceMessage = async () => {
+    if (!voiceMessagePath) return;
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('voice_messages')
+        .getPublicUrl(voiceMessagePath);
+
+      if (error) throw error;
+
+      if (isPlaying) {
+        audioRef.current?.pause();
+      } else {
+        audioRef.current?.play();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (error) {
+      console.error('Error getting voice message URL:', error);
+      toast.error('Failed to play voice message');
     }
   };
 
@@ -150,6 +179,19 @@ export function ChatMessage({
           />
         </div>
       </div>
+
+      {voiceMessagePath && (
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handlePlayPauseVoiceMessage}
+          >
+            {isPlaying ? <Pause /> : <Play />}
+          </Button>
+          <audio ref={audioRef} src={`https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`} />
+        </div>
+      )}
     </div>
   );
 }
