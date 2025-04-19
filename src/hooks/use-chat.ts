@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -18,8 +19,30 @@ export function useChat(conversationId: string) {
 
   const handleAIMessage = async (content: string) => {
     try {
+      // First, save the user's message
+      const userContent = content.replace(/^AI:\s*/, '').trim();
+      const { error: userMessageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          content: `AI: ${userContent}`,
+          sender_id: userId,
+          status: 'sent'
+        });
+
+      if (userMessageError) {
+        console.error('Error saving user message:', userMessageError);
+        toast.error('Failed to send message');
+        throw userMessageError;
+      }
+
+      // Then process with AI
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { content, conversationId, userId }
+        body: { 
+          content: userContent, 
+          conversationId, 
+          userId 
+        }
       });
 
       if (error || !data.success) {
@@ -64,14 +87,13 @@ export function useChat(conversationId: string) {
         original_language: detectedLanguage,
         sender_id: userId,
         status: 'sent',
-        viewer_id: userId, // Add viewer_id to identify who triggered AI responses
+        viewer_id: userId,
         metadata: location ? { location } : null
       };
       
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('messages')
-        .insert(messageData)
-        .select();
+        .insert(messageData);
 
       if (error) {
         console.error('Error sending message:', error);
