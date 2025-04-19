@@ -299,6 +299,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_existing_conversation: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: string
+      }
+      get_ordered_participant_pair: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: string[]
+      }
       get_user_email: {
         Args: { user_id: string }
         Returns: string
