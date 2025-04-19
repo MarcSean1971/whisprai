@@ -1,15 +1,22 @@
-
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface VoiceMessagePlayerProps {
   voiceMessagePath: string;
+  onDelete?: () => void;
+  canDelete?: boolean;
+  isDeleting?: boolean;
 }
 
-export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps) {
+export function VoiceMessagePlayer({ 
+  voiceMessagePath,
+  onDelete,
+  canDelete = false,
+  isDeleting = false
+}: VoiceMessagePlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
@@ -17,7 +24,6 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
   const [loadAttempts, setLoadAttempts] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  // Construct the public URL for voice messages
   const audioUrl = `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`;
 
   useEffect(() => {
@@ -42,7 +48,6 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
         setError(audioError?.message || 'Failed to load audio');
         setIsLoading(false);
         
-        // Show toast only on first error
         if (loadAttempts === 0) {
           toast.error('Failed to load audio message');
         }
@@ -59,7 +64,6 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
       audio.addEventListener('canplay', handleCanPlay);
       audio.addEventListener('error', handleError);
       
-      // Force load the audio
       audio.load();
 
       return () => {
@@ -132,7 +136,7 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
             size="icon"
             className="h-8 w-8"
             onClick={handlePlayPause}
-            disabled={isLoading || !!error}
+            disabled={isLoading || !!error || isDeleting}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -148,13 +152,29 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
             size="icon"
             className="h-8 w-8"
             onClick={toggleMute}
-            disabled={isLoading || !!error}
+            disabled={isLoading || !!error || isDeleting}
           >
             {isMuted ? 
               <VolumeX className="h-4 w-4" /> : 
               <Volume2 className="h-4 w-4" />
             }
           </Button>
+
+          {canDelete && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+              onClick={onDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+            </Button>
+          )}
         </>
       )}
 

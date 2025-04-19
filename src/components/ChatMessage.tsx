@@ -87,6 +87,20 @@ export function ChatMessage({
       setIsDeleting(true);
       console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
+      // If there's a voice message, delete it from storage first
+      if (metadata?.voiceMessage) {
+        console.log('Deleting voice message file:', metadata.voiceMessage);
+        const { error: storageError } = await supabase.storage
+          .from('voice_messages')
+          .remove([metadata.voiceMessage]);
+          
+        if (storageError) {
+          console.error('Error deleting voice message file:', storageError);
+          toast.error('Failed to delete voice message file');
+          return;
+        }
+      }
+      
       const { error: deleteError } = await supabase
         .from('messages')
         .delete()
@@ -151,7 +165,12 @@ export function ChatMessage({
       </div>
 
       {voiceMessagePath && (
-        <VoiceMessagePlayer voiceMessagePath={voiceMessagePath} />
+        <VoiceMessagePlayer 
+          voiceMessagePath={voiceMessagePath} 
+          onDelete={handleDelete}
+          canDelete={isOwn || isAI}
+          isDeleting={isDeleting}
+        />
       )}
     </div>
   );
