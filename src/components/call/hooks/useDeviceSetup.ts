@@ -26,7 +26,7 @@ export function useDeviceSetup() {
       await device.setup(data.token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'] // Use string literals directly
+        codecPreferences: ['opus', 'pcmu'] as unknown as Codec[] // Type assertion to fix the TypeScript error
       });
       
       return device;
