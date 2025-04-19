@@ -50,6 +50,15 @@ export function useChat(conversationId: string) {
         return false;
       }
 
+      // Get user's language preference
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('language')
+        .eq('id', userId)
+        .maybeSingle();
+
+      const userLanguage = profileData?.language || 'en';
+
       // Process with AI using the trimmed content
       const trimmedContent = content.replace(/^AI:\s*/, '').trim();
       
@@ -57,7 +66,8 @@ export function useChat(conversationId: string) {
         body: { 
           content: trimmedContent, 
           conversationId, 
-          userId 
+          userId,
+          language: userLanguage
         }
       });
 

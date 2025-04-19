@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { content, conversationId, userId } = await req.json()
+    const { content, conversationId, userId, language = 'en' } = await req.json()
 
     if (!content || !conversationId || !userId) {
       throw new Error('Missing required parameters')
@@ -30,7 +30,10 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
+          { 
+            role: 'system', 
+            content: `You are a helpful assistant. Respond in ${language} language.` 
+          },
           { role: 'user', content: content }
         ],
       }),
@@ -58,7 +61,8 @@ serve(async (req) => {
         content: aiResponse,
         sender_id: null,
         viewer_id: userId,
-        metadata: { isAIResponse: true }
+        metadata: { isAIResponse: true },
+        original_language: language
       })
 
     if (messageError) {
