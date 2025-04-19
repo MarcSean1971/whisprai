@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
@@ -25,6 +24,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // Prepare the system message and make the API call to OpenAI (keeping existing code)
     const detectedLanguage = await detectLanguage(prompt)
     console.log('Detected language:', detectedLanguage)
 
@@ -85,7 +85,7 @@ ${chatHistoryContext}
     
     const aiResponse = aiData.choices[0].message.content
 
-    // Store AI message in the database with viewer_id
+    // Store AI message in the database with viewer_id to scope it to the requesting user
     const { error: messageError } = await supabase
       .from('messages')
       .insert({
@@ -158,4 +158,3 @@ async function detectLanguage(text: string): Promise<string> {
   
   return scores[0].score > 0 ? scores[0].lang : 'en';
 }
-

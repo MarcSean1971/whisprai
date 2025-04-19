@@ -19,15 +19,20 @@ export function useChat(conversationId: string) {
 
   const handleAIMessage = async (content: string) => {
     try {
+      if (!userId) {
+        console.error('No user ID available');
+        return;
+      }
+
       console.log("Processing AI message:", content);
       
-      // Save the original user's "AI:" message without trimming the prefix
+      // Save the original user's "AI:" message with proper metadata
       const { error: userMessageError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           content: content,
-          sender_id: null,
+          sender_id: userId,
           status: 'sent',
           metadata: { isAIPrompt: true }
         });

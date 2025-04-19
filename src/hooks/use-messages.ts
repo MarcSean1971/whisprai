@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -85,11 +86,15 @@ export function useMessages(conversationId: string) {
           throw new Error('No conversation ID provided');
         }
 
-        // First fetch messages
+        const { data: user } = await supabase.auth.getUser();
+        const userId = user.user?.id;
+
+        // Fetch messages with proper filtering for AI messages
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conversationId)
+          .or(`viewer_id.is.null,viewer_id.eq.${userId}`)
           .order('created_at', { ascending: true });
 
         if (messagesError) {
