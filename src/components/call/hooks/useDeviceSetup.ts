@@ -1,39 +1,35 @@
-
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      // Create a proper EventEmitter class with correct prototype chain
-      function EventEmitter() {
+      function EventEmitterConstructor(this: EventEmitter) {
         this.events = {};
       }
-      
-      EventEmitter.prototype.on = function(event, listener) {
+
+      EventEmitterConstructor.prototype.on = function(event, listener) {
         if (!this.events[event]) {
           this.events[event] = [];
         }
         this.events[event].push(listener);
         return this;
       };
-      
-      EventEmitter.prototype.removeListener = function(event, listener) {
+
+      EventEmitterConstructor.prototype.removeListener = function(event, listener) {
         if (!this.events[event]) return this;
         this.events[event] = this.events[event].filter(l => l !== listener);
         return this;
       };
-      
-      EventEmitter.prototype.emit = function(event, ...args) {
+
+      EventEmitterConstructor.prototype.emit = function(event, ...args) {
         if (!this.events[event]) return false;
         this.events[event].forEach(listener => listener(...args));
         return true;
       };
 
-      // Add other EventEmitter methods that Twilio might use
-      EventEmitter.prototype.once = function(event, listener) {
-        const onceWrapper = (...args) => {
+      EventEmitterConstructor.prototype.once = function(event, listener) {
+        const onceWrapper = (...args: any[]) => {
           listener(...args);
           this.removeListener(event, onceWrapper);
         };
@@ -41,7 +37,7 @@ export function useDeviceSetup() {
         return this;
       };
 
-      EventEmitter.prototype.removeAllListeners = function(event) {
+      EventEmitterConstructor.prototype.removeAllListeners = function(event) {
         if (event) {
           delete this.events[event];
         } else {
@@ -50,38 +46,60 @@ export function useDeviceSetup() {
         return this;
       };
 
-      // Directly set these properties on window for maximum compatibility
-      window.EventEmitter = EventEmitter;
+      // Set up window.events and EventEmitter
+      window.EventEmitter = EventEmitterConstructor as any as EventEmitterConstructor;
       window.events = {
-        EventEmitter: EventEmitter,
+        EventEmitter: window.EventEmitter,
         defaultMaxListeners: 10,
         setMaxListeners: function() { return this; }
       };
-      
-      // Ensure proper exports for both named and default
-      window.events.default = window.events;
-      
-      // Define process for Node.js compatibility
+
+      // Set up process
       if (!window.process) {
         window.process = {
           nextTick: (fn) => setTimeout(fn, 0),
           env: { NODE_ENV: 'production' },
-          version: '',
-          versions: { node: '14.0.0' },
-          platform: 'browser'
-        };
-      }
-      
-      // Define Buffer for Node.js compatibility
-      if (!window.Buffer) {
-        window.Buffer = {
-          isBuffer: () => false,
-          from: (value) => ({ value }),
-          alloc: (size) => new Uint8Array(size)
+          version: 'v14.0.0',
+          versions: {
+            node: '14.0.0',
+            v8: '8.0.0',
+            uv: '1.0.0',
+            zlib: '1.0.0',
+            ares: '1.0.0',
+            modules: '83',
+            http_parser: '2.9.3'
+          },
+          platform: 'browser' as any
         };
       }
 
-      // Define global for Node.js compatibility
+      // Set up Buffer
+      if (!window.Buffer) {
+        class NodeBuffer extends Uint8Array {
+          write(string: string, encoding?: BufferEncoding): number {
+            // Simple implementation
+            const buf = new TextEncoder().encode(string);
+            this.set(buf);
+            return buf.length;
+          }
+
+          toString(encoding?: BufferEncoding): string {
+            return new TextDecoder().decode(this);
+          }
+        }
+
+        window.Buffer = {
+          isBuffer: (obj): obj is Buffer => obj instanceof Uint8Array,
+          from: (value: any): NodeBuffer => {
+            if (typeof value === 'string') {
+              return new NodeBuffer(new TextEncoder().encode(value));
+            }
+            return new NodeBuffer(value);
+          },
+          alloc: (size: number): NodeBuffer => new NodeBuffer(size)
+        };
+      }
+
       if (!window.global) {
         window.global = window;
       }
