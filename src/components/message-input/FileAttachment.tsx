@@ -1,5 +1,5 @@
 
-import { File } from "lucide-react";
+import { File, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FileAttachmentProps {
@@ -21,7 +21,7 @@ export function FileAttachment({ file, onClear }: FileAttachmentProps) {
         className="text-destructive hover:text-destructive/80"
         onClick={onClear}
       >
-        <File className="h-4 w-4" />
+        <X className="h-4 w-4" />
       </Button>
     </div>
   );
