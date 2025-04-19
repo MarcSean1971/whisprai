@@ -25,7 +25,7 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
   const [translationsInProgress, setTranslationsInProgress] = useState(0);
-  const [messageCount, setMessageCount] = useState(messages.length);
+  const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -36,13 +36,11 @@ export function ChatMessages({
   }, []);
 
   useEffect(() => {
-    if (messages.length > messageCount) {
+    if (messages.length > previousMessagesLength) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      setMessageCount(messages.length);
-    } else if (messages.length < messageCount) {
-      setMessageCount(messages.length);
     }
-  }, [messages.length, messageCount]);
+    setPreviousMessagesLength(messages.length);
+  }, [messages.length, previousMessagesLength]);
 
   useEffect(() => {
     if (messages.length > 0 && currentUserId) {

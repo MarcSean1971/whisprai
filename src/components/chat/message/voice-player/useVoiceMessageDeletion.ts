@@ -47,20 +47,10 @@ export function useVoiceMessageDeletion({
         throw new Error('Failed to fetch message');
       }
       
-      // Create updated metadata object without the voiceMessage property
-      let updatedMetadata = {};
-      
-      if (currentMessage.metadata && typeof currentMessage.metadata === 'object') {
-        updatedMetadata = { ...currentMessage.metadata };
-        if ('voiceMessage' in updatedMetadata) {
-          delete updatedMetadata.voiceMessage;
-        }
-      }
-      
       const isAIMessage = currentMessage.sender_id === null || currentMessage.private_room === 'AI';
       
       if (isAIMessage) {
-        // For AI messages, delete the entire message
+        // For AI messages (both prompts and responses), delete the entire message
         const { error: deleteError } = await supabase
           .from('messages')
           .delete()
@@ -73,7 +63,15 @@ export function useVoiceMessageDeletion({
           throw new Error('Failed to delete AI message');
         }
       } else {
-        // For user messages, just update the metadata
+        // For user messages, just update the metadata to remove voice message
+        let updatedMetadata = {};
+        if (currentMessage.metadata && typeof currentMessage.metadata === 'object') {
+          updatedMetadata = { ...currentMessage.metadata };
+          if ('voiceMessage' in updatedMetadata) {
+            delete updatedMetadata.voiceMessage;
+          }
+        }
+
         const { error: updateError } = await supabase
           .from('messages')
           .update({ metadata: updatedMetadata })
