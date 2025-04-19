@@ -43,31 +43,35 @@ export function MessageInput({
   return (
     <div className={cn("w-full", className)}>
       {(suggestions.length > 0 || isLoadingSuggestions) && (
-        <div className="flex flex-wrap gap-2 mb-2">
-          {isLoadingSuggestions ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-colors"
-              disabled
-            >
-              <Loader2 className="h-3 w-3 animate-spin mr-1" />
-              Generating suggestions...
-            </Button>
-          ) : (
-            suggestions.map((suggestion) => (
+        <div className="mb-2 overflow-x-auto no-scrollbar">
+          <div className="flex gap-2 pb-1">
+            {isLoadingSuggestions ? (
               <Button
-                key={suggestion.id}
                 variant="outline"
                 size="sm"
-                className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 transition-colors group"
-                onClick={() => handleSuggestionClick(suggestion.text)}
+                className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-colors whitespace-nowrap flex-shrink-0"
+                disabled
               >
-                <Sparkles className="h-3 w-3 mr-1 text-primary/70 group-hover:text-primary/90" />
-                {suggestion.text}
+                <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                Generating suggestions...
               </Button>
-            ))
-          )}
+            ) : (
+              <div className="flex gap-2">
+                {suggestions.map((suggestion) => (
+                  <Button
+                    key={suggestion.id}
+                    variant="outline"
+                    size="sm"
+                    className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 transition-colors group whitespace-nowrap flex-shrink-0"
+                    onClick={() => handleSuggestionClick(suggestion.text)}
+                  >
+                    <Sparkles className="h-3 w-3 mr-1 text-primary/70 group-hover:text-primary/90" />
+                    {suggestion.text}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
       
