@@ -65,6 +65,7 @@ export function useChat(conversationId: string) {
         original_language: detectedLanguage,
         sender_id: userId,
         status: 'sent',
+        viewer_id: userId, // Add viewer_id to identify who triggered AI responses
         metadata: location ? { location } : null
       };
       

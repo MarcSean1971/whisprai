@@ -27,21 +27,27 @@ export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Real-time subscription for new messages
+    // Real-time subscription for messages changes (insert, update, delete)
     const channel = supabase
       .channel('messages')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*', // Listen to all events
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-            return oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
-          });
+          if (payload.eventType === 'DELETE') {
+            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
+              return oldData ? oldData.filter(message => message.id !== payload.old.id) : [];
+            });
+          } else if (payload.eventType === 'INSERT') {
+            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
+              return oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
+            });
+          }
         }
       )
       .subscribe();

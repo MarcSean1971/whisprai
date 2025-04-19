@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -54,8 +53,7 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  // Show delete button only for AI messages and only to the viewer
-  const canDelete = isAI && viewerId === userId;
+  const canDelete = isOwn || (isAI && viewerId === userId);
 
   const handleLocationClick = () => {
     if (location) {
@@ -87,6 +85,7 @@ export function ChatMessage({
       if (onDelete) onDelete();
     } catch (error) {
       console.error('Error deleting message:', error);
+      toast.error('Failed to delete message');
     } finally {
       setIsDeleting(false);
     }
