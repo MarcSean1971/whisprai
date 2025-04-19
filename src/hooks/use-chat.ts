@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -94,9 +93,10 @@ export function useChat(conversationId: string) {
       base64Audio: string; 
       audioPath?: string 
     },
-    location?: { latitude: number; longitude: number; accuracy: number }
+    location?: { latitude: number; longitude: number; accuracy: number },
+    attachment?: { url: string; name: string; type: string }
   ) => {
-    if (!conversationId || (!content.trim() && !voiceMessageData)) {
+    if (!conversationId || (!content.trim() && !voiceMessageData && !attachment)) {
       console.error("Cannot send message: missing conversation ID or content");
       return false;
     }
@@ -122,7 +122,8 @@ export function useChat(conversationId: string) {
         status: 'sent',
         metadata: {
           ...(location ? { location } : {}),
-          ...(voiceMessageData?.audioPath ? { voiceMessage: voiceMessageData.audioPath } : {})
+          ...(voiceMessageData?.audioPath ? { voiceMessage: voiceMessageData.audioPath } : {}),
+          ...(attachment ? { attachment } : {})
         }
       };
       

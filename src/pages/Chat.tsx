@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -25,8 +24,13 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!, translatedContents);
   
-  const handleSendMessage = async (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }) => {
-    await sendMessage(content, voiceMessageData, location);
+  const handleSendMessage = async (
+    content: string, 
+    voiceMessageData?: { base64Audio: string; audioPath?: string }, 
+    location?: { latitude: number; longitude: number; accuracy: number },
+    attachment?: { url: string; name: string; type: string }
+  ) => {
+    await sendMessage(content, voiceMessageData, location, attachment);
     clearSuggestions();
     refetch();
   };

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { MessageContent } from "./chat/message/MessageContent";
+import { MessageContent } from "./MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
 import { MessageWrapper } from "./chat/message/MessageWrapper";
 import { useVoiceMessageDeletion } from "./chat/message/voice-player/useVoiceMessageDeletion";
@@ -38,6 +38,11 @@ interface ChatMessageProps {
       longitude: number;
     };
     voiceMessage?: string;
+    attachment?: {
+      url: string;
+      name: string;
+      type: string;
+    };
   };
 }
 
@@ -73,6 +78,7 @@ export function ChatMessage({
   const canDelete = isAIMessage;
   const isAIPrompt = metadata?.isAIPrompt;
   const voiceMessagePath = metadata?.voiceMessage;
+  const attachment = metadata?.attachment;
 
   const handleLocationClick = () => {
     if (location) {
@@ -104,6 +110,7 @@ export function ChatMessage({
         canDelete={canDelete}
         onDelete={handleDelete}
         isDeleting={isDeleting}
+        attachment={attachment}
       />
 
       {voiceMessagePath && (

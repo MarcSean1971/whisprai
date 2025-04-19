@@ -1,14 +1,16 @@
 
 import { cn } from "@/lib/utils";
+import { ReactNode } from "react";
 
 interface MessageBubbleProps {
   content: string;
   timestamp: string;
   isOwn: boolean;
   isAIMessage: boolean;
+  children?: ReactNode;
 }
 
-export function MessageBubble({ content, timestamp, isOwn, isAIMessage }: MessageBubbleProps) {
+export function MessageBubble({ content, timestamp, isOwn, isAIMessage, children }: MessageBubbleProps) {
   return (
     <div className={cn(
       "rounded-lg py-2 px-3",
@@ -19,6 +21,7 @@ export function MessageBubble({ content, timestamp, isOwn, isAIMessage }: Messag
         : "bg-secondary"
     )}>
       <div className="text-sm">{content}</div>
+      {children}
       <div className="text-[10px] opacity-70 text-right mt-0.5">
         {timestamp}
       </div>
