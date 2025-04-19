@@ -46,11 +46,9 @@ export function useMessages(conversationId: string) {
 
     console.log('Setting up realtime subscription for conversation:', conversationId);
     
-    // Fix: Use the correct channel subscription syntax
     const channel = supabase
       .channel('messages')
-      .on(
-        'postgres_changes',
+      .on('postgres_changes', 
         {
           event: '*',
           schema: 'public',
