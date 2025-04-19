@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -89,7 +88,7 @@ export function ChatMessage({
         .delete()
         .eq('id', id)
         .eq('conversation_id', conversationId)
-        .is('sender_id', null);
+        .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${userId})`);
         
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
