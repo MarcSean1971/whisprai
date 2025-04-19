@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState, useCallback } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -26,6 +25,7 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
   const [translationsInProgress, setTranslationsInProgress] = useState(0);
+  const [messageCount, setMessageCount] = useState(messages.length);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -36,10 +36,14 @@ export function ChatMessages({
   }, []);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (messages.length > messageCount) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setMessageCount(messages.length);
+    } else if (messages.length < messageCount) {
+      setMessageCount(messages.length);
+    }
+  }, [messages.length, messageCount]);
 
-  // Handle new message notification after translations are complete
   useEffect(() => {
     if (messages.length > 0 && currentUserId) {
       const lastMessage = messages[messages.length - 1];

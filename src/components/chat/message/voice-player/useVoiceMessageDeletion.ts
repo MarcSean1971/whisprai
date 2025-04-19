@@ -37,7 +37,7 @@ export function useVoiceMessageDeletion({
       // First, get the current message metadata
       const { data: currentMessage, error: fetchError } = await supabase
         .from('messages')
-        .select('metadata, sender_id')
+        .select('metadata, sender_id, private_room')
         .eq('id', messageId)
         .eq('conversation_id', conversationId)
         .single();
@@ -48,7 +48,6 @@ export function useVoiceMessageDeletion({
       }
       
       // Create updated metadata object without the voiceMessage property
-      // Safely handle the case where metadata might be null or undefined
       let updatedMetadata = {};
       
       if (currentMessage.metadata && typeof currentMessage.metadata === 'object') {
@@ -58,7 +57,7 @@ export function useVoiceMessageDeletion({
         }
       }
       
-      const isAIMessage = currentMessage.sender_id === null;
+      const isAIMessage = currentMessage.sender_id === null || currentMessage.private_room === 'AI';
       
       if (isAIMessage) {
         // For AI messages, delete the entire message
@@ -67,7 +66,7 @@ export function useVoiceMessageDeletion({
           .delete()
           .eq('id', messageId)
           .eq('conversation_id', conversationId)
-          .is('sender_id', null);
+          .or(`sender_id.is.null,private_room.eq.AI`);
           
         if (deleteError) {
           console.error('Error deleting AI message:', deleteError);
