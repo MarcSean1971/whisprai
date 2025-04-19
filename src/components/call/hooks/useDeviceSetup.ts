@@ -6,12 +6,42 @@ import { toast } from 'sonner';
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      (window as any).EventEmitter = null;
+      // Create a mock EventEmitter to prevent errors with twilio-client
+      class EventEmitter {
+        constructor() {
+          this.events = {};
+        }
+        
+        on(event, listener) {
+          if (!this.events[event]) {
+            this.events[event] = [];
+          }
+          this.events[event].push(listener);
+          return this;
+        }
+        
+        removeListener(event, listener) {
+          if (!this.events[event]) return this;
+          this.events[event] = this.events[event].filter(l => l !== listener);
+          return this;
+        }
+        
+        emit(event, ...args) {
+          if (!this.events[event]) return false;
+          this.events[event].forEach(listener => listener(...args));
+          return true;
+        }
+      }
       
+      // Set a mock EventEmitter to window to prevent the undefined error
+      (window as any).EventEmitter = EventEmitter;
+      
+      // Add window.global for browser environment
       if (!window.global) {
         window.global = window;
       }
       
+      // Add process object for browser environment
       if (!(window as any).process) {
         (window as any).process = { 
           nextTick: (fn: Function) => setTimeout(fn, 0),
