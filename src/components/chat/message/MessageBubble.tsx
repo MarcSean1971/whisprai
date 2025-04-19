@@ -42,6 +42,20 @@ export function MessageBubble({
     return <File {...iconProps} />;
   };
 
+  const handleDownload = (e: React.MouseEvent<HTMLAnchorElement>, file: { url: string; name: string }) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const link = document.createElement('a');
+    link.href = file.url;
+    link.download = file.name;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const renderFileAttachment = (file: { url: string; name: string; type: string }) => {
     if (file.type.startsWith('image/')) {
       return (
@@ -56,16 +70,11 @@ export function MessageBubble({
               size="sm"
               variant="ghost"
               className="text-white hover:text-white hover:bg-white/20"
-              asChild
+              onClick={(e) => handleDownload(e as any, file)}
+              aria-label={`Download ${file.name}`}
             >
-              <a
-                href={file.url}
-                download={file.name}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Download className="h-5 w-5 mr-1" />
-                Download
-              </a>
+              <Download className="h-5 w-5 mr-1" />
+              Download
             </Button>
           </div>
         </div>
@@ -76,28 +85,16 @@ export function MessageBubble({
       <div className="mt-2 flex items-center justify-between bg-muted/50 rounded-md p-2 gap-2" key={file.url}>
         <div className="flex items-center min-w-0 flex-1">
           {getAttachmentIcon(file)}
-          <a 
-            href={file.url} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-sm hover:underline truncate"
-          >
-            {file.name}
-          </a>
+          <span className="text-sm truncate">{file.name}</span>
         </div>
         <Button
           size="sm"
           variant="ghost"
           className="shrink-0"
-          asChild
+          onClick={(e) => handleDownload(e as any, file)}
+          aria-label={`Download ${file.name}`}
         >
-          <a
-            href={file.url}
-            download={file.name}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Download className="h-4 w-4" />
-          </a>
+          <Download className="h-4 w-4" />
         </Button>
       </div>
     );
@@ -131,3 +128,4 @@ export function MessageBubble({
     </div>
   );
 }
+
