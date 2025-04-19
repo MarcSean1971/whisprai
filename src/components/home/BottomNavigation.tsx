@@ -34,7 +34,7 @@ export function BottomNavigation({
       currentTab = 'admin';
     } else if (currentPath.includes('/contacts')) {
       currentTab = 'contacts';
-    } else if (currentPath.includes('/chats') || currentPath === '/home') {
+    } else if (currentPath.includes('/chats') || currentPath === '/home' || currentPath === '/') {
       currentTab = 'chats';
     }
   }
@@ -75,7 +75,7 @@ export function BottomNavigation({
             <Loader2 className="h-5 w-5 animate-spin" />
             <span className="text-xs truncate">Loading</span>
           </Button>
-        ) : isAdmin && (
+        ) : isAdmin ? (
           <Button
             variant={currentTab === 'admin' ? 'default' : 'ghost'}
             className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
@@ -84,7 +84,7 @@ export function BottomNavigation({
             <Shield className="h-5 w-5" />
             <span className="text-xs truncate">Admin</span>
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

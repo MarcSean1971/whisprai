@@ -82,10 +82,10 @@ export function useUserConversations() {
         throw error;
       }
     },
-    retry: 2,
+    retry: 3, // Increase retry attempts
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: false, // Disable automatic refetch on window focus
-    refetchInterval: 1000 * 60 // Refetch every minute instead of 30 seconds
+    refetchOnWindowFocus: true, // Re-enable automatic refetch on window focus
+    refetchInterval: 1000 * 60 // Refetch every minute
   });
 }
