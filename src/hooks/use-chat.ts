@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -17,10 +16,39 @@ export function useChat(conversationId: string) {
     fetchUserId();
   }, []);
 
+  const handleAIMessage = async (content: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat-with-ai', {
+        body: { content, conversationId }
+      });
+
+      if (error) {
+        console.error('AI chat error:', error);
+        toast.error('Failed to process AI message');
+        throw error;
+      }
+
+      return data.message;
+    } catch (error) {
+      console.error('Error processing AI message:', error);
+      toast.error('Failed to process AI message');
+    }
+  };
+
   const sendMessage = async (
     content: string,
     location?: { latitude: number; longitude: number; accuracy: number }
   ) => {
+    if (!conversationId || !content.trim()) {
+      console.error("Cannot send message: missing conversation ID or content");
+      return;
+    }
+
+    // Check if this is an AI message
+    if (content.toLowerCase().startsWith('ai:')) {
+      return handleAIMessage(content);
+    }
+    
     if (!conversationId || !content.trim() || !userId) {
       console.error("Cannot send message: missing conversation ID, content, or user ID");
       return;

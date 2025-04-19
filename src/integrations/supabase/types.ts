@@ -177,6 +177,7 @@ export type Database = {
       }
       messages: {
         Row: {
+          ai_metadata: Json | null
           content: string
           conversation_id: string
           created_at: string
@@ -187,6 +188,7 @@ export type Database = {
           status: string
         }
         Insert: {
+          ai_metadata?: Json | null
           content: string
           conversation_id: string
           created_at?: string
@@ -197,6 +199,7 @@ export type Database = {
           status?: string
         }
         Update: {
+          ai_metadata?: Json | null
           content?: string
           conversation_id?: string
           created_at?: string

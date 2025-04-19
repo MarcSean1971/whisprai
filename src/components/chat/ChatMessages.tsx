@@ -95,9 +95,10 @@ export function ChatMessages({
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
-        const showSender = !isOwn && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
+        const isAI = message.sender_id === null && message.ai_metadata;
+        const showSender = !isOwn && !isAI && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
         
-        const needsTranslation = !isOwn && 
+        const needsTranslation = !isOwn && !isAI && 
           message.original_language && 
           message.original_language !== profile?.language &&
           message.original_language !== 'en';
@@ -105,7 +106,6 @@ export function ChatMessages({
         const translatedContent = needsTranslation ? translatedContents[message.id] : undefined;
         const formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
 
-        // Extract location data from metadata if available
         const location = message.metadata?.location ? {
           latitude: message.metadata.location.latitude,
           longitude: message.metadata.location.longitude
@@ -117,6 +117,7 @@ export function ChatMessages({
             content={message.content}
             timestamp={formattedTimestamp}
             isOwn={isOwn}
+            isAI={isAI}
             status={message.status}
             sender={message.sender && {
               name: `${message.sender.profiles?.first_name || ''} ${message.sender.profiles?.last_name || ''}`.trim(),

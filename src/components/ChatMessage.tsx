@@ -57,11 +57,18 @@ export function ChatMessage({
       "flex gap-2 w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
-      {!isOwn && sender && (
+      {!isOwn && !isAI && sender && (
         <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarImage src={sender.avatar} alt={sender.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs">
             {sender.name.slice(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      {!isOwn && isAI && (
+        <Avatar className="h-6 w-6 flex-shrink-0">
+          <AvatarFallback className="bg-violet-500/20 text-violet-700 text-xs">
+            AI
           </AvatarFallback>
         </Avatar>
       )}
@@ -70,7 +77,7 @@ export function ChatMessage({
         "flex flex-col max-w-[75%]",
         isOwn ? "items-end" : "items-start"
       )}>
-        {showSender && sender && !isOwn && (
+        {showSender && sender && !isOwn && !isAI && (
           <span className="text-xs text-muted-foreground mb-0.5">
             {sender.name}
           </span>
@@ -82,7 +89,7 @@ export function ChatMessage({
             isOwn
               ? "bg-primary text-primary-foreground"
               : isAI
-              ? "bg-accent/10 border border-accent/20"
+              ? "bg-violet-500/20 border border-violet-500/20"
               : "bg-secondary"
           )}>
             <div className="text-sm">{displayContent}</div>
