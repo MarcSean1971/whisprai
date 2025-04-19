@@ -1,7 +1,7 @@
 
 import { cn } from "@/lib/utils";
-import { MessageBubble } from "./MessageBubble";
-import { MessageControls } from "./MessageControls";
+import { MessageBubble } from "@/components/chat/message/MessageBubble";
+import { MessageControls } from "@/components/chat/message/MessageControls";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive } from "lucide-react";
 
 interface MessageContentProps {
