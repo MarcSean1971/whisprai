@@ -1,11 +1,11 @@
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { TranslationIcon } from "./chat/TranslationIcon";
 import { useState } from "react";
-import { MapPin, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { MessageAvatar } from "./chat/message/MessageAvatar";
+import { MessageControls } from "./chat/message/MessageControls";
+import { MessageBubble } from "./chat/message/MessageBubble";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -63,23 +63,10 @@ export function ChatMessage({
   const [isDeleting, setIsDeleting] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
-  
   const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
-  
   const isAIMessage = isAI || metadata?.isAIPrompt;
   const isAIPrompt = metadata?.isAIPrompt;
-  
   const canDelete = isAIMessage;
-
-  console.log('Message rendering details:', {
-    id,
-    hasTranslation,
-    showTranslationToggle,
-    originalLanguage,
-    userLanguage,
-    translatedContent,
-    content
-  });
 
   const handleLocationClick = () => {
     if (location) {
@@ -127,19 +114,11 @@ export function ChatMessage({
       isOwn ? "justify-end" : "justify-start"
     )}>
       {!isOwn && !isAIPrompt && sender && (
-        <Avatar className="h-6 w-6 flex-shrink-0">
-          <AvatarImage src={sender.avatar} alt={sender.name} />
-          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-            {sender.name.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      )}
-      {isAIMessage && (
-        <Avatar className="h-6 w-6 flex-shrink-0">
-          <AvatarFallback className="bg-violet-500/20 text-violet-700 text-xs">
-            AI
-          </AvatarFallback>
-        </Avatar>
+        <MessageAvatar
+          name={sender.name}
+          avatar={sender.avatar}
+          isAI={isAIMessage}
+        />
       )}
 
       <div className={cn(
@@ -153,47 +132,23 @@ export function ChatMessage({
         )}
         
         <div className="flex items-start gap-2">
-          <div className={cn(
-            "rounded-lg py-2 px-3",
-            isOwn
-              ? "bg-primary text-primary-foreground"
-              : isAIMessage
-              ? "bg-violet-500/20 border border-violet-500/20"
-              : "bg-secondary"
-          )}>
-            <div className="text-sm">{displayContent}</div>
-            <div className="text-[10px] opacity-70 text-right mt-0.5">
-              {timestamp}
-            </div>
-          </div>
+          <MessageBubble
+            content={displayContent}
+            timestamp={timestamp}
+            isOwn={isOwn}
+            isAIMessage={isAIMessage}
+          />
 
-          {showTranslationToggle && (
-            <TranslationIcon 
-              originalLanguage={originalLanguage || 'unknown'}
-              onClick={() => setShowOriginal(!showOriginal)}
-            />
-          )}
-          
-          {location && (
-            <button
-              onClick={handleLocationClick}
-              className="p-1 rounded-full hover:bg-accent/10 transition-colors"
-              title="View location on map"
-            >
-              <MapPin className="h-4 w-4" />
-            </button>
-          )}
-          
-          {canDelete && (
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="p-1 rounded-full hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
-              title="Delete message"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          )}
+          <MessageControls
+            showTranslationToggle={showTranslationToggle}
+            originalLanguage={originalLanguage || 'unknown'}
+            onToggleTranslation={() => setShowOriginal(!showOriginal)}
+            location={location}
+            onLocationClick={handleLocationClick}
+            canDelete={canDelete}
+            onDelete={handleDelete}
+            isDeleting={isDeleting}
+          />
         </div>
       </div>
     </div>
