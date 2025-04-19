@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function LoginForm() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -26,12 +28,17 @@ export function LoginForm() {
       if (error) {
         console.error("Login error:", error);
         toast.error(error.message);
-        setIsLoading(false);
         return;
+      }
+
+      if (data.user) {
+        toast.success("Successfully logged in");
+        navigate("/home");
       }
     } catch (error) {
       console.error("Login error:", error);
       toast.error("An unexpected error occurred. Please try again.");
+    } finally {
       setIsLoading(false);
     }
   };

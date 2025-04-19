@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
@@ -38,6 +38,7 @@ const App = () => {
     
     const { data: authListener } = supabase.auth.onAuthStateChange(
       (event, session) => {
+        console.log("Auth state changed in App:", event, session?.user?.id);
         setUserId(session?.user?.id || null);
       }
     );
@@ -55,7 +56,8 @@ const App = () => {
           <Sonner />
           {userId && <CallInterface userId={userId} />}
           <Routes>
-            <Route path="/" element={<Auth />} />
+            <Route path="/" element={<Navigate to="/auth" replace />} />
+            <Route path="/auth" element={<Auth />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/profile-setup" element={<ProfileSetup />} />
             <Route path="/home" element={<Chats />} />

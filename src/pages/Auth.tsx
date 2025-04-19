@@ -12,19 +12,24 @@ export default function Auth() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state change listener first
+    // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
+        console.log("Auth state changed - session found, navigating to /home");
         navigate('/home');
       }
     });
 
     // Check initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
+        console.log("Initial session found, navigating to /home");
         navigate('/home');
       }
-    });
+    };
+    
+    checkSession();
 
     return () => {
       subscription.unsubscribe();
