@@ -87,20 +87,27 @@ export function ChatMessage({
       setIsDeleting(true);
       console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
-      // If there's a voice message, delete it from storage first
+      // Handle voice message deletion
       if (metadata?.voiceMessage) {
-        console.log('Deleting voice message file:', metadata.voiceMessage);
+        const voicePath = metadata.voiceMessage.startsWith('/') 
+          ? metadata.voiceMessage.substring(1) 
+          : metadata.voiceMessage;
+          
+        console.log('Deleting voice message file at path:', voicePath);
+        
         const { error: storageError } = await supabase.storage
           .from('voice_messages')
-          .remove([metadata.voiceMessage]);
+          .remove([voicePath]);
           
         if (storageError) {
           console.error('Error deleting voice message file:', storageError);
-          toast.error('Failed to delete voice message file');
-          return;
+          throw new Error('Failed to delete voice message file');
         }
+        
+        console.log('Voice message file deleted successfully');
       }
       
+      // Delete the message from the database
       const { error: deleteError } = await supabase
         .from('messages')
         .delete()
@@ -110,8 +117,7 @@ export function ChatMessage({
         
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
-        toast.error('Failed to delete message');
-        throw deleteError;
+        throw new Error('Failed to delete message');
       }
       
       console.log('Message deleted successfully:', id);
@@ -119,7 +125,7 @@ export function ChatMessage({
       if (onDelete) onDelete();
     } catch (error) {
       console.error('Error in delete handler:', error);
-      toast.error('Failed to delete message');
+      toast.error(error instanceof Error ? error.message : 'Failed to delete message');
     } finally {
       setIsDeleting(false);
     }

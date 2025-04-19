@@ -24,7 +24,12 @@ export function VoiceMessagePlayer({
   const [loadAttempts, setLoadAttempts] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
-  const audioUrl = `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`;
+  // Ensure consistent path handling
+  const normalizedPath = voiceMessagePath.startsWith('/') 
+    ? voiceMessagePath.substring(1) 
+    : voiceMessagePath;
+    
+  const audioUrl = `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${normalizedPath}`;
 
   useEffect(() => {
     if (!voiceMessagePath) {
