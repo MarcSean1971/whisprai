@@ -14,8 +14,8 @@ serve(async (req) => {
   }
 
   try {
-    const { aiMessageId } = await req.json()
-    console.log('Processing AI message:', aiMessageId)
+    const { messageId, conversationId, userId } = await req.json()
+    console.log('Processing AI message:', messageId)
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -23,11 +23,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch the AI message
+    // Fetch the original message
     const { data: aiMessage, error: fetchError } = await supabase
-      .from('ai_messages')
-      .select('*')
-      .eq('id', aiMessageId)
+      .from('messages')
+      .select('content')
+      .eq('id', messageId)
       .single()
 
     if (fetchError || !aiMessage) {
@@ -35,17 +35,12 @@ serve(async (req) => {
       throw new Error('AI message not found')
     }
 
-    // Update status to processing
-    await supabase
-      .from('ai_messages')
-      .update({ status: 'processing' })
-      .eq('id', aiMessageId)
-
     // Fetch relevant chat history
     const { data: chatHistory } = await supabase
       .from('messages')
       .select('content, created_at, sender_id')
-      .eq('conversation_id', aiMessage.conversation_id)
+      .eq('conversation_id', conversationId)
+      .is('private_room', null)
       .order('created_at', { ascending: false })
       .limit(20)
 
@@ -68,7 +63,7 @@ ${chatHistory ? formatChatHistory(chatHistory) : 'No previous messages.'}
         model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemMessage },
-          { role: 'user', content: aiMessage.prompt }
+          { role: 'user', content: aiMessage.content }
         ],
       }),
     })
@@ -82,23 +77,25 @@ ${chatHistory ? formatChatHistory(chatHistory) : 'No previous messages.'}
     const aiData = await openAIResponse.json()
     const aiResponse = aiData.choices[0].message.content
 
-    // Update the AI message with the response
-    const { error: updateError } = await supabase
-      .from('ai_messages')
-      .update({
-        response: aiResponse,
-        status: 'completed',
+    // Store the AI's response as a private message
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        content: aiResponse,
+        sender_id: null,
+        status: 'sent',
+        private_room: 'AI',
+        private_recipient: userId,
         metadata: {
           model: 'gpt-4o-mini',
           tokens: aiData.usage
-        },
-        updated_at: new Date().toISOString()
+        }
       })
-      .eq('id', aiMessageId)
 
-    if (updateError) {
-      console.error('Error updating AI message:', updateError)
-      throw updateError
+    if (insertError) {
+      console.error('Error storing AI response:', insertError)
+      throw insertError
     }
 
     return new Response(
@@ -115,9 +112,12 @@ ${chatHistory ? formatChatHistory(chatHistory) : 'No previous messages.'}
 })
 
 function formatChatHistory(messages: any[]): string {
-  return messages.map(msg => {
-    const timestamp = new Date(msg.created_at).toLocaleString()
-    const sender = msg.sender_id ? 'User' : 'AI'
-    return `[${timestamp}] ${sender}: ${msg.content}`
-  }).join('\n\n')
+  return messages
+    .filter(msg => !msg.private_room) // Only include non-private messages
+    .map(msg => {
+      const timestamp = new Date(msg.created_at).toLocaleString()
+      const sender = msg.sender_id ? 'User' : 'AI'
+      return `[${timestamp}] ${sender}: ${msg.content}`
+    })
+    .join('\n\n')
 }

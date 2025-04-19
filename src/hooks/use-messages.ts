@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -13,6 +12,8 @@ export interface Message {
   status: string;
   original_language?: string | null;
   metadata?: any;
+  private_room?: string | null;
+  private_recipient?: string | null;
   sender?: {
     id: string;
     profiles?: {
@@ -33,7 +34,6 @@ export function useMessages(conversationId: string) {
       return;
     }
 
-    // Subscribe to messages table
     const messagesChannel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -63,7 +63,11 @@ export function useMessages(conversationId: string) {
         throw new Error('No conversation ID provided');
       }
 
-      // First, fetch messages without the join
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select('*')
@@ -76,14 +80,12 @@ export function useMessages(conversationId: string) {
         throw messagesError;
       }
 
-      // Get unique sender IDs (excluding null values)
       const senderIds = messages
         .map(msg => msg.sender_id)
         .filter((id): id is string => id !== null);
       
       const uniqueSenderIds = [...new Set(senderIds)];
 
-      // If there are sender IDs, fetch their profiles
       let profilesMap: Record<string, any> = {};
       
       if (uniqueSenderIds.length > 0) {
@@ -94,9 +96,7 @@ export function useMessages(conversationId: string) {
           
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
-          // Continue without profiles rather than failing completely
         } else if (profiles) {
-          // Create a map of profiles by ID for easy lookup
           profilesMap = profiles.reduce((acc, profile) => {
             acc[profile.id] = profile;
             return acc;
@@ -104,10 +104,9 @@ export function useMessages(conversationId: string) {
         }
       }
 
-      // Combine messages with sender profiles
       const messagesWithProfiles = messages.map(message => {
         if (!message.sender_id) {
-          return message; // Return message as is if no sender_id (AI message)
+          return message;
         }
         
         const profile = profilesMap[message.sender_id];
@@ -126,7 +125,7 @@ export function useMessages(conversationId: string) {
         };
       });
 
-      return messagesWithProfiles as Message[];
+      return messagesWithProfiles;
     }
   });
 }

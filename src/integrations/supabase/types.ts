@@ -184,6 +184,8 @@ export type Database = {
           id: string
           metadata: Json | null
           original_language: string | null
+          private_recipient: string | null
+          private_room: string | null
           sender_id: string | null
           status: string
         }
@@ -195,6 +197,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           original_language?: string | null
+          private_recipient?: string | null
+          private_room?: string | null
           sender_id?: string | null
           status?: string
         }
@@ -206,6 +210,8 @@ export type Database = {
           id?: string
           metadata?: Json | null
           original_language?: string | null
+          private_recipient?: string | null
+          private_room?: string | null
           sender_id?: string | null
           status?: string
         }

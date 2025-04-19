@@ -34,16 +34,17 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Create a message with metadata indicating it's an AI prompt
+      // Store the user's question as a private message
       const aiPrompt = content.replace(/^AI:\s*/, '').trim();
       
-      const { data: aiPromptMessage, error: createError } = await supabase
+      const { data: promptMessage, error: createError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           content: aiPrompt,
           sender_id: userId,
           status: 'sent',
+          private_room: 'AI',
           metadata: { isAIPrompt: true }
         })
         .select()
@@ -58,8 +59,9 @@ export function useChat(conversationId: string) {
       // Process with AI using the new message ID
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
-          messageId: aiPromptMessage.id,
-          conversationId: conversationId
+          messageId: promptMessage.id,
+          conversationId: conversationId,
+          userId: userId
         }
       });
 
