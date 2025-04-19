@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { toast } from 'sonner';
 import { CallStatus, useTwilioVoice } from '@/components/call/useTwilioVoice';
@@ -251,5 +252,5 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     }
   }, [twilioError]);
   
-  return children;
+  return <>{children}</>;
 }

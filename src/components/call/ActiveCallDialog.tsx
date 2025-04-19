@@ -1,134 +1,117 @@
 
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff, Mic, MicOff } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useCallStore } from "@/components/call/store/useCallStore";
-import { CallStatus } from "@/components/call/useTwilioVoice";
+import { useState, useEffect, useRef } from 'react';
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { CallStatus } from './useTwilioVoice';
+import { useCallStore } from './store/useCallStore';
+import { PhoneOff, Mic, MicOff } from 'lucide-react';
+import { Button } from '../ui/button';
+import { formatDuration } from 'date-fns';
 
 export function ActiveCallDialog() {
   const { 
+    showActiveCall, 
     callStatus, 
     callerName, 
-    recipientName,
-    showActiveCall,
+    recipientName, 
+    endCall, 
+    toggleMute, 
     isMuted,
-    toggleMute,
-    endCall,
     callDuration,
-    updateCallDuration
   } = useCallStore();
-  
-  const [elapsedTime, setElapsedTime] = useState(0);
-  
-  // Start timer when call is in progress
+
+  const [localDuration, setLocalDuration] = useState(callDuration);
+  const durationTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    let intervalId: number;
-    
+    setLocalDuration(callDuration);
+  }, [callDuration]);
+
+  useEffect(() => {
     if (callStatus === CallStatus.IN_PROGRESS) {
-      intervalId = setInterval(() => {
-        setElapsedTime(prev => {
-          const newTime = prev + 1;
-          updateCallDuration(newTime);
-          return newTime;
-        });
+      // Start a timer to update the call duration every second
+      durationTimerRef.current = setInterval(() => {
+        setLocalDuration(prev => prev + 1);
       }, 1000);
     } else {
-      setElapsedTime(0);
+      // Clear the timer if the call is not in progress
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+        durationTimerRef.current = null;
+      }
     }
-    
+
     return () => {
-      if (intervalId) clearInterval(intervalId);
+      if (durationTimerRef.current) {
+        clearInterval(durationTimerRef.current);
+      }
     };
-  }, [callStatus, updateCallDuration]);
-  
-  // Format the timer as mm:ss
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  
-  // Determine the display name based on whether this is an outgoing or incoming call
-  const displayName = callStatus === CallStatus.CONNECTING || callStatus === CallStatus.RINGING 
-    ? recipientName 
-    : callerName;
-  
-  // Determine call status text
-  const getStatusText = () => {
-    switch (callStatus) {
-      case CallStatus.CONNECTING:
-        return "Initiating call...";
-      case CallStatus.RINGING:
-        return "Ringing...";
-      case CallStatus.IN_PROGRESS:
-        return formatTime(elapsedTime);
-      default:
-        return "Call in progress";
-    }
-  };
+  }, [callStatus]);
+
+  // Format the duration for display (mm:ss)
+  const formattedDuration = formatDuration({
+    minutes: Math.floor(localDuration / 60),
+    seconds: localDuration % 60
+  }, { format: ['minutes', 'seconds'], delimiter: ':' });
+
+  // Determine who we're on a call with
+  const otherPartyName = callerName || recipientName || 'Unknown';
+
+  // Determine the status display text
+  let statusText = 'Call ended';
+  if (callStatus === CallStatus.CONNECTING) {
+    statusText = `Calling ${otherPartyName}...`;
+  } else if (callStatus === CallStatus.IN_PROGRESS) {
+    statusText = `On call with ${otherPartyName}`;
+  } else if (callStatus === CallStatus.FAILED) {
+    statusText = 'Call failed';
+  }
 
   return (
-    <Dialog open={showActiveCall} onOpenChange={(open) => {
-      if (!open) endCall();
-    }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-center gap-2">
-            {callStatus === CallStatus.IN_PROGRESS ? (
-              <span>Call in progress</span>
-            ) : (
-              <span>Calling {displayName || "..."}</span>
-            )}
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="flex flex-col items-center justify-center py-6 space-y-4">
-          <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center">
-            <span className="text-3xl font-semibold">
-              {displayName ? displayName[0].toUpperCase() : "?"}
+    <Dialog open={showActiveCall} onOpenChange={(isOpen) => !isOpen && endCall()}>
+      <DialogContent className="max-w-md text-center">
+        <div className="flex flex-col items-center space-y-6 py-4">
+          <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-2xl font-bold">
+              {otherPartyName.slice(0, 2).toUpperCase()}
             </span>
           </div>
           
-          <div className="text-center">
-            <p className="text-lg font-medium">{displayName || "Unknown"}</p>
-            <p className="text-sm text-muted-foreground">
-              {getStatusText()}
-            </p>
-          </div>
-        </div>
-        
-        <DialogFooter>
-          <div className="flex w-full justify-center gap-4">
+          <div className="space-y-1">
+            <h3 className="text-xl font-semibold">{otherPartyName}</h3>
+            <p className="text-sm text-muted-foreground">{statusText}</p>
             {callStatus === CallStatus.IN_PROGRESS && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={toggleMute}
+              <p className="text-sm font-medium">{formattedDuration}</p>
+            )}
+          </div>
+          
+          <div className="flex space-x-4">
+            {callStatus === CallStatus.IN_PROGRESS && (
+              <Button 
+                variant="outline" 
+                size="lg" 
                 className="rounded-full h-12 w-12 p-0"
+                onClick={toggleMute}
               >
                 {isMuted ? (
                   <MicOff className="h-5 w-5" />
                 ) : (
                   <Mic className="h-5 w-5" />
                 )}
-                <span className="sr-only">
-                  {isMuted ? "Unmute" : "Mute"}
-                </span>
+                <span className="sr-only">{isMuted ? 'Unmute' : 'Mute'}</span>
               </Button>
             )}
             
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={endCall}
+            <Button 
+              variant="destructive" 
+              size="lg" 
               className="rounded-full h-12 w-12 p-0"
+              onClick={endCall}
             >
               <PhoneOff className="h-5 w-5" />
-              <span className="sr-only">End Call</span>
+              <span className="sr-only">End call</span>
             </Button>
           </div>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

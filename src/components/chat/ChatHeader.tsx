@@ -1,3 +1,4 @@
+
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/home/BackButton";
 import { TranslationIcon } from "@/components/home/TranslationIcon";
