@@ -10,6 +10,7 @@ interface MessageWrapperProps {
   };
   showSender?: boolean;
   isAIMessage?: boolean;
+  isAIPrompt?: boolean;
   children: ReactNode;
 }
 
@@ -18,6 +19,7 @@ export function MessageWrapper({
   sender,
   showSender,
   isAIMessage,
+  isAIPrompt,
   children
 }: MessageWrapperProps) {
   return (
