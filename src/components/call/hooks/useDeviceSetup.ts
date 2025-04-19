@@ -62,8 +62,8 @@ export function useDeviceSetup() {
         debug: true,
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[],
-        // Add warnings for connection issues
-        warnings: ['device-not-ready', 'network-quality-warning']
+        // Fix for error #1: Change warnings from string[] to proper type
+        warnings: true // Set to true to enable all warnings
       });
 
       // Wait briefly to ensure device is really ready
@@ -73,8 +73,9 @@ export function useDeviceSetup() {
         throw new Error('Device failed to initialize properly');
       }
 
-      // Validate the connection state
-      const connectionState = device.state();
+      // Fix for error #2: Use the correct method to get device state
+      // The Device object uses device.status() not device.state()
+      const connectionState = device.status();
       if (connectionState !== 'ready') {
         throw new Error(`Device in unexpected state: ${connectionState}`);
       }
