@@ -15,6 +15,23 @@ export function useUserConversations() {
         }
         if (!user) throw new Error('Not authenticated');
 
+        console.log('Fetching conversations for user:', user.id);
+        
+        // First verify we can access the conversation_participants table
+        const { data: participantsTest, error: participantsTestError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id)
+          .limit(1);
+          
+        if (participantsTestError) {
+          console.error('Error accessing conversation_participants:', participantsTestError);
+          throw new Error(`Cannot access conversation participants: ${participantsTestError.message}`);
+        }
+        
+        console.log('Successfully accessed conversation_participants');
+
+        // Now fetch the actual conversations with all data
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
@@ -43,6 +60,8 @@ export function useUserConversations() {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
         }
+
+        console.log('Successfully fetched conversations:', conversations?.length || 0);
 
         return conversations.map(conversation => {
           const participants = conversation.conversation_participants
@@ -85,7 +104,7 @@ export function useUserConversations() {
     retry: 3, // Increase retry attempts
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
     refetchOnMount: true,
-    refetchOnWindowFocus: true, // Re-enable automatic refetch on window focus
+    refetchOnWindowFocus: true, // Enable automatic refetch on window focus
     refetchInterval: 1000 * 60 // Refetch every minute
   });
 }
