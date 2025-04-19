@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { AccessToken } from "https://esm.sh/twilio@3.84.1/jwt/accessToken.js"
+import { AccessToken } from "https://esm.sh/twilio@4.13.0/lib/jwt/AccessToken.js"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
