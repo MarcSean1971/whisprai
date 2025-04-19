@@ -1,6 +1,7 @@
 
-import { MapPin, Trash2 } from "lucide-react";
-import { TranslationIcon } from "../TranslationIcon";
+import { TranslationControl } from "./controls/TranslationControl";
+import { LocationControl } from "./controls/LocationControl";
+import { DeleteControl } from "./controls/DeleteControl";
 
 interface MessageControlsProps {
   showTranslationToggle: boolean;
@@ -26,31 +27,21 @@ export function MessageControls({
   return (
     <>
       {showTranslationToggle && (
-        <TranslationIcon 
-          originalLanguage={originalLanguage || 'unknown'}
-          onClick={onToggleTranslation}
+        <TranslationControl 
+          originalLanguage={originalLanguage}
+          onToggleTranslation={onToggleTranslation}
         />
       )}
       
       {location && (
-        <button
-          onClick={onLocationClick}
-          className="p-1 rounded-full hover:bg-accent/10 transition-colors"
-          title="View location on map"
-        >
-          <MapPin className="h-4 w-4" />
-        </button>
+        <LocationControl onLocationClick={onLocationClick} />
       )}
       
       {canDelete && (
-        <button
-          onClick={onDelete}
-          disabled={isDeleting}
-          className="p-1 rounded-full hover:bg-red-100 text-red-500 hover:text-red-600 transition-colors"
-          title="Delete message"
-        >
-          <Trash2 className="h-4 w-4" />
-        </button>
+        <DeleteControl 
+          onDelete={onDelete}
+          isDeleting={isDeleting}
+        />
       )}
     </>
   );
