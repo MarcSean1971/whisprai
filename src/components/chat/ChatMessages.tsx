@@ -7,7 +7,6 @@ import { useProfile } from "@/hooks/use-profile";
 import { format } from "date-fns";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 
-// Memoized ChatMessage component
 const MemoizedChatMessage = memo(ChatMessage);
 
 interface ChatMessagesProps {
@@ -48,22 +47,25 @@ export function ChatMessages({
   }, [messages.length, previousMessagesLength]);
 
   useEffect(() => {
-    if (messages.length > 0 && currentUserId) {
-      const lastMessage = messages[messages.length - 1];
+    let mounted = true;
+
+    const processNewMessage = () => {
+      if (!messages.length || !currentUserId || translationsInProgress > 0) return;
       
-      if (
-        lastMessage.sender_id !== currentUserId && 
-        lastMessage.id !== lastProcessedMessageId &&
-        translationsInProgress === 0
-      ) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.id === lastProcessedMessageId) return;
+
+      if (lastMessage.sender_id !== currentUserId) {
         setLastProcessedMessageId(lastMessage.id);
-        
-        if (onNewReceivedMessage) {
-          console.log("All translations complete, triggering new message handler");
-          onNewReceivedMessage();
-        }
+        onNewReceivedMessage?.();
       }
-    }
+    };
+
+    processNewMessage();
+
+    return () => {
+      mounted = false;
+    };
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress]);
 
   const processTranslations = useCallback(async () => {
@@ -77,15 +79,15 @@ export function ChatMessages({
         message.original_language !== profile.language &&
         !translatedContents[message.id]
       )
-      .slice(0, 5); // Process max 5 translations at a time
+      .slice(0, 5);
 
     if (pendingTranslations.length === 0) return;
 
     setTranslationsInProgress(pendingTranslations.length);
     
-    await Promise.all(
-      pendingTranslations.map(async (message) => {
-        try {
+    try {
+      await Promise.all(
+        pendingTranslations.map(async (message) => {
           const translated = await translateMessage(message.content, profile.language);
           if (translated !== message.content) {
             setTranslatedContents(prev => ({
@@ -93,21 +95,31 @@ export function ChatMessages({
               [message.id]: translated
             }));
             
-            if (onTranslation) {
-              onTranslation(message.id, translated);
-            }
+            onTranslation?.(message.id, translated);
           }
-        } catch (error) {
-          console.error('Translation error:', error);
-        }
-      })
-    );
-
-    setTranslationsInProgress(0);
-  }, [messages, profile?.language, currentUserId, translatedContents, translateMessage, onTranslation, translationsInProgress]);
+        })
+      );
+    } catch (error) {
+      console.error('Translation error:', error);
+    } finally {
+      setTranslationsInProgress(0);
+    }
+  }, [messages, profile?.language, currentUserId, translatedContents, translateMessage, onTranslation]);
 
   useEffect(() => {
-    processTranslations();
+    let mounted = true;
+
+    const runTranslations = async () => {
+      if (mounted) {
+        await processTranslations();
+      }
+    };
+
+    runTranslations();
+
+    return () => {
+      mounted = false;
+    };
   }, [processTranslations]);
 
   const handleMessageDelete = useCallback(() => {
