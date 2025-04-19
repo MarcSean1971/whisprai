@@ -4,7 +4,6 @@ import { ReactNode } from "react";
 
 interface MessageWrapperProps {
   isOwn: boolean;
-  isAIPrompt?: boolean;
   sender?: {
     name: string;
     avatar?: string;
