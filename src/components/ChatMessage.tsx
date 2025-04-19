@@ -69,7 +69,6 @@ export function ChatMessage({
     
     try {
       setIsDeleting(true);
-      
       console.log('Attempting to delete message:', id);
       
       const { error } = await supabase

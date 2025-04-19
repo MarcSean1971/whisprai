@@ -36,18 +36,15 @@ export function ChatMessages({
   }, [messages]);
 
   useEffect(() => {
-    // Check if there's a new received message (not from current user)
     if (messages.length > 0 && currentUserId) {
       const lastMessage = messages[messages.length - 1];
       
-      // If this is a new message from someone else and we haven't processed it yet
       if (
         lastMessage.sender_id !== currentUserId && 
         lastMessage.id !== lastProcessedMessageId
       ) {
         setLastProcessedMessageId(lastMessage.id);
         
-        // Notify parent component about the new received message
         if (onNewReceivedMessage) {
           onNewReceivedMessage();
         }
@@ -56,7 +53,6 @@ export function ChatMessages({
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage]);
 
   useEffect(() => {
-    // Listen for real-time message deletions
     const channel = supabase
       .channel('messages-channel')
       .on(
@@ -69,9 +65,7 @@ export function ChatMessages({
         },
         (payload) => {
           console.log('Message deleted:', payload);
-          // Filter out the deleted message from the local state
           const updatedMessages = messages.filter(msg => msg.id !== payload.old.id);
-          // Update the messages array
           messages = updatedMessages;
         }
       )
@@ -118,7 +112,7 @@ export function ChatMessages({
   }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
   const handleMessageDelete = () => {
-    console.log('Message was deleted, UI will update via realtime subscription');
+    console.log('Message was deleted, UI will update via React Query cache');
   };
 
   return (

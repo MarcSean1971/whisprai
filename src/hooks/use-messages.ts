@@ -27,7 +27,7 @@ export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Real-time subscription for messages changes (insert, update, delete)
+    // Real-time subscription for messages changes
     const channel = supabase
       .channel('messages')
       .on(
@@ -45,7 +45,7 @@ export function useMessages(conversationId: string) {
             // When a message is deleted, remove it from the cache
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
               if (!oldData) return [];
-              // Use old.id from payload to filter out the deleted message
+              console.log('Filtering out deleted message:', payload.old.id);
               return oldData.filter(message => message.id !== payload.old.id);
             });
           } else if (payload.eventType === 'INSERT') {
@@ -59,6 +59,7 @@ export function useMessages(conversationId: string) {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
