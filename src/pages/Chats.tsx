@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
@@ -17,28 +18,20 @@ export default function Chats() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { isAdmin } = useAdmin();
-  const { data: conversations, isLoading, error, refetch, isError } = useUserConversations();
+  const { data: conversations, isLoading, error, refetch } = useUserConversations();
 
   // Check if user is authenticated
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/');
-      return false;
-    }
-    return true;
-  };
-
   useEffect(() => {
-    const initPage = async () => {
-      const isAuthenticated = await checkAuth();
-      if (isAuthenticated && isError) {
-        toast.error("Failed to load conversations");
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.log('No session found, redirecting to auth');
+        navigate('/auth');
       }
     };
     
-    initPage();
-  }, [isError]);
+    checkAuth();
+  }, [navigate]);
 
   const filteredConversations = searchQuery && conversations
     ? conversations.filter(convo => 
@@ -55,7 +48,6 @@ export default function Chats() {
     setIsSearching(false);
   };
 
-  // We're keeping this for the header logout button
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -83,27 +75,25 @@ export default function Chats() {
       />
       
       <div className="flex-1 overflow-y-auto">
-        <div className="space-y-0.5">
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-[70vh] p-4">
-              <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
-              <p className="text-muted-foreground">Loading conversations...</p>
-            </div>
-          ) : error ? (
-            <div className="p-4 text-center">
-              <div className="flex flex-col items-center justify-center gap-2 p-4">
-                <AlertCircle className="h-6 w-6 text-destructive" />
-                <p className="text-destructive mb-2">Unable to load conversations</p>
-                <pre className="text-xs text-muted-foreground bg-muted p-2 rounded-md max-w-full overflow-auto my-2">
-                  {error instanceof Error ? error.message : 'Unknown error'}
-                </pre>
-                <Button onClick={() => refetch()} variant="outline" className="mt-2">
-                  Retry
-                </Button>
-              </div>
-            </div>
-          ) : filteredConversations && filteredConversations.length > 0 ? (
-            filteredConversations.map((conversation) => (
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[70vh] p-4">
+            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading conversations...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-[70vh] p-4">
+            <AlertCircle className="h-8 w-8 text-destructive mb-4" />
+            <h3 className="font-medium mb-2">Error loading conversations</h3>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              {error instanceof Error ? error.message : 'An unexpected error occurred'}
+            </p>
+            <Button onClick={() => refetch()} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        ) : filteredConversations && filteredConversations.length > 0 ? (
+          <div className="space-y-0.5">
+            {filteredConversations.map((conversation) => (
               <ConversationItem
                 key={conversation.id}
                 id={conversation.id}
@@ -115,25 +105,25 @@ export default function Chats() {
                 isGroup={conversation.is_group}
                 onClick={() => handleConversationClick(conversation.id)}
               />
-            ))
-          ) : (
-            <EmptyState
-              icon={<Search className="h-6 w-6 text-muted-foreground" />}
-              title={searchQuery ? "No conversations found" : "No conversations yet"}
-              description={
-                searchQuery
-                  ? `No results for "${searchQuery}"`
-                  : "Start a new conversation by clicking the + button"
-              }
-              action={
-                searchQuery ? (
-                  <Button onClick={handleClearSearch}>Clear search</Button>
-                ) : undefined
-              }
-              className="h-[calc(100vh-8rem)]"
-            />
-          )}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState
+            icon={<Search className="h-6 w-6 text-muted-foreground" />}
+            title={searchQuery ? "No conversations found" : "No conversations yet"}
+            description={
+              searchQuery
+                ? `No results for "${searchQuery}"`
+                : "Start a new conversation by clicking the + button"
+            }
+            action={
+              searchQuery ? (
+                <Button onClick={handleClearSearch}>Clear search</Button>
+              ) : undefined
+            }
+            className="h-[calc(100vh-8rem)]"
+          />
+        )}
       </div>
 
       <NewMessageButton />
