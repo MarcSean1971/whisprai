@@ -1,6 +1,5 @@
 
 import { cn } from "@/lib/utils";
-import { MessageAvatar } from "./MessageAvatar";
 import { ReactNode } from "react";
 
 interface MessageWrapperProps {
@@ -17,7 +16,6 @@ interface MessageWrapperProps {
 
 export function MessageWrapper({
   isOwn,
-  isAIPrompt,
   sender,
   showSender,
   isAIMessage,
@@ -25,17 +23,9 @@ export function MessageWrapper({
 }: MessageWrapperProps) {
   return (
     <div className={cn(
-      "flex gap-2 w-full items-start",
+      "flex w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
-      {!isOwn && (
-        <MessageAvatar
-          name={isAIMessage ? "AI Assistant" : (sender?.name || "User")}
-          avatar={sender?.avatar}
-          isAI={isAIMessage}
-        />
-      )}
-
       <div className={cn(
         "flex flex-col max-w-[75%]",
         isOwn ? "items-end" : "items-start"
