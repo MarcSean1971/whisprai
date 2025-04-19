@@ -62,8 +62,7 @@ export function useDeviceSetup() {
         debug: true,
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[],
-        // Fix for error #1: Change warnings from string[] to proper type
-        warnings: true // Set to true to enable all warnings
+        warnings: true
       });
 
       // Wait briefly to ensure device is really ready
@@ -73,8 +72,6 @@ export function useDeviceSetup() {
         throw new Error('Device failed to initialize properly');
       }
 
-      // Fix for error #2: Use the correct method to get device state
-      // The Device object uses device.status() not device.state()
       const connectionState = device.status();
       if (connectionState !== 'ready') {
         throw new Error(`Device in unexpected state: ${connectionState}`);
@@ -84,6 +81,10 @@ export function useDeviceSetup() {
       return device;
     } catch (err: any) {
       console.error(`Error in device setup (attempt ${retryCount + 1}):`, err);
+      
+      if (err.message?.includes('Failed to send a request to the Edge Function')) {
+        console.error('Edge function error - please check if the function is deployed and running');
+      }
       
       // Implement retry logic with exponential backoff
       if (retryCount < 2) { // Try up to 3 times total
