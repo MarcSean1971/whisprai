@@ -9,6 +9,7 @@ import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useCallback, Suspense } from "react";
+import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
