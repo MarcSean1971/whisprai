@@ -38,7 +38,8 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       // Add comprehensive browser polyfills for Twilio client
       if (typeof window !== 'undefined') {
         // This helps with EventEmitter issues
-        window.EventEmitter = null;
+        // Use type assertion to avoid TypeScript errors
+        (window as any).EventEmitter = null;
         
         // Additional polyfills for browser compatibility
         if (!window.global) {
@@ -46,8 +47,16 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         }
         
         // Ensure process.nextTick is available (used by some Twilio dependencies)
-        if (!window.process) {
-          window.process = { nextTick: (fn: Function) => setTimeout(fn, 0) };
+        if (!(window as any).process) {
+          // Use a minimal implementation that satisfies TypeScript
+          (window as any).process = { 
+            nextTick: (fn: Function) => setTimeout(fn, 0),
+            // Add minimal required properties to satisfy Process interface
+            env: {},
+            version: '',
+            versions: {},
+            platform: 'browser'
+          };
         }
       }
 
@@ -122,7 +131,8 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
           debug: true,
           // Add additional options for better browser compatibility
           allowIncomingWhileBusy: true,
-          codecPreferences: ['opus', 'pcmu']
+          // Use string type assertion for codec preferences to avoid TypeScript errors
+          codecPreferences: ['opus', 'pcmu'] as any
         });
         setDevice(newDevice);
       } catch (setupError) {

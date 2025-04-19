@@ -144,7 +144,6 @@ export const useCallStore = create<CallState>((set, get) => ({
   }
 }));
 
-// Component to connect the store to the Twilio voice functionality
 export function CallProvider({ userId, children }: { userId: string, children: React.ReactNode }) {
   const { 
     isReady,
@@ -167,9 +166,7 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     showIncomingCall
   } = useCallStore();
   
-  // Handle store-initiated calls with error handling
   useEffect(() => {
-    // Attempt to start the call when the store state changes to CONNECTING
     if (callStatus === CallStatus.CONNECTING && 
         recipientId && 
         isReady && 
@@ -184,12 +181,10 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     }
   }, [callStatus, recipientId, isReady, showActiveCall, twilioStartCall, updateCallStatus]);
   
-  // Keep the store in sync with Twilio's call status
   useEffect(() => {
     if (twilioCallStatus !== callStatus) {
       updateCallStatus(twilioCallStatus);
       
-      // Show appropriate toast notifications for status changes
       switch (twilioCallStatus) {
         case CallStatus.FAILED:
           toast.error("Call failed");
@@ -204,17 +199,13 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     }
   }, [twilioCallStatus, callStatus, updateCallStatus]);
   
-  // Handle Twilio incoming calls
   useEffect(() => {
     if (twilioCallStatus === CallStatus.RINGING && remoteParticipant && !showIncomingCall) {
-      // Update the store with incoming call information
       useCallStore.getState().receiveCall(remoteParticipant);
     }
   }, [twilioCallStatus, remoteParticipant, showIncomingCall]);
   
-  // Wire up the store actions to Twilio functions
   useEffect(() => {
-    // Override the store actions with the actual Twilio implementations
     const originalAcceptCall = useCallStore.getState().acceptCall;
     const originalRejectCall = useCallStore.getState().rejectCall;
     const originalEndCall = useCallStore.getState().endCall;
@@ -255,7 +246,6 @@ export function CallProvider({ userId, children }: { userId: string, children: R
       }
     });
     
-    // Restore original functions on cleanup
     return () => {
       useCallStore.setState({
         acceptCall: originalAcceptCall,
@@ -266,12 +256,11 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     };
   }, [twilioAnswerCall, twilioRejectCall, twilioEndCall, twilioToggleMute]);
   
-  // Handle errors
   useEffect(() => {
     if (twilioError) {
       toast.error(`Call error: ${twilioError}`);
     }
   }, [twilioError]);
   
-  return children;
+  return <>{children}</>;
 }
