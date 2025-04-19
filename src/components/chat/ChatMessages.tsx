@@ -105,6 +105,12 @@ export function ChatMessages({
         const translatedContent = needsTranslation ? translatedContents[message.id] : undefined;
         const formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
 
+        // Extract location data from metadata if available
+        const location = message.metadata?.location ? {
+          latitude: message.metadata.location.latitude,
+          longitude: message.metadata.location.longitude
+        } : undefined;
+
         return (
           <ChatMessage
             key={message.id}
@@ -120,6 +126,7 @@ export function ChatMessages({
             showSender={showSender}
             originalLanguage={message.original_language}
             translatedContent={translatedContent}
+            location={location}
           />
         );
       })}

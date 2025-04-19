@@ -36,7 +36,7 @@ export function useChat(conversationId: string) {
         original_language: detectedLanguage,
         sender_id: userId,
         status: 'sent',
-        metadata: location ? { location } : undefined
+        metadata: location ? { location } : null
       };
       
       const { error, data } = await supabase
