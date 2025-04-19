@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      // Create a mock EventEmitter to prevent errors with twilio-client
+      // Create a proper EventEmitter implementation
       class EventEmitter {
         // Properly define the events property with its type
         private events: Record<string, Function[]> = {};
@@ -32,8 +32,20 @@ export function useDeviceSetup() {
         }
       }
       
-      // Set a mock EventEmitter to window to prevent the undefined error
-      (window as any).EventEmitter = EventEmitter;
+      // Ensure EventEmitter is available globally to Twilio
+      if (!(window as any).EventEmitter) {
+        (window as any).EventEmitter = EventEmitter;
+      }
+      
+      // Also define it as a module export for inheritance
+      if (!(window as any).events) {
+        (window as any).events = {
+          EventEmitter: EventEmitter
+        };
+      }
+      
+      // Create proper inheritance structure for EventEmitter
+      Object.setPrototypeOf(EventEmitter.prototype, Object.prototype);
       
       // Add window.global for browser environment
       if (!window.global) {

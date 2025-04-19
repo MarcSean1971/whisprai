@@ -14,16 +14,32 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [retryCounter, setRetryCounter] = useState(0);
 
   useEffect(() => {
+    // Set up global polyfills immediately
+    try {
+      // Import dynamically to avoid issues with SSR
+      import('@/components/call/hooks/useDeviceSetup').then(module => {
+        const { useDeviceSetup } = module;
+        const { setupPolyfills } = useDeviceSetup();
+        setupPolyfills();
+      });
+    } catch (error) {
+      console.error('Failed to setup polyfills:', error);
+    }
+    
     // Add a global error handler for Twilio client errors
     const handleError = (event: ErrorEvent) => {
-      // Only handle errors from Twilio-related code
+      // Only handle errors from Twilio-related code or prototype errors
       if (event.message.includes('twilio') || 
           event.filename?.includes('twilio') ||
           event.message.includes('Object prototype may only be an Object or null')) {
         console.error('Twilio error caught:', event);
         setHasError(true);
-        toast.error('Communication service error. Please try again later.');
         event.preventDefault();
+        
+        // Only show toast once to avoid spam
+        if (!hasError) {
+          toast.error('Communication service error. Please refresh the page if issues persist.');
+        }
       }
     };
 
@@ -32,7 +48,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     return () => {
       window.removeEventListener('error', handleError);
     };
-  }, []);
+  }, [hasError]);
 
   // Auto-retry initialization after a delay if there was an error
   useEffect(() => {
