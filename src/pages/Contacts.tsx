@@ -118,7 +118,6 @@ export default function Contacts() {
 
       <BottomNavigation 
         activeTab="contacts"
-        onLogout={handleLogout}
         isAdmin={isAdmin}
       />
     </div>

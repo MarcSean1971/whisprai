@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
@@ -56,6 +55,7 @@ export default function Chats() {
     setIsSearching(false);
   };
 
+  // We're keeping this for the header logout button
   const handleLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -140,7 +140,6 @@ export default function Chats() {
       
       <BottomNavigation 
         activeTab="chats"
-        onLogout={handleLogout}
         isAdmin={isAdmin}
       />
     </div>
