@@ -17,14 +17,13 @@ export function useDeviceSetup() {
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
-    setupBrowserEnvironment();
     const device = new Device();
     
     try {
       await device.setup(data.token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'] as any
+        codecPreferences: ['opus', 'pcmu']
       });
       
       return device;
