@@ -1,8 +1,10 @@
+
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
+import { format } from "date-fns";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -40,6 +42,7 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
         const needsTranslation = !isOwn && 
           message.original_language && 
           message.original_language !== profile.language &&
+          message.original_language !== 'en' && // Prevent translation for English messages
           !translatedContents[message.id];
         
         if (needsTranslation) {
@@ -73,20 +76,21 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
         const needsTranslation = 
           !isOwn && 
           message.original_language && 
-          message.original_language !== profile?.language;
+          message.original_language !== profile?.language &&
+          message.original_language !== 'en'; // Prevent translation for English messages
 
         const translatedContent = needsTranslation 
           ? translatedContents[message.id]
           : undefined;
 
+        // Convert timestamp to 24-hour format
+        const formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
+
         return (
           <ChatMessage
             key={message.id}
             content={message.content}
-            timestamp={new Date(message.created_at).toLocaleTimeString([], { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            })}
+            timestamp={formattedTimestamp}
             isOwn={isOwn}
             status={message.status}
             sender={message.sender && {
