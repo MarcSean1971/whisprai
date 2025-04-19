@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { CallStatus } from './hooks/useTwilioVoice';
+import { CallStatus } from './types';
 import { useCallStore } from '@/components/call/store';
 import { PhoneOff, Mic, MicOff } from 'lucide-react';
 import { Button } from '../ui/button';

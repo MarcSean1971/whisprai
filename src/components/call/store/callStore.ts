@@ -1,6 +1,5 @@
-
 import { create } from 'zustand';
-import { CallStatus } from '@/components/call/useTwilioVoice';
+import { CallStatus } from '@/components/call/types';
 
 interface CallState {
   // Call data

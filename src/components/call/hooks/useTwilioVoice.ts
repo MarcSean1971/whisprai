@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useDeviceSetup } from './useDeviceSetup';
 import { useCallHandlers } from './useCallHandlers';
 import { CallStatus, UseTwilioVoiceProps, TwilioVoiceState } from '../types';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const [state, setState] = useState<TwilioVoiceState>({

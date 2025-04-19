@@ -1,7 +1,7 @@
 
 import { useEffect } from 'react';
 import { toast } from 'sonner';
-import { CallStatus } from '@/components/call/useTwilioVoice';
+import { CallStatus } from '@/components/call/types';
 import { useCallStore } from './callStore';
 
 export function useCallProviderEffects({

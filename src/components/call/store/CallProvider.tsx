@@ -1,5 +1,5 @@
 
-import { useTwilioVoice } from '@/components/call/useTwilioVoice';
+import { useTwilioVoice } from '@/components/call/hooks/useTwilioVoice';
 import { useCallStore } from './callStore';
 import { useCallProviderEffects } from './useCallProviderEffects';
 
