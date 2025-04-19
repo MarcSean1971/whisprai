@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
@@ -7,34 +7,50 @@ import { supabase } from "@/integrations/supabase/client";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { SignupForm } from "@/components/auth/SignupForm";
 import { MagicLinkForm } from "@/components/auth/MagicLinkForm";
+import { Loader2 } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        console.log("Auth state changed - session found, navigating to /home");
-        navigate('/home');
-      }
-    });
-
-    // Check initial session
+    // Check initial session first
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log("Initial session found, navigating to /home");
-        navigate('/home');
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log("Initial session found, navigating to /home");
+          navigate('/home', { replace: true });
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setIsChecking(false);
       }
     };
     
     checkSession();
+    
+    // Set up auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session?.user?.id);
+      if (session) {
+        navigate('/home', { replace: true });
+      }
+    });
 
     return () => {
       subscription.unsubscribe();
     };
   }, [navigate]);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-background to-muted/50">

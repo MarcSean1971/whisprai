@@ -1,5 +1,5 @@
 
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -11,6 +11,7 @@ interface ProtectedRouteProps {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const navigate = useNavigate();
+  const [isNavigating, setIsNavigating] = useState(false);
   
   const { data: session, isLoading } = useQuery({
     queryKey: ['auth-session'],
@@ -21,10 +22,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   });
 
   useEffect(() => {
-    if (!isLoading && !session) {
+    if (!isLoading && !session && !isNavigating) {
+      setIsNavigating(true);
       navigate('/auth');
     }
-  }, [session, isLoading, navigate]);
+  }, [session, isLoading, navigate, isNavigating]);
 
   if (isLoading) {
     return (
