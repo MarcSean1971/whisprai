@@ -17,7 +17,7 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
         
-        // Get conversation IDs directly from the database using RPC function to avoid RLS recursion
+        // Get conversation IDs directly from the database using RPC function
         const { data: conversationIds, error: conversationIdsError } = await supabase
           .rpc('get_user_conversation_ids', { user_uuid: user.id });
 
