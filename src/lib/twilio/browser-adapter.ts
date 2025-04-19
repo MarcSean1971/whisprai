@@ -9,6 +9,7 @@ class TwilioEnvironment {
     this.setupGlobalObject();
     this.setupProcess();
     this.setupEventEmitter();
+    this.setupUtil();
   }
 
   static getInstance(): TwilioEnvironment {
@@ -41,6 +42,20 @@ class TwilioEnvironment {
         EventEmitter: EventEmitter,
         defaultMaxListeners: 10,
         setMaxListeners: function() { return this; }
+      };
+    }
+  }
+
+  private setupUtil() {
+    if (typeof window !== 'undefined') {
+      // Create a minimal util module with inherits function
+      window.util = {
+        inherits: function(ctor: any, superCtor: any) {
+          if (superCtor) {
+            ctor.super_ = superCtor;
+            Object.setPrototypeOf(ctor.prototype, superCtor.prototype);
+          }
+        }
       };
     }
   }

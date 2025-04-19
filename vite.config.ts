@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       events: 'events',
+      util: path.resolve(__dirname, "./src/lib/twilio/util-polyfill.js"),
     }
   },
   define: {

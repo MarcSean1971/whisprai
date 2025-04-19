@@ -11,7 +11,17 @@ export function useDeviceSetup() {
     try {
       console.log('Setting up browser environment for Twilio');
       initializeTwilioEnvironment();
-      console.log('Browser environment initialized successfully');
+      
+      // Verify that our polyfills are properly set up
+      if (!window.util || typeof window.util.inherits !== 'function') {
+        throw new Error('util.inherits polyfill not properly initialized');
+      }
+      
+      if (!window.events || typeof window.events.EventEmitter !== 'function') {
+        throw new Error('EventEmitter polyfill not properly initialized');
+      }
+      
+      console.log('Browser environment initialized successfully with all required polyfills');
     } catch (err) {
       console.error('Failed to initialize browser environment:', err);
       throw err;
