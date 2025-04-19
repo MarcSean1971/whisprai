@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageContent } from "./MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -17,6 +16,10 @@ interface ChatMessageProps {
     name: string;
     avatar?: string;
     language?: string;
+    profiles?: {
+      first_name?: string;
+      last_name?: string;
+    };
   };
   showSender?: boolean;
   isAI?: boolean;
@@ -93,7 +96,10 @@ export function ChatMessage({
     <MessageWrapper
       isOwn={isOwn}
       isAIPrompt={isAIPrompt}
-      sender={sender}
+      sender={sender && {
+        name: `${sender.profiles?.first_name || ''} ${sender.profiles?.last_name || ''}`.trim(),
+        language: sender.profiles?.language
+      }}
       showSender={showSender}
       isAIMessage={isAIMessage}
     >
@@ -110,7 +116,6 @@ export function ChatMessage({
         canDelete={canDelete}
         onDelete={handleDelete}
         isDeleting={isDeleting}
-        attachment={attachment}
       />
 
       {voiceMessagePath && (

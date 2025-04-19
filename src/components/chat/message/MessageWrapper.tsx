@@ -6,7 +6,7 @@ interface MessageWrapperProps {
   isOwn: boolean;
   sender?: {
     name: string;
-    avatar?: string;
+    language?: string;
   };
   showSender?: boolean;
   isAIMessage?: boolean;
