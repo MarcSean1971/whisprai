@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/use-profile";
+import { detectLanguage } from "@/lib/language-detection";
 
 export function useChat(conversationId: string) {
   const [userId, setUserId] = useState<string | null>(null);

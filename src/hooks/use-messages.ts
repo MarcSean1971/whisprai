@@ -45,7 +45,7 @@ export function useMessages(conversationId: string) {
         },
         (payload) => {
           console.log('Messages event received:', payload);
-          queryClient.invalidateQueries(['messages', conversationId]);
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       )
       .subscribe();
@@ -62,7 +62,7 @@ export function useMessages(conversationId: string) {
         },
         (payload) => {
           console.log('AI Messages event received:', payload);
-          queryClient.invalidateQueries(['messages', conversationId]);
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       )
       .subscribe();
@@ -111,7 +111,7 @@ export function useMessages(conversationId: string) {
           conversation_id: ai.conversation_id,
           sender_id: null,
           status: 'sent',
-          metadata: { isAI: true, ...ai.metadata }
+          metadata: { isAI: true, ...(ai.metadata || {}) }
         })) || [];
 
         // Combine and sort all messages
