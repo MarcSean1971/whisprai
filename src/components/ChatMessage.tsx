@@ -1,4 +1,4 @@
-import { Check, CheckCheck, Clock } from "lucide-react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -26,28 +26,12 @@ export function ChatMessage({
   content,
   timestamp,
   isOwn = false,
-  status = "sent",
   sender,
   showSender = false,
   isAI = false,
   originalLanguage,
   translatedContent,
 }: ChatMessageProps) {
-  const getStatusIcon = () => {
-    switch (status) {
-      case "sending":
-        return <Clock className="h-3 w-3" />;
-      case "sent":
-        return <Check className="h-3 w-3" />;
-      case "delivered":
-        return <CheckCheck className="h-3 w-3" />;
-      case "read":
-        return <CheckCheck className="h-3 w-3 text-whispr-purple" />;
-      default:
-        return null;
-    }
-  };
-
   const [showOriginal, setShowOriginal] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
@@ -87,10 +71,8 @@ export function ChatMessage({
               : "bg-secondary"
           )}>
             <div className="text-sm">{displayContent}</div>
-            
-            <div className="flex items-center justify-end mt-0.5 text-[10px] opacity-70">
-              <span>{timestamp}</span>
-              {isOwn && <span className="ml-1">{getStatusIcon()}</span>}
+            <div className="text-[10px] opacity-70 text-right mt-0.25">
+              {timestamp}
             </div>
           </div>
 
