@@ -1,7 +1,8 @@
 
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
-import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive } from "lucide-react";
+import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageBubbleProps {
   content: string;
@@ -44,27 +45,60 @@ export function MessageBubble({
   const renderFileAttachment = (file: { url: string; name: string; type: string }) => {
     if (file.type.startsWith('image/')) {
       return (
-        <div className="mt-2 max-w-full" key={file.url}>
+        <div className="mt-2 max-w-full relative group" key={file.url}>
           <img 
             src={file.url} 
             alt={file.name}
             className="rounded-lg max-h-[300px] object-contain"
           />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-white hover:text-white hover:bg-white/20"
+              asChild
+            >
+              <a
+                href={file.url}
+                download={file.name}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Download className="h-5 w-5 mr-1" />
+                Download
+              </a>
+            </Button>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="mt-2 flex items-center bg-muted/50 rounded-md p-2" key={file.url}>
-        {getAttachmentIcon(file)}
-        <a 
-          href={file.url} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-sm hover:underline truncate max-w-[200px]"
+      <div className="mt-2 flex items-center justify-between bg-muted/50 rounded-md p-2 gap-2" key={file.url}>
+        <div className="flex items-center min-w-0 flex-1">
+          {getAttachmentIcon(file)}
+          <a 
+            href={file.url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm hover:underline truncate"
+          >
+            {file.name}
+          </a>
+        </div>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="shrink-0"
+          asChild
         >
-          {file.name}
-        </a>
+          <a
+            href={file.url}
+            download={file.name}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Download className="h-4 w-4" />
+          </a>
+        </Button>
       </div>
     );
   };
