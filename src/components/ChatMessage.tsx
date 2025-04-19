@@ -55,36 +55,39 @@ export function ChatMessage({
 
   return (
     <div className={cn(
-      "flex gap-2 max-w-[85%] animate-fade-in",
-      isOwn ? "ml-auto" : "mr-auto"
+      "flex gap-2 w-full",
+      isOwn ? "justify-end" : "justify-start"
     )}>
       {!isOwn && sender && (
-        <Avatar className="h-8 w-8">
+        <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarImage src={sender.avatar} alt={sender.name} />
-          <AvatarFallback className="bg-primary/10 text-primary">
+          <AvatarFallback className="bg-primary/10 text-primary text-xs">
             {sender.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       )}
 
-      <div className="flex flex-col">
+      <div className={cn(
+        "flex flex-col max-w-[75%]",
+        isOwn ? "items-end" : "items-start"
+      )}>
         {showSender && sender && !isOwn && (
-          <span className="text-xs text-muted-foreground mb-1">
+          <span className="text-xs text-muted-foreground mb-0.5">
             {sender.name}
           </span>
         )}
         
         <div className={cn(
-          "rounded-2xl py-3 px-4 relative",
+          "rounded-lg py-2 px-3",
           isOwn
             ? "bg-primary text-primary-foreground"
             : isAI
             ? "bg-accent/10 border border-accent/20"
             : "bg-secondary"
         )}>
-          <div>{displayContent}</div>
+          <div className="text-sm">{displayContent}</div>
           
-          <div className="flex justify-end items-center gap-1 mt-1">
+          <div className="flex items-center gap-1 mt-0.5">
             {hasTranslation && !isOwn && (
               <TranslationIcon 
                 originalLanguage={originalLanguage || 'unknown'}

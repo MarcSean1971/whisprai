@@ -61,7 +61,7 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
   }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
         const showSender = 
