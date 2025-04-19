@@ -1,13 +1,11 @@
 
-import { useState, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MessageAvatar } from "./chat/message/MessageAvatar";
-import { MessageControls } from "./chat/message/MessageControls";
-import { MessageBubble } from "./chat/message/MessageBubble";
-import { Play, Pause } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MessageContent } from "./chat/message/MessageContent";
+import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
+import { supabase } from "@/integrations/supabase/client";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -64,8 +62,6 @@ export function ChatMessage({
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
@@ -115,26 +111,6 @@ export function ChatMessage({
     }
   };
 
-  const handlePlayPauseVoiceMessage = async () => {
-    if (!voiceMessagePath) return;
-
-    try {
-      const { data } = await supabase.storage
-        .from('voice_messages')
-        .getPublicUrl(voiceMessagePath);
-
-      if (isPlaying) {
-        audioRef.current?.pause();
-      } else {
-        audioRef.current?.play();
-      }
-      setIsPlaying(!isPlaying);
-    } catch (error) {
-      console.error('Error getting voice message URL:', error);
-      toast.error('Failed to play voice message');
-    }
-  };
-
   return (
     <div className={cn(
       "flex gap-2 w-full items-start",
@@ -158,42 +134,24 @@ export function ChatMessage({
           </span>
         )}
         
-        <div className="flex items-start gap-2">
-          <MessageBubble
-            content={displayContent}
-            timestamp={timestamp}
-            isOwn={isOwn}
-            isAIMessage={isAIMessage}
-          />
-
-          <MessageControls
-            showTranslationToggle={showTranslationToggle}
-            originalLanguage={originalLanguage || 'unknown'}
-            onToggleTranslation={() => setShowOriginal(!showOriginal)}
-            location={location}
-            onLocationClick={handleLocationClick}
-            canDelete={canDelete}
-            onDelete={handleDelete}
-            isDeleting={isDeleting}
-          />
-        </div>
+        <MessageContent
+          content={displayContent}
+          timestamp={timestamp}
+          isOwn={isOwn}
+          isAIMessage={isAIMessage}
+          showTranslationToggle={showTranslationToggle}
+          originalLanguage={originalLanguage || 'unknown'}
+          onToggleTranslation={() => setShowOriginal(!showOriginal)}
+          location={location}
+          onLocationClick={handleLocationClick}
+          canDelete={canDelete}
+          onDelete={handleDelete}
+          isDeleting={isDeleting}
+        />
       </div>
 
       {voiceMessagePath && (
-        <div className="flex items-center space-x-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handlePlayPauseVoiceMessage}
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
-          <audio 
-            ref={audioRef} 
-            src={`https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`}
-            onEnded={() => setIsPlaying(false)}
-          />
-        </div>
+        <VoiceMessagePlayer voiceMessagePath={voiceMessagePath} />
       )}
     </div>
   );
