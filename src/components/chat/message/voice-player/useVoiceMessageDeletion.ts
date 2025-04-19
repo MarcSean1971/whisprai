@@ -34,17 +34,29 @@ export function useVoiceMessageDeletion({
       setIsDeleting(true);
       console.log('Attempting to delete message:', messageId, 'from conversation:', conversationId);
       
-      // First, update the message to remove the voiceMessage from metadata
+      // First, get the current message metadata
+      const { data: currentMessage, error: fetchError } = await supabase
+        .from('messages')
+        .select('metadata')
+        .eq('id', messageId)
+        .eq('conversation_id', conversationId)
+        .single();
+        
+      if (fetchError) {
+        console.error('Error fetching message metadata:', fetchError);
+        throw new Error('Failed to fetch message');
+      }
+      
+      // Create updated metadata object without the voiceMessage property
+      const updatedMetadata = { ...currentMessage.metadata };
+      if (updatedMetadata && 'voiceMessage' in updatedMetadata) {
+        delete updatedMetadata.voiceMessage;
+      }
+      
+      // Update the message metadata
       const { error: updateError } = await supabase
         .from('messages')
-        .update({
-          metadata: supabase.rpc('jsonb_delete_path', {
-            json: { 
-              voiceMessage: null 
-            },
-            path: '{voiceMessage}'
-          })
-        })
+        .update({ metadata: updatedMetadata })
         .eq('id', messageId)
         .eq('conversation_id', conversationId)
         .or(`sender_id.is.null,and(private_room.eq.AI,sender_id.eq.${currentUserId})`);
