@@ -32,8 +32,9 @@ export function useMessages(conversationId: string) {
       return;
     }
 
-    // Subscribe to both messages and ai_messages tables
-    const messagesChannel = supabase
+    console.log('Setting up realtime subscription for conversation:', conversationId);
+    
+    const channel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
@@ -44,32 +45,36 @@ export function useMessages(conversationId: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Messages event received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+          console.log('Realtime event received:', payload);
+          
+          if (payload.eventType === 'DELETE') {
+            console.log('Processing delete event for message:', payload.old.id);
+            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
+              if (!oldData) return [];
+              return oldData.filter(message => message.id !== payload.old.id);
+            });
+          } else if (payload.eventType === 'INSERT') {
+            console.log('Processing insert event for message:', payload.new.id);
+            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
+              const newMessage = payload.new as Message;
+              return oldData ? [...oldData, newMessage] : [newMessage];
+            });
+          }
         }
       )
-      .subscribe();
-
-    const aiMessagesChannel = supabase
-      .channel(`ai_messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ai_messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          console.log('AI Messages event received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      .subscribe((status) => {
+        console.log(`Subscription status for ${conversationId}:`, status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to messages');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to messages');
+          toast.error('Failed to connect to chat. Please refresh the page.');
         }
-      )
-      .subscribe();
+      });
 
     return () => {
-      supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(aiMessagesChannel);
+      console.log('Cleaning up realtime subscription for conversation:', conversationId);
+      supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);
 
@@ -84,53 +89,72 @@ export function useMessages(conversationId: string) {
         const { data: user } = await supabase.auth.getUser();
         const userId = user.user?.id;
 
-        // Fetch regular messages
+        // Fetch messages with proper filtering for AI messages
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('*')
           .eq('conversation_id', conversationId)
+          .or(`viewer_id.is.null,viewer_id.eq.${userId}`)
           .order('created_at', { ascending: true });
 
-        if (messagesError) throw messagesError;
+        if (messagesError) {
+          console.error('Error fetching messages:', messagesError);
+          throw messagesError;
+        }
 
-        // Fetch AI messages
-        const { data: aiMessages, error: aiError } = await supabase
-          .from('ai_messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .not('response', 'is', null)
-          .eq('status', 'completed');
+        if (!messages) {
+          return [];
+        }
 
-        if (aiError) throw aiError;
+        // Then fetch sender profiles for all messages with a sender
+        const senderIds = messages
+          .filter(m => m.sender_id)
+          .map(m => m.sender_id as string);
 
-        // Convert AI messages to regular message format
-        const formattedAiMessages = aiMessages?.map(ai => {
-          // Create a safe metadata object to spread
-          const metadataObj = typeof ai.metadata === 'object' && ai.metadata !== null 
-            ? ai.metadata 
-            : {};
-            
+        if (senderIds.length === 0) {
+          return messages as Message[];
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, language')
+          .in('id', senderIds);
+
+        if (profilesError) {
+          console.warn('Error fetching profiles:', profilesError);
+          // Continue with messages even if profiles fail to load
+          return messages as Message[];
+        }
+
+        // Map profiles to messages
+        return messages.map(message => {
+          if (!message.sender_id) {
+            return message as Message;
+          }
+
+          const profile = profiles?.find(p => p.id === message.sender_id);
           return {
-            id: ai.id,
-            content: ai.response,
-            created_at: ai.updated_at,
-            conversation_id: ai.conversation_id,
-            sender_id: null,
-            status: 'sent',
-            metadata: { isAI: true, ...metadataObj }
-          };
-        }) || [];
-
-        // Combine and sort all messages
-        const allMessages = [...(messages || []), ...formattedAiMessages]
-          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-        return allMessages;
+            ...message,
+            sender: profile ? {
+              id: message.sender_id,
+              profiles: {
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                avatar_url: profile.avatar_url,
+                language: profile.language
+              }
+            } : {
+              id: message.sender_id,
+              profiles: undefined
+            }
+          } as Message;
+        });
       } catch (error) {
         console.error('Error in messages query:', error);
-        toast.error('Failed to load messages');
+        toast.error('Failed to load messages. Please try again.');
         throw error;
       }
-    }
+    },
+    retry: 1,
   });
 }

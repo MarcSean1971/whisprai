@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
@@ -14,8 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { aiMessageId } = await req.json()
-    console.log('Processing AI message:', aiMessageId)
+    const { content, conversationId, userId } = await req.json()
+    const prompt = content.replace(/^AI:\s*/, '').trim()
+    
+    console.log('Processing AI message:', { conversationId, prompt, userId })
 
     // Initialize Supabase client
     const supabase = createClient(
@@ -23,28 +24,39 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch the AI message
-    const { data: aiMessage, error: fetchError } = await supabase
-      .from('ai_messages')
-      .select('*')
-      .eq('id', aiMessageId)
-      .single()
+    // Prepare the system message and make the API call to OpenAI (keeping existing code)
+    const detectedLanguage = await detectLanguage(prompt)
+    console.log('Detected language:', detectedLanguage)
 
-    if (fetchError || !aiMessage) {
-      console.error('Error fetching AI message:', fetchError)
-      throw new Error('AI message not found')
+    // Fetch relevant chat history from user's conversations
+    const { data: chatHistory, error: historyError } = await supabase
+      .from('messages')
+      .select(`
+        content,
+        created_at,
+        conversation_id,
+        sender_id,
+        original_language
+      `)
+      .or(`sender_id.eq.${userId},viewer_id.eq.${userId}`)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    if (historyError) {
+      console.error('Error fetching chat history:', historyError)
     }
 
-    // Update status to processing
-    const { error: updateError } = await supabase
-      .from('ai_messages')
-      .update({ status: 'processing' })
-      .eq('id', aiMessageId)
+    // Process chat history into a readable format for the AI
+    const chatHistoryContext = chatHistory ? formatChatHistory(chatHistory) : ''
+    
+    // Create the system message with language preference and chat history
+    const systemMessage = `
+You are a helpful AI assistant in a chat conversation. Keep responses concise and natural.
+Please respond in ${detectedLanguage} language.
 
-    if (updateError) {
-      console.error('Error updating AI message status:', updateError)
-      throw updateError
-    }
+Here is some recent chat history for context (newest messages first):
+${chatHistoryContext}
+`;
 
     // Make the API call to OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -56,76 +68,93 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: aiMessage.prompt }
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: prompt }
         ],
       }),
     })
 
     if (!openAIResponse.ok) {
-      const errorData = await openAIResponse.text()
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`OpenAI API error: ${errorData}`)
+      const error = await openAIResponse.text()
+      console.error('OpenAI API error:', error)
+      throw new Error(`OpenAI API error: ${error}`)
     }
 
     const aiData = await openAIResponse.json()
+    console.log('OpenAI response:', aiData)
+    
     const aiResponse = aiData.choices[0].message.content
 
-    // Update the AI message with the response
-    const { error: finalUpdateError } = await supabase
-      .from('ai_messages')
-      .update({
-        response: aiResponse,
-        status: 'completed',
-        metadata: {
+    // Store AI message in the database with viewer_id to scope it to the requesting user
+    const { error: messageError } = await supabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        content: aiResponse,
+        sender_id: null,
+        viewer_id: userId,
+        original_language: detectedLanguage,
+        ai_metadata: {
           model: 'gpt-4o-mini',
+          prompt,
           tokens: aiData.usage
-        },
-        updated_at: new Date().toISOString()
+        }
       })
-      .eq('id', aiMessageId)
 
-    if (finalUpdateError) {
-      console.error('Error updating AI message with response:', finalUpdateError)
-      throw finalUpdateError
+    if (messageError) {
+      console.error('Database error:', messageError)
+      throw messageError
     }
 
+    // Only return a success response, not the message data
     return new Response(
       JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error in chat-with-ai function:', error)
-    
-    // Try to update the message status to error if possible
-    if (error instanceof Error) {
-      try {
-        const supabase = createClient(
-          Deno.env.get('SUPABASE_URL') ?? '',
-          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
-        
-        await supabase
-          .from('ai_messages')
-          .update({ 
-            status: 'error',
-            metadata: { error: error.message }
-          })
-          .eq('id', JSON.parse(req.body || '{}').aiMessageId)
-      } catch (updateError) {
-        console.error('Failed to update message status:', updateError)
-      }
-    }
-    
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error',
-        details: error
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
+
+// Helper functions
+function formatChatHistory(messages: any[]): string {
+  if (!messages || messages.length === 0) return "No previous messages."
+  
+  return messages.map(msg => {
+    const timestamp = new Date(msg.created_at).toLocaleString()
+    const sender = msg.sender_id ? 'User' : 'AI'
+    return `[${timestamp}] ${sender}: ${msg.content}`
+  }).join('\n\n')
+}
+
+async function detectLanguage(text: string): Promise<string> {
+  // Languages mapping for basic detection
+  const languages: Record<string, string[]> = {
+    'en': ['the', 'is', 'and', 'to', 'hello', 'hi', 'how are you', 'what', 'where', 'when'],
+    'es': ['el', 'la', 'que', 'hola', 'como estas', 'buenos dias', 'gracias'],
+    'fr': ['le', 'la', 'je', 'bonjour', 'merci', 'comment', 'oui', 'non'],
+    'de': ['der', 'die', 'das', 'und', 'hallo', 'guten tag', 'danke'],
+    'it': ['il', 'la', 'che', 'ciao', 'grazie', 'buongiorno'],
+    'pt': ['o', 'a', 'que', 'ola', 'obrigado', 'bom dia']
+  };
+  
+  const lowerText = text.toLowerCase();
+  
+  const scores = Object.entries(languages).map(([lang, words]) => {
+    let score = 0;
+    for (const word of words) {
+      if (lowerText.includes(word.toLowerCase())) {
+        score++;
+      }
+    }
+    return { lang, score };
+  });
+  
+  scores.sort((a, b) => b.score - a.score);
+  
+  return scores[0].score > 0 ? scores[0].lang : 'en';
+}

@@ -63,50 +63,6 @@ export type Database = {
         }
         Relationships: []
       }
-      ai_messages: {
-        Row: {
-          conversation_id: string
-          created_at: string
-          id: string
-          metadata: Json | null
-          prompt: string
-          response: string | null
-          status: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          conversation_id: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          prompt: string
-          response?: string | null
-          status?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          metadata?: Json | null
-          prompt?: string
-          response?: string | null
-          status?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_messages_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contact_requests: {
         Row: {
           created_at: string
@@ -343,10 +299,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      cleanup_ai_messages: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       get_existing_conversation: {
         Args: { user1_id: string; user2_id: string }
         Returns: string
