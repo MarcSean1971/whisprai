@@ -61,17 +61,25 @@ export function ChatMessages({
       
       for (const message of messages) {
         const isOwn = message.sender_id === currentUserId;
+        const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
         
+        // Only translate if:
+        // 1. Message is not from current user
+        // 2. Message has an original language
+        // 3. Original language is different from user's preferred language
+        // 4. Message hasn't been translated yet
         const needsTranslation = !isOwn && 
+          !isAI && 
           message.original_language && 
           message.original_language !== profile.language &&
-          message.original_language !== 'en' &&
           !translatedContents[message.id];
         
         if (needsTranslation) {
           try {
+            console.log(`Translating message ${message.id} from ${message.original_language} to ${profile.language}`);
             const translated = await translateMessage(message.content, profile.language);
             if (translated !== message.content) {
+              console.log(`Translation completed for message ${message.id}`);
               newTranslations[message.id] = translated;
             }
           } catch (error) {
@@ -81,6 +89,7 @@ export function ChatMessages({
       }
       
       if (Object.keys(newTranslations).length > 0) {
+        console.log('Adding new translations:', newTranslations);
         setTranslatedContents(prev => ({ ...prev, ...newTranslations }));
       }
     };
@@ -96,17 +105,18 @@ export function ChatMessages({
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
-        // Check if this is an AI message (either real AI or user prompt with AI: prefix)
         const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
         const isAIPrompt = message.metadata?.isAIPrompt;
         
         const showSender = !isOwn && !isAI && !isAIPrompt && 
                           (index === 0 || messages[index - 1].sender_id !== message.sender_id);
         
-        const needsTranslation = !isOwn && !isAI && !isAIPrompt && 
+        // Simplified translation check - translate all non-own messages in different languages
+        const needsTranslation = !isOwn && 
+          !isAI && 
+          !isAIPrompt && 
           message.original_language && 
-          message.original_language !== profile?.language &&
-          message.original_language !== 'en';
+          message.original_language !== profile?.language;
 
         const translatedContent = needsTranslation ? translatedContents[message.id] : undefined;
         const formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
@@ -122,7 +132,11 @@ export function ChatMessages({
           isOwn,
           isAI,
           isAIPrompt: message.metadata?.isAIPrompt,
-          metadata: message.metadata
+          metadata: message.metadata,
+          originalLanguage: message.original_language,
+          userLanguage: profile?.language,
+          needsTranslation,
+          hasTranslation: !!translatedContent
         });
 
         return (
