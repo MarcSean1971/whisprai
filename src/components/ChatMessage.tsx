@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -65,6 +66,7 @@ export function ChatMessage({
   const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
   const isAIMessage = isAI || metadata?.isAIPrompt;
   const canDelete = isAIMessage;
+  const isAIPrompt = metadata?.isAIPrompt;
 
   const handleLocationClick = () => {
     if (location) {
