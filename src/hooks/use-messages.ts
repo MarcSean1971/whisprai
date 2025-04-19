@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -68,10 +69,12 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
+      // Fetch messages with updated visibility rules
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
+        .or(`private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`)
         .order('created_at', { ascending: true });
 
       if (messagesError) {
