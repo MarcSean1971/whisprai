@@ -6,11 +6,15 @@ export function useParticipants(conversationId: string) {
   return useQuery({
     queryKey: ["participants", conversationId],
     queryFn: async () => {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user) throw new Error('Not authenticated');
+
       // Get participants for this conversation
       const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
         .select('user_id')
-        .eq('conversation_id', conversationId);
+        .eq('conversation_id', conversationId)
+        .neq('user_id', currentUser.user.id); // Exclude current user
       
       if (participantsError) {
         throw new Error(`Error fetching participants: ${participantsError.message}`);
