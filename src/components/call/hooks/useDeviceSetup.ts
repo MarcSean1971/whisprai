@@ -6,50 +6,50 @@ import { toast } from 'sonner';
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      // Create a proper EventEmitter implementation
-      class EventEmitter {
-        // Properly define the events property with its type
-        private events: Record<string, Function[]> = {};
-        
-        on(event: string, listener: Function) {
-          if (!this.events[event]) {
-            this.events[event] = [];
-          }
-          this.events[event].push(listener);
-          return this;
-        }
-        
-        removeListener(event: string, listener: Function) {
-          if (!this.events[event]) return this;
-          this.events[event] = this.events[event].filter(l => l !== listener);
-          return this;
-        }
-        
-        emit(event: string, ...args: any[]) {
-          if (!this.events[event]) return false;
-          this.events[event].forEach(listener => listener(...args));
-          return true;
-        }
-      }
-      
-      // Ensure EventEmitter is available globally to Twilio
+      // Make sure the EventEmitter is set up before any imports
       if (!(window as any).EventEmitter) {
+        // Define a proper EventEmitter class
+        class EventEmitter {
+          private events: Record<string, Function[]> = {};
+          
+          on(event: string, listener: Function) {
+            if (!this.events[event]) {
+              this.events[event] = [];
+            }
+            this.events[event].push(listener);
+            return this;
+          }
+          
+          removeListener(event: string, listener: Function) {
+            if (!this.events[event]) return this;
+            this.events[event] = this.events[event].filter(l => l !== listener);
+            return this;
+          }
+          
+          emit(event: string, ...args: any[]) {
+            if (!this.events[event]) return false;
+            this.events[event].forEach(listener => listener(...args));
+            return true;
+          }
+        }
+
+        // Set the global EventEmitter
         (window as any).EventEmitter = EventEmitter;
+        
+        // Make sure prototype is properly set
+        Object.setPrototypeOf(EventEmitter.prototype, Object.prototype);
       }
       
-      // Also define it as a module export for inheritance
+      // Add events module for proper inheritance
       if (!(window as any).events) {
-        (window as any).events = {
-          EventEmitter: EventEmitter
+        (window as any).events = { 
+          EventEmitter: (window as any).EventEmitter 
         };
       }
       
-      // Create proper inheritance structure for EventEmitter
-      Object.setPrototypeOf(EventEmitter.prototype, Object.prototype);
-      
       // Add window.global for browser environment
       if (!window.global) {
-        window.global = window;
+        (window as any).global = window;
       }
       
       // Add process object for browser environment
@@ -60,6 +60,13 @@ export function useDeviceSetup() {
           version: '',
           versions: {},
           platform: 'browser'
+        };
+      }
+      
+      // If Node.js Buffer is used, provide a minimal polyfill
+      if (!(window as any).Buffer) {
+        (window as any).Buffer = {
+          isBuffer: () => false
         };
       }
     }
