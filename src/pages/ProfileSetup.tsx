@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -40,14 +41,14 @@ export default function ProfileSetup() {
   });
 
   useEffect(() => {
-    if (profile && !isLoading) {
+    if (profile && !profileLoading) {
       Object.entries(profile).forEach(([key, value]) => {
         if (value !== null) {
           form.setValue(key as keyof ProfileFormValues, value);
         }
       });
     }
-  }, [profile, isLoading, form]);
+  }, [profile, profileLoading, form]);
 
   const handleEnhanceBio = (enhancedBio: string) => {
     form.setValue('bio', enhancedBio);
