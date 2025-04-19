@@ -2,8 +2,11 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 export function useUserConversations() {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['user-conversations'],
     queryFn: async () => {
@@ -14,28 +17,29 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
         
+        // Step 1: Get all conversation IDs for this user
+        const { data: participations, error: participationsError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+
+        if (participationsError) {
+          console.error('Error fetching participation:', participationsError);
+          throw participationsError;
+        }
+
+        if (!participations?.length) {
+          console.log('No conversations found for user');
+          return [];
+        }
+
+        const conversationIds = participations.map(p => p.conversation_id);
+        
+        // Step 2: Get conversations with these IDs
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select(`
-            *,
-            conversation_participants!left (
-              user_id,
-              profiles (
-                id,
-                first_name,
-                last_name,
-                avatar_url
-              )
-            ),
-            messages (
-              id,
-              content,
-              sender_id,
-              created_at,
-              status
-            )
-          `)
-          .eq('conversation_participants.user_id', user.id)
+          .select('*, created_at, updated_at, is_group')
+          .in('id', conversationIds)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
@@ -43,12 +47,46 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        console.log('Successfully fetched conversations:', conversations?.length || 0);
+        // Step 3: For each conversation, get the participants and newest message
+        const conversationsWithDetails = await Promise.all(conversations.map(async (conversation) => {
+          // Get all participants for this conversation
+          const { data: participants, error: participantsError } = await supabase
+            .from('conversation_participants')
+            .select(`
+              user_id,
+              profiles!inner (
+                id, 
+                first_name,
+                last_name,
+                avatar_url
+              )
+            `)
+            .eq('conversation_id', conversation.id);
 
-        return conversations.map(conversation => {
-          const participants = conversation.conversation_participants
-            .filter(p => p.user_id !== user.id && p.profiles)
-            .map(p => ({
+          if (participantsError) {
+            console.error(`Error fetching participants for conversation ${conversation.id}:`, participantsError);
+            return null;
+          }
+
+          // Get latest message for this conversation
+          const { data: messages, error: messagesError } = await supabase
+            .from('messages')
+            .select('id, content, sender_id, created_at, status')
+            .eq('conversation_id', conversation.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+          if (messagesError) {
+            console.error(`Error fetching messages for conversation ${conversation.id}:`, messagesError);
+            return null;
+          }
+
+          const lastMessage = messages && messages.length > 0 ? messages[0] : undefined;
+          
+          // Filter out current user from participants list
+          const otherParticipants = participants
+            ?.filter(p => p.user_id !== user.id)
+            ?.map(p => ({
               user_id: p.user_id,
               profile: {
                 id: p.profiles?.id || p.user_id,
@@ -56,10 +94,9 @@ export function useUserConversations() {
                 last_name: p.profiles?.last_name || null,
                 avatar_url: p.profiles?.avatar_url || null
               }
-            }));
+            })) || [];
 
-          const lastMessage = conversation.messages?.[0];
-          const primaryProfile = participants[0]?.profile;
+          const primaryProfile = otherParticipants[0]?.profile;
           
           const displayName = primaryProfile 
             ? (primaryProfile.first_name 
@@ -69,17 +106,30 @@ export function useUserConversations() {
 
           return {
             ...conversation,
-            participants,
+            participants: otherParticipants,
             lastMessage,
             name: displayName,
             avatar: primaryProfile?.avatar_url || null
           };
-        });
+        }));
+
+        // Filter out any null results from errors in the Promise.all
+        const validConversations = conversationsWithDetails.filter(conv => conv !== null) as Conversation[];
+        
+        console.log('Successfully fetched conversations:', validConversations.length);
+        return validConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
+        toast({
+          title: "Error loading conversations",
+          description: error instanceof Error ? error.message : "Unknown error occurred",
+          variant: "destructive"
+        });
         throw error;
       }
     },
-    retry: 1
+    retry: 1,
+    refetchOnWindowFocus: false,
+    staleTime: 30000 // 30 seconds
   });
 }
