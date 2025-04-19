@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -33,7 +34,6 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Store the user's question as a private message
       const aiPrompt = content.replace(/^AI:\s*/, '').trim();
       
       const { data: promptMessage, error: createError } = await supabase
@@ -55,7 +55,6 @@ export function useChat(conversationId: string) {
         return false;
       }
 
-      // Process with AI using the new message ID
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
           messageId: promptMessage.id,
@@ -94,9 +93,9 @@ export function useChat(conversationId: string) {
       audioPath?: string 
     },
     location?: { latitude: number; longitude: number; accuracy: number },
-    attachment?: { url: string; name: string; type: string }
+    attachments?: { url: string; name: string; type: string }[]
   ) => {
-    if (!conversationId || (!content.trim() && !voiceMessageData && !attachment)) {
+    if (!conversationId || (!content.trim() && !voiceMessageData && !attachments?.length)) {
       console.error("Cannot send message: missing conversation ID or content");
       return false;
     }
@@ -123,7 +122,7 @@ export function useChat(conversationId: string) {
         metadata: {
           ...(location ? { location } : {}),
           ...(voiceMessageData?.audioPath ? { voiceMessage: voiceMessageData.audioPath } : {}),
-          ...(attachment ? { attachment } : {})
+          ...(attachments ? { attachments } : {})
         }
       };
       

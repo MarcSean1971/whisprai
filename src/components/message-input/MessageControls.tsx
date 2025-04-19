@@ -1,16 +1,18 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile } from "lucide-react";
+import { Mic, Send, Paperclip, Smile, Camera } from "lucide-react";
 
 interface MessageControlsProps {
   message: string;
   onChange: (value: string) => void;
   onStartRecording: () => void;
   onAttachmentClick: () => void;
+  onCameraClick: () => void;
   onSubmit: (e: React.FormEvent) => void;
   disabled?: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
+  canAttach?: boolean;
 }
 
 export function MessageControls({
@@ -18,9 +20,11 @@ export function MessageControls({
   onChange,
   onStartRecording,
   onAttachmentClick,
+  onCameraClick,
   onSubmit,
   disabled,
-  inputRef
+  inputRef,
+  canAttach = true
 }: MessageControlsProps) {
   return (
     <form onSubmit={onSubmit} className="flex gap-2 items-center">
@@ -30,10 +34,22 @@ export function MessageControls({
         variant="ghost"
         className="text-muted-foreground hover:text-foreground"
         onClick={onAttachmentClick}
-        disabled={disabled}
+        disabled={disabled || !canAttach}
       >
         <Paperclip className="h-5 w-5" />
         <span className="sr-only">Attach files</span>
+      </Button>
+      
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="text-muted-foreground hover:text-foreground"
+        onClick={onCameraClick}
+        disabled={disabled || !canAttach}
+      >
+        <Camera className="h-5 w-5" />
+        <span className="sr-only">Use camera</span>
       </Button>
       
       <div className="relative flex-1">

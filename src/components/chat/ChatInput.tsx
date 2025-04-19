@@ -1,16 +1,21 @@
 
+import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
 import { useLocation } from "@/hooks/use-location";
 import { PredictiveAnswer } from "@/types/predictive-answer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface ChatInputProps {
   conversationId: string;
-  onSendMessage: (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }, attachment?: { url: string; name: string; type: string }) => void;
+  onSendMessage: (
+    content: string, 
+    voiceMessageData?: { base64Audio: string; audioPath?: string }, 
+    location?: { latitude: number; longitude: number; accuracy: number },
+    attachments?: { url: string; name: string; type: string }[]
+  ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
 }
@@ -27,7 +32,7 @@ export function ChatInput({
 
   const handleSendMessage = async (
     content: string, 
-    attachment?: { url: string; name: string; type: string }
+    attachments?: { url: string; name: string; type: string }[]
   ) => {
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
     const mightNeedLocation = locationKeywords.some(keyword => 
@@ -36,9 +41,9 @@ export function ChatInput({
 
     if (mightNeedLocation) {
       const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined, attachment);
+      onSendMessage(content, undefined, location || undefined, attachments);
     } else {
-      onSendMessage(content, undefined, undefined, attachment);
+      onSendMessage(content, undefined, undefined, attachments);
     }
   };
 

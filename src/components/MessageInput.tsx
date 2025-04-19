@@ -8,7 +8,10 @@ import { MessageSuggestions } from "./message-input/MessageSuggestions";
 import { MessageControls } from "./message-input/MessageControls";
 
 interface MessageInputProps {
-  onSendMessage: (message: string, attachment?: { url: string; name: string; type: string }) => void;
+  onSendMessage: (
+    message: string, 
+    attachments?: { url: string; name: string; type: string }[]
+  ) => void;
   onStartRecording: () => void;
   suggestions?: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
@@ -25,53 +28,77 @@ export function MessageInput({
   disabled = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
-  const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
+  const [attachments, setAttachments] = useState<{ file: File; url: string }[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    let attachmentData;
-    if (attachment) {
+    const uploadPromises = attachments.map(async (attachment) => {
       try {
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('attachments')
+          .from('chat-attachments')
           .upload(`${Date.now()}_${attachment.file.name}`, attachment.file);
         
         if (uploadError) {
-          toast.error('Failed to upload attachment');
-          return;
+          toast.error(`Failed to upload ${attachment.file.name}`);
+          return null;
         }
 
         const { data: { publicUrl } } = supabase.storage
-          .from('attachments')
+          .from('chat-attachments')
           .getPublicUrl(uploadData.path);
         
-        attachmentData = { 
+        return { 
           url: publicUrl, 
           name: attachment.file.name, 
           type: attachment.file.type 
         };
       } catch (error) {
-        toast.error('Error processing attachment');
-        return;
+        toast.error(`Error processing ${attachment.file.name}`);
+        return null;
       }
-    }
+    });
 
-    if (message.trim() || attachmentData) {
-      onSendMessage(message, attachmentData);
+    const uploadedAttachments = (await Promise.all(uploadPromises)).filter(Boolean);
+    
+    if (message.trim() || uploadedAttachments.length > 0) {
+      onSendMessage(message, uploadedAttachments as { url: string; name: string; type: string }[]);
       setMessage("");
-      setAttachment(null);
+      setAttachments([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAttachment({ file, url });
+    const newFiles = e.target.files ? Array.from(e.target.files) : [];
+    const newUrls = newFiles.map(file => URL.createObjectURL(file));
+    
+    const combinedFiles = [
+      ...attachments, 
+      ...newFiles.map((file, index) => ({ file, url: newUrls[index] }))
+    ];
+    
+    // Limit to 5 files
+    const limitedFiles = combinedFiles.slice(0, 5);
+    setAttachments(limitedFiles);
+  };
+
+  const handleClearAttachment = (index?: number) => {
+    if (index !== undefined) {
+      // Remove specific file
+      const newAttachments = attachments.filter((_, i) => i !== index);
+      setAttachments(newAttachments);
+    } else {
+      // Clear all files
+      setAttachments([]);
     }
+    
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   };
 
   const handleSuggestionClick = (suggestion: string) => {
@@ -85,22 +112,29 @@ export function MessageInput({
     <div className={className}>
       <input 
         type="file" 
+        multiple
+        accept="image/*,video/*"
         ref={fileInputRef}
         className="hidden" 
         onChange={handleFileChange}
-        disabled={disabled}
+        disabled={disabled || attachments.length >= 5}
       />
       
-      {attachment && (
+      <input 
+        type="file" 
+        accept="image/*,video/*"
+        capture="environment"
+        ref={cameraInputRef}
+        className="hidden" 
+        onChange={handleFileChange}
+        disabled={disabled || attachments.length >= 5}
+      />
+      
+      {attachments.length > 0 && (
         <FileAttachment
-          file={attachment.file}
-          url={attachment.url}
-          onClear={() => {
-            setAttachment(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = '';
-            }
-          }}
+          files={attachments.map(a => a.file)}
+          urls={attachments.map(a => a.url)}
+          onClear={handleClearAttachment}
         />
       )}
 
@@ -116,9 +150,11 @@ export function MessageInput({
         onChange={setMessage}
         onStartRecording={onStartRecording}
         onAttachmentClick={() => fileInputRef.current?.click()}
+        onCameraClick={() => cameraInputRef.current?.click()}
         onSubmit={handleSubmit}
         disabled={disabled}
         inputRef={inputRef}
+        canAttach={attachments.length < 5}
       />
     </div>
   );
