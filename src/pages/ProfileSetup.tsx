@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -17,10 +16,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import { Loader2, LogOut } from 'lucide-react';
-import { useAuthProtection } from '@/hooks/use-auth-protection';
 
 export default function ProfileSetup() {
-  const { isLoading: authLoading, isAuthenticated } = useAuthProtection();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { profile, isLoading: profileLoading, updateProfile } = useProfile();
@@ -91,16 +88,12 @@ export default function ProfileSetup() {
     }
   };
 
-  if (authLoading || profileLoading) {
+  if (profileLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
-  }
-
-  if (!isAuthenticated) {
-    return null; // The useAuthProtection hook will handle the redirect
   }
 
   return (

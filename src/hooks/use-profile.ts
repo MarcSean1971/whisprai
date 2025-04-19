@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,7 +21,10 @@ export function useProfile() {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Profile fetch error:', error);
+        return null;
+      }
 
       if (data) {
         return {
@@ -38,6 +40,7 @@ export function useProfile() {
       }
       return null;
     },
+    retry: false
   });
 
   const updateProfileMutation = useMutation({
