@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -25,9 +24,10 @@ export function useChat(conversationId: string) {
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          content: `AI: ${userContent}`,
+          content: userContent,
           sender_id: userId,
-          status: 'sent'
+          status: 'sent',
+          metadata: { isAIPrompt: true }
         });
 
       if (userMessageError) {
