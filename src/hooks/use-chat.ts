@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -19,7 +20,7 @@ export function useChat(conversationId: string) {
   const handleAIMessage = async (content: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { content, conversationId }
+        body: { content, conversationId, userId }
       });
 
       if (error) {

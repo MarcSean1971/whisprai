@@ -186,6 +186,7 @@ export type Database = {
           original_language: string | null
           sender_id: string | null
           status: string
+          viewer_id: string | null
         }
         Insert: {
           ai_metadata?: Json | null
@@ -197,6 +198,7 @@ export type Database = {
           original_language?: string | null
           sender_id?: string | null
           status?: string
+          viewer_id?: string | null
         }
         Update: {
           ai_metadata?: Json | null
@@ -208,6 +210,7 @@ export type Database = {
           original_language?: string | null
           sender_id?: string | null
           status?: string
+          viewer_id?: string | null
         }
         Relationships: [
           {

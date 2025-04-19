@@ -14,10 +14,10 @@ serve(async (req) => {
   }
 
   try {
-    const { content, conversationId } = await req.json()
+    const { content, conversationId, userId } = await req.json()
     const prompt = content.replace(/^AI:\s*/, '').trim()
     
-    console.log('Processing AI message:', { conversationId, prompt })
+    console.log('Processing AI message:', { conversationId, prompt, userId })
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -54,13 +54,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Store AI message in the database
+    // Store AI message in the database with viewer_id
     const { data: messageData, error: messageError } = await supabase
       .from('messages')
       .insert({
         conversation_id: conversationId,
         content: aiResponse,
         sender_id: null,
+        viewer_id: userId,
         ai_metadata: {
           model: 'gpt-4o-mini',
           prompt,
