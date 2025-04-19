@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -23,24 +22,13 @@ export function useChat(conversationId: string) {
         body: { content, conversationId, userId }
       });
 
-      if (error) {
+      if (error || !data.success) {
         console.error('AI chat error:', error);
         toast.error('Failed to process AI message');
         throw error;
       }
 
-      // Add a new message for the AI response with the viewer_id
-      await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          content: data.message,
-          sender_id: null, // AI messages have null sender_id
-          viewer_id: userId, // Set viewer_id to track who triggered the AI
-          status: 'sent'
-        });
-
-      return data.message;
+      return true;
     } catch (error) {
       console.error('Error processing AI message:', error);
       toast.error('Failed to process AI message');

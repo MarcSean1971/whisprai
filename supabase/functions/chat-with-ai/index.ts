@@ -25,7 +25,6 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Detect the language of the prompt
     const detectedLanguage = await detectLanguage(prompt)
     console.log('Detected language:', detectedLanguage)
 
@@ -87,7 +86,7 @@ ${chatHistoryContext}
     const aiResponse = aiData.choices[0].message.content
 
     // Store AI message in the database with viewer_id
-    const { data: messageData, error: messageError } = await supabase
+    const { error: messageError } = await supabase
       .from('messages')
       .insert({
         conversation_id: conversationId,
@@ -101,18 +100,15 @@ ${chatHistoryContext}
           tokens: aiData.usage
         }
       })
-      .select()
-      .single()
 
     if (messageError) {
       console.error('Database error:', messageError)
       throw messageError
     }
 
-    console.log('Message stored successfully:', messageData)
-
+    // Only return a success response, not the message data
     return new Response(
-      JSON.stringify({ message: messageData }),
+      JSON.stringify({ success: true }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
@@ -124,7 +120,7 @@ ${chatHistoryContext}
   }
 })
 
-// Helper function to format chat history for the AI
+// Helper functions
 function formatChatHistory(messages: any[]): string {
   if (!messages || messages.length === 0) return "No previous messages."
   
@@ -135,7 +131,6 @@ function formatChatHistory(messages: any[]): string {
   }).join('\n\n')
 }
 
-// Simple language detection function
 async function detectLanguage(text: string): Promise<string> {
   // Languages mapping for basic detection
   const languages: Record<string, string[]> = {
@@ -147,10 +142,8 @@ async function detectLanguage(text: string): Promise<string> {
     'pt': ['o', 'a', 'que', 'ola', 'obrigado', 'bom dia']
   };
   
-  // Convert to lowercase for comparison
   const lowerText = text.toLowerCase();
   
-  // Count word matches for each language
   const scores = Object.entries(languages).map(([lang, words]) => {
     let score = 0;
     for (const word of words) {
@@ -161,9 +154,8 @@ async function detectLanguage(text: string): Promise<string> {
     return { lang, score };
   });
   
-  // Sort by score descending
   scores.sort((a, b) => b.score - a.score);
   
-  // Return highest score, or default to 'en'
   return scores[0].score > 0 ? scores[0].lang : 'en';
 }
+
