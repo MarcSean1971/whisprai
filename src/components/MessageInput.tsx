@@ -1,3 +1,4 @@
+
 import { useState, useRef, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +12,7 @@ interface MessageInputProps {
   suggestions?: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
   className?: string;
+  disabled?: boolean; // Added the disabled property
 }
 
 export function MessageInput({
@@ -19,6 +21,7 @@ export function MessageInput({
   suggestions = [],
   isLoadingSuggestions = false,
   className,
+  disabled = false, // Set default value to false
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -63,6 +66,7 @@ export function MessageInput({
                     size="sm"
                     className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 transition-colors group whitespace-nowrap flex-shrink-0"
                     onClick={() => handleSuggestionClick(suggestion.text)}
+                    disabled={disabled}
                   >
                     <Sparkles className="h-3 w-3 mr-1 text-primary/70 group-hover:text-primary/90" />
                     {suggestion.text}
@@ -80,6 +84,7 @@ export function MessageInput({
           size="icon"
           variant="ghost"
           className="text-muted-foreground hover:text-foreground"
+          disabled={disabled}
         >
           <Paperclip className="h-5 w-5" />
           <span className="sr-only">Attach files</span>
@@ -92,12 +97,14 @@ export function MessageInput({
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Type a message..."
             className="pr-10 py-6 rounded-full"
+            disabled={disabled}
           />
           <Button
             type="button"
             size="icon"
             variant="ghost"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            disabled={disabled}
           >
             <Smile className="h-5 w-5" />
             <span className="sr-only">Add emoji</span>
@@ -105,7 +112,7 @@ export function MessageInput({
         </div>
         
         {message.trim() ? (
-          <Button type="submit" size="icon" className="rounded-full">
+          <Button type="submit" size="icon" className="rounded-full" disabled={disabled}>
             <Send className="h-5 w-5" />
             <span className="sr-only">Send message</span>
           </Button>
@@ -115,6 +122,7 @@ export function MessageInput({
             size="icon"
             className="rounded-full"
             onClick={onStartRecording}
+            disabled={disabled}
           >
             <Mic className="h-5 w-5" />
             <span className="sr-only">Record voice message</span>
