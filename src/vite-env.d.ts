@@ -10,4 +10,8 @@ interface Window {
   EventEmitter?: any;
   process?: any;
   global?: Window;
+  util?: {
+    inherits: (ctor: any, superCtor: any) => void;
+    [key: string]: any;
+  };
 }
