@@ -1,4 +1,3 @@
-
 import { useState, useRef, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { PredictiveAnswer } from "@/types/predictive-answer";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
-  onStartRecording?: () => void;
+  onStartRecording: () => void;
   suggestions?: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
   className?: string;
