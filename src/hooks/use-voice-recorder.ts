@@ -1,20 +1,50 @@
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
+  const stream = useRef<MediaStream | null>(null);
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       console.log('Requesting microphone access...');
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('Microphone access granted');
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        } 
+      });
       
-      mediaRecorder.current = new MediaRecorder(stream, {
-        mimeType: 'audio/webm'
+      console.log('Microphone access granted');
+      stream.current = mediaStream;
+      
+      // Try different MIME types based on browser support
+      const mimeTypes = [
+        'audio/webm',
+        'audio/webm;codecs=opus',
+        'audio/ogg;codecs=opus',
+        'audio/mp4'
+      ];
+      
+      let selectedMimeType = '';
+      for (const type of mimeTypes) {
+        if (MediaRecorder.isTypeSupported(type)) {
+          selectedMimeType = type;
+          break;
+        }
+      }
+      
+      if (!selectedMimeType) {
+        throw new Error('No supported audio MIME type found');
+      }
+      
+      mediaRecorder.current = new MediaRecorder(mediaStream, {
+        mimeType: selectedMimeType,
+        audioBitsPerSecond: 128000
       });
       
       audioChunks.current = [];
@@ -28,14 +58,15 @@ export function useVoiceRecorder() {
 
       mediaRecorder.current.start();
       setIsRecording(true);
-      console.log('Started recording');
+      console.log('Started recording with MIME type:', selectedMimeType);
     } catch (error) {
       console.error('Error accessing microphone:', error);
       toast.error(error instanceof Error ? error.message : 'Could not access microphone');
+      throw error;
     }
-  };
+  }, []);
 
-  const stopRecording = (): Promise<Blob | null> => {
+  const stopRecording = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
       if (!mediaRecorder.current || !isRecording) {
         console.log('No active recording to stop');
@@ -45,15 +76,23 @@ export function useVoiceRecorder() {
 
       mediaRecorder.current.onstop = () => {
         console.log('Recording stopped, creating audio blob');
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunks.current, { 
+          type: mediaRecorder.current?.mimeType || 'audio/webm' 
+        });
         console.log('Audio blob created:', audioBlob.size, 'bytes');
+        
+        // Clean up
+        if (stream.current) {
+          stream.current.getTracks().forEach(track => track.stop());
+          stream.current = null;
+        }
+        
         audioChunks.current = [];
         resolve(audioBlob);
       };
       
       try {
         mediaRecorder.current.stop();
-        mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
         setIsRecording(false);
         console.log('Stopped recording and released microphone');
       } catch (error) {
@@ -61,9 +100,9 @@ export function useVoiceRecorder() {
         resolve(null);
       }
     });
-  };
+  }, [isRecording]);
 
-  const convertBlobToBase64 = (blob: Blob): Promise<string> => {
+  const convertBlobToBase64 = useCallback((blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -72,10 +111,13 @@ export function useVoiceRecorder() {
         console.log('Converted audio blob to base64');
         resolve(base64Data);
       };
-      reader.onerror = reject;
+      reader.onerror = (error) => {
+        console.error('Error converting blob to base64:', error);
+        reject(error);
+      };
       reader.readAsDataURL(blob);
     });
-  };
+  }, []);
 
   return {
     isRecording,

@@ -1,6 +1,6 @@
 
-import { useState } from "react";
-import { Mic, StopCircle, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Mic, StopCircle, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { cn } from "@/lib/utils";
@@ -15,10 +15,43 @@ interface VoiceRecorderProps {
 export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorderProps) {
   const { isRecording, startRecording, stopRecording, convertBlobToBase64 } = useVoiceRecorder();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        setHasPermission(result.state === 'granted');
+        
+        result.addEventListener('change', (e) => {
+          setHasPermission((e.target as PermissionStatus).state === 'granted');
+        });
+      } catch (error) {
+        console.error('Error checking microphone permission:', error);
+        // Fallback to getUserMedia for older browsers
+        try {
+          await navigator.mediaDevices.getUserMedia({ audio: true });
+          setHasPermission(true);
+        } catch (mediaError) {
+          console.error('Error accessing microphone:', mediaError);
+          setHasPermission(false);
+          toast.error('Microphone access denied');
+        }
+      }
+    };
+
+    checkPermission();
+  }, []);
 
   const handleStartRecording = async () => {
+    if (!hasPermission) {
+      toast.error('Please allow microphone access to record messages');
+      return;
+    }
+
     try {
       await startRecording();
+      toast.success('Recording started');
     } catch (error) {
       console.error('Failed to start recording:', error);
       toast.error('Failed to start recording');
@@ -31,10 +64,9 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
       const blob = await stopRecording();
       
       if (blob) {
-        console.log('Converting audio blob to base64...');
         const base64 = await convertBlobToBase64(blob);
-        console.log('Sending voice message...');
         await onSendVoice(base64);
+        toast.success('Voice message sent');
       } else {
         toast.error('No audio recorded');
       }
@@ -53,6 +85,19 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
     onCancel();
   };
 
+  if (hasPermission === false) {
+    return (
+      <div className={cn("flex items-center gap-2", className)}>
+        <Button
+          variant="destructive"
+          onClick={() => toast.error('Please enable microphone access in your browser settings')}
+        >
+          Microphone Access Needed
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       {isRecording ? (
@@ -61,10 +106,18 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
             variant="destructive"
             size="icon"
             onClick={handleStopRecording}
-            className={cn("animate-pulse", isProcessing && "opacity-50")}
+            className={cn(
+              "animate-pulse", 
+              isProcessing && "opacity-50",
+              "rounded-full h-10 w-10"
+            )}
             disabled={isProcessing}
           >
-            <StopCircle className="h-5 w-5" />
+            {isProcessing ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <StopCircle className="h-5 w-5" />
+            )}
             <span className="sr-only">Stop recording</span>
           </Button>
           <Button 
@@ -72,6 +125,7 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
             size="icon" 
             onClick={handleCancel}
             disabled={isProcessing}
+            className="rounded-full h-10 w-10"
           >
             <X className="h-5 w-5" />
             <span className="sr-only">Cancel recording</span>
@@ -82,7 +136,7 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
           variant="default"
           size="icon"
           onClick={handleStartRecording}
-          className="rounded-full"
+          className="rounded-full h-10 w-10"
         >
           <Mic className="h-5 w-5" />
           <span className="sr-only">Start recording</span>
