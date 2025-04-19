@@ -2,17 +2,19 @@
 import { useState, useRef, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile, Sparkles, Loader2 } from "lucide-react";
+import { Mic, Send, Paperclip, Smile, Sparkles, Loader2, File } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PredictiveAnswer } from "@/types/predictive-answer";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MessageInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, attachment?: { url: string; name: string; type: string }) => void;
   onStartRecording: () => void;
   suggestions?: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
   className?: string;
-  disabled?: boolean; // Added the disabled property
+  disabled?: boolean;
 }
 
 export function MessageInput({
@@ -21,29 +23,91 @@ export function MessageInput({
   suggestions = [],
   isLoadingSuggestions = false,
   className,
-  disabled = false, // Set default value to false
+  disabled = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
+  const [attachment, setAttachment] = useState<{ file: File; url: string } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (message.trim()) {
-      onSendMessage(message);
+    
+    let attachmentData;
+    if (attachment) {
+      try {
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('attachments')
+          .upload(`${Date.now()}_${attachment.file.name}`, attachment.file);
+        
+        if (uploadError) {
+          toast.error('Failed to upload attachment');
+          return;
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('attachments')
+          .getPublicUrl(uploadData.path);
+        
+        attachmentData = { 
+          url: publicUrl, 
+          name: attachment.file.name, 
+          type: attachment.file.type 
+        };
+      } catch (error) {
+        toast.error('Error processing attachment');
+        return;
+      }
+    }
+
+    if (message.trim() || attachmentData) {
+      onSendMessage(message, attachmentData);
       setMessage("");
+      setAttachment(null);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setAttachment({ file, url });
     }
   };
 
   const handleSuggestionClick = (suggestion: string) => {
     setMessage(suggestion);
-    // Focus the input after selecting a suggestion
     if (inputRef.current) {
       inputRef.current.focus();
     }
   };
 
+  const clearAttachment = () => {
+    setAttachment(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className={cn("w-full", className)}>
+      {attachment && (
+        <div className="mb-2 flex items-center justify-between p-2 bg-primary/10 rounded-md">
+          <div className="flex items-center">
+            <File className="h-5 w-5 mr-2 text-primary" />
+            <span className="text-sm truncate max-w-[200px]">{attachment.file.name}</span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-destructive hover:text-destructive/80"
+            onClick={clearAttachment}
+          >
+            <File className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {(suggestions.length > 0 || isLoadingSuggestions) && (
         <div className="mb-2 overflow-x-auto no-scrollbar">
           <div className="flex gap-2 pb-1">
@@ -79,11 +143,19 @@ export function MessageInput({
       )}
       
       <form onSubmit={handleSubmit} className="flex gap-2 items-center">
+        <input 
+          type="file" 
+          ref={fileInputRef}
+          className="hidden" 
+          onChange={handleFileChange}
+          disabled={disabled}
+        />
         <Button
           type="button"
           size="icon"
           variant="ghost"
           className="text-muted-foreground hover:text-foreground"
+          onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
         >
           <Paperclip className="h-5 w-5" />

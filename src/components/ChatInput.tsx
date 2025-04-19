@@ -1,17 +1,21 @@
 
+import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
 import { useLocation } from "@/hooks/use-location";
 import { PredictiveAnswer } from "@/types/predictive-answer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
-import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useChat } from "@/hooks/use-chat";
 
 interface ChatInputProps {
   conversationId: string;
-  onSendMessage: (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }) => void;
+  onSendMessage: (
+    content: string, 
+    voiceMessageData?: { base64Audio: string; audioPath?: string }, 
+    location?: { latitude: number; longitude: number; accuracy: number },
+    attachment?: { url: string; name: string; type: string }
+  ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
 }
@@ -24,45 +28,77 @@ export function ChatInput({
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (
+    content: string, 
+    attachment?: { url: string; name: string; type: string }
+  ) => {
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
     const mightNeedLocation = locationKeywords.some(keyword => 
       content.toLowerCase().includes(keyword)
     );
 
+    const metadata = attachment 
+      ? { 
+          attachment: { 
+            url: attachment.url, 
+            name: attachment.name, 
+            type: attachment.type 
+          } 
+        } 
+      : undefined;
+
     if (mightNeedLocation) {
       const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined);
+      onSendMessage(content, undefined, location || undefined, attachment);
     } else {
-      onSendMessage(content);
+      onSendMessage(content, undefined, undefined, attachment);
     }
   };
 
   const handleVoiceMessage = async (base64Audio: string) => {
     try {
+      setIsProcessingVoice(true);
+      toast.info('Processing voice message...');
+      
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('voice-to-text', {
         body: { 
           audio: base64Audio, 
           conversationId, 
-          userId: await supabase.auth.getUser().then(res => res.data.user?.id) 
+          userId 
         }
       });
 
-      if (error) throw error;
-
-      if (data?.text && data?.audioPath) {
-        onSendMessage(data.text, { 
-          base64Audio, 
-          audioPath: data.audioPath 
-        });
-      } else {
-        throw new Error('No transcription or audio path received');
+      if (error) {
+        console.error('Voice-to-text function error:', error);
+        throw error;
       }
+
+      if (!data?.text) {
+        throw new Error('No transcription received');
+      }
+
+      if (!data?.audioPath) {
+        throw new Error('No audio path received');
+      }
+
+      onSendMessage(data.text, { 
+        base64Audio, 
+        audioPath: data.audioPath 
+      });
     } catch (error) {
       console.error('Error processing voice message:', error);
-      toast.error('Failed to process voice message');
+      toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
     } finally {
+      setIsProcessingVoice(false);
       setIsRecording(false);
     }
   };
@@ -77,6 +113,7 @@ export function ChatInput({
           onSendVoice={handleVoiceMessage}
           onCancel={() => setIsRecording(false)}
           className="flex justify-center"
+          isProcessing={isProcessingVoice}
         />
       ) : (
         <MessageInput
@@ -84,6 +121,7 @@ export function ChatInput({
           onStartRecording={() => setIsRecording(true)}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
+          disabled={isProcessingVoice}
         />
       )}
     </div>
