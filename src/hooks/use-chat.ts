@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
 import { toast } from "sonner";
@@ -9,7 +8,6 @@ export function useChat(conversationId: string) {
   const [userId, setUserId] = useState<string | null>(null);
   const { profile } = useProfile();
 
-  // Initialize user ID
   useEffect(() => {
     const fetchUserId = async () => {
       const { data } = await supabase.auth.getUser();
@@ -18,28 +16,31 @@ export function useChat(conversationId: string) {
     fetchUserId();
   }, []);
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (
+    content: string,
+    location?: { latitude: number; longitude: number; accuracy: number }
+  ) => {
     if (!conversationId || !content.trim() || !userId) {
       console.error("Cannot send message: missing conversation ID, content, or user ID");
       return;
     }
     
     try {
-      console.log("Detecting language for message:", content);
       const detectedLanguage = await detectLanguage(content);
       console.log("Detected language:", detectedLanguage);
       
-      console.log(`Sending message to conversation ${conversationId} in ${detectedLanguage} language`);
+      const messageData = {
+        conversation_id: conversationId,
+        content,
+        original_language: detectedLanguage,
+        sender_id: userId,
+        status: 'sent',
+        metadata: location ? { location } : undefined
+      };
       
       const { error, data } = await supabase
         .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          content,
-          original_language: detectedLanguage,
-          sender_id: userId,
-          status: 'sent'
-        })
+        .insert(messageData)
         .select();
 
       if (error) {
@@ -47,9 +48,6 @@ export function useChat(conversationId: string) {
         throw error;
       }
       
-      console.log("Message sent successfully:", data);
-      
-      // Update the conversation's updated_at timestamp
       const { error: updateError } = await supabase
         .from('conversations')
         .update({ updated_at: new Date().toISOString() })

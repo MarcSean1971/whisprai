@@ -1,9 +1,8 @@
-
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { useMessages, Message } from "@/hooks/use-messages";
+import { useMessages } from "@/hooks/use-messages";
 import { useProfile } from "@/hooks/use-profile";
 import { useChat } from "@/hooks/use-chat";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -15,6 +14,10 @@ export default function Chat() {
   const { profile } = useProfile();
   const { sendMessage, handleVoiceRecord } = useChat(id!);
   
+  const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
+    await sendMessage(content, location);
+  };
+
   if (!id) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -56,7 +59,7 @@ export default function Chat() {
         userLanguage={profile?.language} 
       />
       <ChatInput
-        onSendMessage={sendMessage}
+        onSendMessage={handleSendMessage}
         onStartRecording={handleVoiceRecord}
         suggestions={[]}
       />

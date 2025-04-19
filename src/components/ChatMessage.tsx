@@ -3,6 +3,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
 import { useState } from "react";
+import { MapPin } from "lucide-react";
 
 export type MessageStatus = "sending" | "sent" | "delivered" | "read";
 
@@ -20,6 +21,10 @@ interface ChatMessageProps {
   isAI?: boolean;
   originalLanguage?: string;
   translatedContent?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
 export function ChatMessage({
@@ -31,11 +36,21 @@ export function ChatMessage({
   isAI = false,
   originalLanguage,
   translatedContent,
+  location
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
+
+  const handleLocationClick = () => {
+    if (location) {
+      window.open(
+        `https://www.google.com/maps?q=${location.latitude},${location.longitude}`,
+        '_blank'
+      );
+    }
+  };
 
   return (
     <div className={cn(
@@ -75,6 +90,16 @@ export function ChatMessage({
               {timestamp}
             </div>
           </div>
+
+          {location && (
+            <button
+              onClick={handleLocationClick}
+              className="p-1 rounded-full hover:bg-accent/10 transition-colors"
+              title="View location on map"
+            >
+              <MapPin className="h-4 w-4" />
+            </button>
+          )}
 
           {showTranslationToggle && (
             <TranslationIcon 

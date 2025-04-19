@@ -255,6 +255,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_locations: {
+        Row: {
+          accuracy: number | null
+          id: string
+          last_updated: string
+          latitude: number
+          longitude: number
+          share_location: boolean
+          user_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          id?: string
+          last_updated?: string
+          latitude: number
+          longitude: number
+          share_location?: boolean
+          user_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          id?: string
+          last_updated?: string
+          latitude?: number
+          longitude?: number
+          share_location?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
