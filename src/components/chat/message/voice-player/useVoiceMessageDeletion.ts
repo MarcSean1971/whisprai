@@ -49,12 +49,13 @@ export function useVoiceMessageDeletion({
       
       // Create updated metadata object without the voiceMessage property
       // Safely handle the case where metadata might be null or undefined
-      const updatedMetadata = currentMessage.metadata 
-        ? { ...currentMessage.metadata } 
-        : {};
-        
-      if (updatedMetadata && 'voiceMessage' in updatedMetadata) {
-        delete updatedMetadata.voiceMessage;
+      let updatedMetadata = {};
+      
+      if (currentMessage.metadata && typeof currentMessage.metadata === 'object') {
+        updatedMetadata = { ...currentMessage.metadata };
+        if ('voiceMessage' in updatedMetadata) {
+          delete updatedMetadata.voiceMessage;
+        }
       }
       
       // Update the message metadata
