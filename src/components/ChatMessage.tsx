@@ -87,24 +87,41 @@ export function ChatMessage({
       setIsDeleting(true);
       console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
-      // Handle voice message deletion
+      // Handle voice message deletion with retry mechanism
       if (metadata?.voiceMessage) {
-        const voicePath = metadata.voiceMessage.startsWith('/') 
-          ? metadata.voiceMessage.substring(1) 
-          : metadata.voiceMessage;
-          
-        console.log('Deleting voice message file at path:', voicePath);
+        const voicePath = metadata.voiceMessage.replace(/^voice_messages\/+/, '');
+        console.log('Normalized voice message path for deletion:', voicePath);
         
-        const { error: storageError } = await supabase.storage
-          .from('voice_messages')
-          .remove([voicePath]);
-          
-        if (storageError) {
-          console.error('Error deleting voice message file:', storageError);
-          throw new Error('Failed to delete voice message file');
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            const { error: storageError } = await supabase.storage
+              .from('voice_messages')
+              .remove([voicePath]);
+              
+            if (!storageError) {
+              console.log('Voice message file deleted successfully');
+              break;
+            }
+            
+            console.error(`Retry ${retryCount + 1}/${maxRetries} failed:`, storageError);
+            retryCount++;
+            
+            if (retryCount === maxRetries) {
+              throw new Error('Failed to delete voice message file after multiple attempts');
+            }
+            
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+          } catch (error) {
+            if (retryCount === maxRetries - 1) throw error;
+            console.error(`Attempt ${retryCount + 1} failed:`, error);
+            retryCount++;
+          }
         }
-        
-        console.log('Voice message file deleted successfully');
       }
       
       // Delete the message from the database

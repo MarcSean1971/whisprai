@@ -25,6 +25,10 @@ serve(async (req) => {
     const binaryAudio = processBase64Chunks(audio);
     console.log('Converted base64 to binary, size:', binaryAudio.length, 'bytes');
     
+    if (binaryAudio.length < 100) {
+      throw new Error('Audio data is too small or empty');
+    }
+    
     // Prepare form data for transcription
     const formData = new FormData()
     const blob = new Blob([binaryAudio], { type: 'audio/webm' })
@@ -50,7 +54,7 @@ serve(async (req) => {
     const transcriptionResult = await transcriptionResponse.json();
     console.log('Transcription successful:', transcriptionResult.text.substring(0, 50) + '...');
 
-    // Generate a unique filename for the voice message
+    // Generate a unique filename for the voice message that doesn't start with "voice_messages/"
     const timestamp = new Date().getTime();
     const filename = `${userId}/${conversationId}/${timestamp}.webm`;
     
@@ -64,7 +68,7 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           'Content-Type': 'audio/webm',
-          'x-upsert': 'true'  // Allow overwriting if file exists
+          'x-upsert': 'true'
         },
         body: binaryAudio,
       }
@@ -103,7 +107,7 @@ serve(async (req) => {
   }
 })
 
-// Process base64 in chunks to prevent memory issues with large audio files
+// Process base64 in chunks to prevent memory issues
 function processBase64Chunks(base64String: string, chunkSize = 32768) {
   const chunks: Uint8Array[] = [];
   let position = 0;

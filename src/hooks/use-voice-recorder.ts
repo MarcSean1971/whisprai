@@ -17,35 +17,24 @@ export function useVoiceRecorder() {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1
         } 
       });
       
       console.log('Microphone access granted');
       stream.current = mediaStream;
+
+      // Explicitly set MIME type for better cross-browser compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
       
-      // Try different MIME types based on browser support
-      const mimeTypes = [
-        'audio/webm',
-        'audio/webm;codecs=opus',
-        'audio/ogg;codecs=opus',
-        'audio/mp4'
-      ];
-      
-      let selectedMimeType = '';
-      for (const type of mimeTypes) {
-        if (MediaRecorder.isTypeSupported(type)) {
-          selectedMimeType = type;
-          break;
-        }
-      }
-      
-      if (!selectedMimeType) {
-        throw new Error('No supported audio MIME type found');
-      }
+      console.log('Using MIME type:', mimeType);
       
       mediaRecorder.current = new MediaRecorder(mediaStream, {
-        mimeType: selectedMimeType,
+        mimeType,
         audioBitsPerSecond: 128000
       });
       
@@ -53,13 +42,15 @@ export function useVoiceRecorder() {
       setRecordingDuration(0);
 
       mediaRecorder.current.ondataavailable = (event) => {
-        console.log('Received audio data chunk:', event.data.size, 'bytes');
         if (event.data.size > 0) {
+          console.log('Received audio chunk:', event.data.size, 'bytes');
           audioChunks.current.push(event.data);
+        } else {
+          console.warn('Received empty audio chunk');
         }
       };
 
-      // Start duration timer
+      // Clear any existing interval
       if (durationInterval.current) {
         window.clearInterval(durationInterval.current);
       }
@@ -68,9 +59,9 @@ export function useVoiceRecorder() {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-      mediaRecorder.current.start(1000); // Collect data every second
+      mediaRecorder.current.start(100); // Collect data more frequently
       setIsRecording(true);
-      console.log('Started recording with MIME type:', selectedMimeType);
+      
     } catch (error) {
       console.error('Error accessing microphone:', error);
       toast.error(error instanceof Error ? error.message : 'Could not access microphone');
@@ -86,7 +77,6 @@ export function useVoiceRecorder() {
         return;
       }
 
-      // Clear duration timer
       if (durationInterval.current) {
         window.clearInterval(durationInterval.current);
         durationInterval.current = null;
@@ -101,14 +91,25 @@ export function useVoiceRecorder() {
           return;
         }
         
+        // Explicitly set MIME type for the blob
         const audioBlob = new Blob(audioChunks.current, { 
-          type: mediaRecorder.current?.mimeType || 'audio/webm' 
+          type: mediaRecorder.current?.mimeType || 'audio/webm;codecs=opus'
         });
+        
         console.log('Audio blob created:', audioBlob.size, 'bytes');
         
-        // Clean up
+        // Validate the audio blob
+        if (audioBlob.size < 100) { // Check if blob is too small
+          console.warn('Audio blob is too small, might be empty');
+          resolve(null);
+          return;
+        }
+        
         if (stream.current) {
-          stream.current.getTracks().forEach(track => track.stop());
+          stream.current.getTracks().forEach(track => {
+            track.stop();
+            console.log('Audio track stopped:', track.id);
+          });
           stream.current = null;
         }
         
