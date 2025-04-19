@@ -59,45 +59,45 @@ export function useMessages(conversationId: string) {
   return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      try {
-        if (!conversationId) {
-          throw new Error('No conversation ID provided');
-        }
+      if (!conversationId) {
+        throw new Error('No conversation ID provided');
+      }
 
-        // Fetch messages with sender profiles
-        const { data: messages, error: messagesError } = await supabase
-          .from('messages')
-          .select(`
+      // Fetch messages with sender profiles using a simplified join
+      const { data: messages, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey (
             id,
-            content,
-            created_at, 
-            conversation_id,
-            sender_id,
-            status,
-            metadata,
-            original_language,
-            sender:sender_id(
-              id,
-              profiles(
-                first_name,
-                last_name,
-                avatar_url,
-                language
-              )
-            )
-          `)
-          .eq('conversation_id', conversationId)
-          .order('created_at', { ascending: true });
+            first_name,
+            last_name,
+            avatar_url,
+            language
+          )
+        `)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
 
-        if (messagesError) throw messagesError;
-
-        // Type assertion to ensure the returned data matches our Message interface
-        return messages as unknown as Message[];
-      } catch (error) {
-        console.error('Error in messages query:', error);
+      if (error) {
+        console.error('Error fetching messages:', error);
         toast.error('Failed to load messages');
         throw error;
       }
+
+      // Transform the data to match our Message interface
+      return messages.map(msg => ({
+        ...msg,
+        sender: msg.sender ? {
+          id: msg.sender.id,
+          profiles: {
+            first_name: msg.sender.first_name,
+            last_name: msg.sender.last_name,
+            avatar_url: msg.sender.avatar_url,
+            language: msg.sender.language
+          }
+        } : undefined
+      })) as Message[];
     }
   });
 }
