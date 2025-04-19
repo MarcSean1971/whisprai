@@ -1,4 +1,3 @@
-
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -47,7 +46,6 @@ export function useDeviceSetup() {
         return this;
       };
 
-      // Set up window.events and EventEmitter
       window.EventEmitter = EventEmitterConstructor as any as EventEmitterConstructor;
       window.events = {
         EventEmitter: window.EventEmitter,
@@ -55,10 +53,9 @@ export function useDeviceSetup() {
         setMaxListeners: function() { return this; }
       };
 
-      // Set up process
       if (!window.process) {
         window.process = {
-          nextTick: (fn) => setTimeout(fn, 0),
+          nextTick: (fn: Function) => setTimeout(fn, 0),
           env: { NODE_ENV: 'production' },
           version: 'v14.0.0',
           versions: {
@@ -71,15 +68,22 @@ export function useDeviceSetup() {
             http_parser: '2.9.3',
             openssl: '1.1.1'
           } as ProcessVersions,
-          platform: "darwin" // Changed to a supported platform instead of "browser"
+          platform: "darwin" as const,
+          stdout: {},
+          stderr: {},
+          stdin: {},
+          argv: ['node', 'browser'],
+          pid: 1,
+          title: 'browser',
+          arch: 'browser',
+          cwd: () => '/',
+          exit: (code?: number) => { throw new Error(`Process exited with code ${code}`); }
         };
       }
 
-      // Set up Buffer
       if (!window.Buffer) {
         class NodeBufferImpl extends Uint8Array {
           write(string: string, encoding?: BufferEncoding): number {
-            // Simple implementation
             const buf = new TextEncoder().encode(string);
             this.set(buf);
             return buf.length;
@@ -132,13 +136,11 @@ export function useDeviceSetup() {
             };
           }
 
-          // Add required [Symbol.species] property
           static get [Symbol.species]() {
             return NodeBufferImpl;
           }
         }
 
-        // Define missing Buffer constructor methods
         const bufferFrom = (value: any): NodeBuffer => {
           if (typeof value === 'string') {
             return new NodeBufferImpl(new TextEncoder().encode(value)) as NodeBuffer;
@@ -150,7 +152,6 @@ export function useDeviceSetup() {
           return new NodeBufferImpl(size) as NodeBuffer;
         };
 
-        // Additional missing Buffer methods
         const bufferOf = (...items: number[]): Buffer => {
           return new NodeBufferImpl(items) as unknown as Buffer;
         };
@@ -197,7 +198,6 @@ export function useDeviceSetup() {
           return 0;
         };
 
-        // Complete Buffer implementation with all required methods
         window.Buffer = {
           isBuffer: (obj): obj is Buffer => obj instanceof Uint8Array,
           from: bufferFrom as any,
@@ -226,11 +226,9 @@ export function useDeviceSetup() {
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
-    // Create a new Device instance
     const device = new Device();
     
     try {
-      // Setup the device with the token
       await device.setup(data.token, {
         debug: true,
         allowIncomingWhileBusy: true,

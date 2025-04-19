@@ -13,6 +13,26 @@ interface ProcessVersions {
   [key: string]: string; // Add index signature for compatibility with NodeJS.ProcessVersions
 }
 
+interface Process {
+  stdout: any;
+  stderr: any;
+  stdin: any;
+  argv: string[];
+  argv0: string;
+  execArgv: string[];
+  execPath: string;
+  abort(): never;
+  chdir(directory: string): void;
+  cwd(): string;
+  exit(code?: number): never;
+  kill(pid: number, signal?: string | number): boolean;
+  pid: number;
+  ppid: number;
+  title: string;
+  arch: string;
+  // Add other required Process properties
+}
+
 interface EventEmitter {
   events: { [key: string]: Function[] };
   on(event: string, listener: Function): this;
@@ -64,7 +84,16 @@ interface Window {
     version: string;
     versions: ProcessVersions;
     platform: "darwin" | "win32" | "linux" | "aix" | "android" | "freebsd" | "haiku" | "openbsd" | "sunos" | "cygwin" | "netbsd";
-  };
+    stdout?: any;
+    stderr?: any;
+    stdin?: any;
+    argv?: string[];
+    pid?: number;
+    arch?: string;
+    title?: string;
+    cwd?: () => string;
+    exit?: (code?: number) => never;
+  } & Partial<Process>;
   Buffer?: BufferConstructor;
   global?: Window;
 }
