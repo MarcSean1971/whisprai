@@ -3,10 +3,31 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
+// Define a more specific type for messages
+export interface Message {
+  id: string;
+  content: string;
+  created_at: string;
+  conversation_id: string;
+  sender_id: string | null;
+  status: string;
+  original_language?: string | null;
+  sender?: {
+    id: string;
+    profiles?: {
+      first_name?: string | null;
+      last_name?: string | null;
+      avatar_url?: string | null;
+      language?: string;
+    }
+  };
+}
+
 export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Real-time subscription for new messages
     const channel = supabase
       .channel('messages')
       .on(
@@ -18,8 +39,8 @@ export function useMessages(conversationId: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          queryClient.setQueryData(['messages', conversationId], (old: any) => {
-            return [...(old || []), payload.new];
+          queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
+            return oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
           });
         }
       )
@@ -30,7 +51,7 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId, queryClient]);
 
-  return useQuery({
+  return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -50,8 +71,11 @@ export function useMessages(conversationId: string) {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching messages:', error);
+        throw error;
+      }
+      return data || [];
     },
   });
 }
