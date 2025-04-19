@@ -10,6 +10,7 @@ interface ProcessVersions {
   modules: string;
   http_parser: string;
   openssl: string;
+  [key: string]: string; // Add index signature for compatibility with NodeJS.ProcessVersions
 }
 
 interface EventEmitter {
@@ -29,13 +30,24 @@ interface EventEmitterConstructor {
 interface NodeBuffer extends Uint8Array {
   write(string: string, encoding?: BufferEncoding): number;
   toString(encoding?: BufferEncoding): string;
-  // Add minimal Node.js Buffer compatibility methods
   equals(otherBuffer: Uint8Array): boolean;
   compare(target: Uint8Array): number;
   copy(target: Uint8Array, targetStart?: number, sourceStart?: number, sourceEnd?: number): number;
   slice(start?: number, end?: number): Buffer;
   toJSON(): { type: string; data: number[] };
   [Symbol.species]: NodeBuffer;
+}
+
+interface BufferConstructor {
+  isBuffer(obj: any): obj is Buffer;
+  from(value: any): NodeBuffer;
+  alloc(size: number): NodeBuffer;
+  of(...items: number[]): Buffer;
+  isEncoding(encoding: string): encoding is BufferEncoding;
+  byteLength(string: string | ArrayBuffer | SharedArrayBuffer | Uint8Array, encoding?: BufferEncoding): number;
+  concat(list: Uint8Array[], totalLength?: number): Buffer;
+  compare(buf1: Uint8Array, buf2: Uint8Array): number;
+  poolSize: number;
 }
 
 interface Window {
@@ -48,15 +60,11 @@ interface Window {
   EventEmitter: EventEmitterConstructor;
   process?: {
     nextTick: (fn: Function) => void;
-    env: { NODE_ENV: string };
+    env: { NODE_ENV: string; [key: string]: string };
     version: string;
     versions: ProcessVersions;
-    platform: string;
+    platform: "darwin" | "win32" | "linux" | "aix" | "android" | "freebsd" | "haiku" | "openbsd" | "sunos" | "cygwin" | "netbsd";
   };
-  Buffer?: {
-    isBuffer(obj: any): obj is Buffer;
-    from(value: any): NodeBuffer;
-    alloc(size: number): NodeBuffer;
-  };
+  Buffer?: BufferConstructor;
   global?: Window;
 }

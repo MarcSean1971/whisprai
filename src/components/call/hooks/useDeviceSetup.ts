@@ -69,15 +69,15 @@ export function useDeviceSetup() {
             ares: '1.0.0',
             modules: '83',
             http_parser: '2.9.3',
-            openssl: '1.1.1' // Added the missing openssl version
+            openssl: '1.1.1'
           } as ProcessVersions,
-          platform: 'browser'
+          platform: "darwin" // Changed to a supported platform instead of "browser"
         };
       }
 
       // Set up Buffer
       if (!window.Buffer) {
-        class NodeBufferImpl extends Uint8Array implements NodeBuffer {
+        class NodeBufferImpl extends Uint8Array {
           write(string: string, encoding?: BufferEncoding): number {
             // Simple implementation
             const buf = new TextEncoder().encode(string);
@@ -89,7 +89,6 @@ export function useDeviceSetup() {
             return new TextDecoder().decode(this);
           }
 
-          // Add minimal implementations for required methods
           equals(otherBuffer: Uint8Array): boolean {
             if (this.length !== otherBuffer.length) return false;
             for (let i = 0; i < this.length; i++) {
@@ -132,16 +131,14 @@ export function useDeviceSetup() {
               data: Array.from(this)
             };
           }
+
+          // Add required [Symbol.species] property
+          static get [Symbol.species]() {
+            return NodeBufferImpl;
+          }
         }
 
-        // Add Symbol.species if supported by the environment
-        if (typeof Symbol !== 'undefined' && Symbol.species) {
-          Object.defineProperty(NodeBufferImpl, Symbol.species, {
-            get: function() { return NodeBufferImpl; }
-          });
-        }
-
-        // Create type-compatible Buffer methods
+        // Define missing Buffer constructor methods
         const bufferFrom = (value: any): NodeBuffer => {
           if (typeof value === 'string') {
             return new NodeBufferImpl(new TextEncoder().encode(value)) as NodeBuffer;
@@ -153,12 +150,65 @@ export function useDeviceSetup() {
           return new NodeBufferImpl(size) as NodeBuffer;
         };
 
-        // Use type assertion to satisfy the complex TypeScript interface
+        // Additional missing Buffer methods
+        const bufferOf = (...items: number[]): Buffer => {
+          return new NodeBufferImpl(items) as unknown as Buffer;
+        };
+
+        const isEncoding = (encoding: string): encoding is BufferEncoding => {
+          return ['utf8', 'utf-8', 'hex', 'base64'].includes(encoding.toLowerCase());
+        };
+
+        const byteLength = (string: string | ArrayBuffer | SharedArrayBuffer | Uint8Array, encoding?: BufferEncoding): number => {
+          if (typeof string === 'string') {
+            return new TextEncoder().encode(string).length;
+          }
+          if (string instanceof ArrayBuffer || string instanceof SharedArrayBuffer) {
+            return string.byteLength;
+          }
+          return string.length;
+        };
+
+        const concat = (list: Uint8Array[], totalLength?: number): Buffer => {
+          if (list.length === 0) return new NodeBufferImpl(0) as unknown as Buffer;
+          
+          const length = totalLength !== undefined ? totalLength : 
+            list.reduce((acc, buf) => acc + buf.length, 0);
+          
+          const result = new NodeBufferImpl(length);
+          let offset = 0;
+          for (const buf of list) {
+            result.set(buf, offset);
+            offset += buf.length;
+          }
+          
+          return result as unknown as Buffer;
+        };
+
+        const compareBuffers = (buf1: Uint8Array, buf2: Uint8Array): number => {
+          const len = Math.min(buf1.length, buf2.length);
+          for (let i = 0; i < len; i++) {
+            if (buf1[i] !== buf2[i]) {
+              return buf1[i] < buf2[i] ? -1 : 1;
+            }
+          }
+          if (buf1.length < buf2.length) return -1;
+          if (buf1.length > buf2.length) return 1;
+          return 0;
+        };
+
+        // Complete Buffer implementation with all required methods
         window.Buffer = {
           isBuffer: (obj): obj is Buffer => obj instanceof Uint8Array,
           from: bufferFrom as any,
-          alloc: bufferAlloc as any
-        };
+          alloc: bufferAlloc as any,
+          of: bufferOf as any,
+          isEncoding,
+          byteLength,
+          concat,
+          compare: compareBuffers,
+          poolSize: 8192
+        } as BufferConstructor;
       }
 
       if (!window.global) {
