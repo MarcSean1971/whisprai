@@ -167,16 +167,22 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     showIncomingCall
   } = useCallStore();
   
-  // Handle store-initiated calls
+  // Handle store-initiated calls with error handling
   useEffect(() => {
     // Attempt to start the call when the store state changes to CONNECTING
     if (callStatus === CallStatus.CONNECTING && 
         recipientId && 
         isReady && 
         showActiveCall) {
-      twilioStartCall(recipientId);
+      try {
+        twilioStartCall(recipientId);
+      } catch (error) {
+        console.error('Error starting call:', error);
+        toast.error(`Failed to start call: ${error.message}`);
+        updateCallStatus(CallStatus.FAILED);
+      }
     }
-  }, [callStatus, recipientId, isReady, showActiveCall, twilioStartCall]);
+  }, [callStatus, recipientId, isReady, showActiveCall, twilioStartCall, updateCallStatus]);
   
   // Keep the store in sync with Twilio's call status
   useEffect(() => {

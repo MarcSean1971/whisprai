@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +41,12 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
 
       if (tokenError || !data?.token) {
         throw new Error(tokenError?.message || 'Failed to get access token');
+      }
+
+      // Add a polyfill to avoid issues with the Twilio client
+      if (typeof window !== 'undefined') {
+        // @ts-ignore - This is necessary for compatibility with the Twilio client
+        window.EventEmitter = null;
       }
 
       // Initialize the device with the token
@@ -98,9 +103,19 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         call.on('reject', stopRingtone);
       });
 
-      // Setup the device with the token
-      await newDevice.setup(data.token);
-      setDevice(newDevice);
+      // Use a try-catch block to handle potential issues during setup
+      try {
+        // Setup the device with the token
+        await newDevice.setup(data.token, {
+          // Adding debug option to help with troubleshooting
+          debug: true
+        });
+        setDevice(newDevice);
+      } catch (setupError) {
+        console.error('Error during Twilio device setup:', setupError);
+        setError(setupError.message);
+        toast.error(`Setup error: ${setupError.message}`);
+      }
       
     } catch (err) {
       console.error('Error setting up Twilio device:', err);
@@ -109,7 +124,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     }
   }, [userId]);
 
-  // Initialize on component mount
+  // Initialize on component mount with proper cleanup
   useEffect(() => {
     if (userId) {
       setupDevice();
@@ -118,7 +133,11 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     // Clean up on unmount
     return () => {
       if (device) {
-        device.destroy();
+        try {
+          device.destroy();
+        } catch (err) {
+          console.error('Error destroying Twilio device:', err);
+        }
       }
     };
   }, [userId, setupDevice]);
