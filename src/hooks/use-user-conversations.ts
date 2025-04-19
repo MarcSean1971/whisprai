@@ -17,25 +17,21 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
         
-        // Step 1: Get all conversation IDs for this user
-        const { data: participations, error: participationsError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id);
+        // Get conversation IDs directly from the database using RPC function to avoid RLS recursion
+        const { data: conversationIds, error: conversationIdsError } = await supabase
+          .rpc('get_user_conversation_ids', { user_uuid: user.id });
 
-        if (participationsError) {
-          console.error('Error fetching participation:', participationsError);
-          throw participationsError;
+        if (conversationIdsError) {
+          console.error('Error fetching conversation IDs:', conversationIdsError);
+          throw conversationIdsError;
         }
 
-        if (!participations?.length) {
+        if (!conversationIds?.length) {
           console.log('No conversations found for user');
           return [];
         }
-
-        const conversationIds = participations.map(p => p.conversation_id);
         
-        // Step 2: Get conversations with these IDs
+        // Fetch conversations using the IDs
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select('*, created_at, updated_at, is_group')
@@ -47,7 +43,7 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        // Step 3: For each conversation, get the participants and newest message
+        // For each conversation, get the participants and newest message
         const conversationsWithDetails = await Promise.all(conversations.map(async (conversation) => {
           // Get all participants for this conversation
           const { data: participants, error: participantsError } = await supabase
