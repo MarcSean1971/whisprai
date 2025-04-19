@@ -26,7 +26,7 @@ export function TranslationIcon({ originalLanguage, onClick }: TranslationIconPr
           </button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Originally in {originalLanguage}</p>
+          <p>Click to toggle original text ({originalLanguage})</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

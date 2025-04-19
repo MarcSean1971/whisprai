@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from 'sonner';
 
 export function useTranslation() {
@@ -12,18 +13,24 @@ export function useTranslation() {
       if (translations[cacheKey]) {
         return translations[cacheKey];
       }
+
+      console.log(`Translating message to ${targetLanguage}`);
       
-      // In a real app, this would call a translation service
-      // For now, we're just appending a note to the text
-      const result = `${text} (translated to ${targetLanguage})`;
+      const { data, error } = await supabase.functions.invoke('translate-message', {
+        body: { text, targetLanguage }
+      });
+
+      if (error) throw error;
+
+      const translation = data.translation;
       
       // Cache the result
       setTranslations(prev => ({
         ...prev,
-        [cacheKey]: result
+        [cacheKey]: translation
       }));
       
-      return result;
+      return translation;
     } catch (error) {
       console.error('Translation error:', error);
       toast.error('Failed to translate message');

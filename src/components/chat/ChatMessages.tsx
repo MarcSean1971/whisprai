@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -37,15 +36,18 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
       
       for (const message of messages) {
         const isOwn = message.sender_id === currentUserId;
+        
         const needsTranslation = !isOwn && 
           message.original_language && 
-          message.original_language !== profile.language;
+          message.original_language !== profile.language &&
+          !translatedContents[message.id];
         
-        if (needsTranslation && !translatedContents[message.id]) {
+        if (needsTranslation) {
           try {
-            console.log(`Translating message from ${message.original_language} to ${profile.language}`);
             const translated = await translateMessage(message.content, profile.language);
-            newTranslations[message.id] = translated;
+            if (translated !== message.content) {
+              newTranslations[message.id] = translated;
+            }
           } catch (error) {
             console.error('Translation error:', error);
           }
@@ -81,7 +83,10 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
           <ChatMessage
             key={message.id}
             content={message.content}
-            timestamp={new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            timestamp={new Date(message.created_at).toLocaleTimeString([], { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            })}
             isOwn={isOwn}
             status={message.status}
             sender={message.sender && {
