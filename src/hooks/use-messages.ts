@@ -1,9 +1,7 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 
-// Define a more specific type for messages
 export interface Message {
   id: string;
   content: string;
@@ -71,7 +69,6 @@ export function useMessages(conversationId: string) {
   return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      // First fetch the messages without the sender join to ensure we get proper data
       const { data, error } = await supabase
         .from('messages')
         .select('*')
@@ -83,14 +80,12 @@ export function useMessages(conversationId: string) {
         throw error;
       }
 
-      // Then for each message, fetch the sender information separately if needed
-      const messagesWithSender: Message[] = await Promise.all(
+      const messagesWithSender = await Promise.all(
         (data || []).map(async (message) => {
           if (!message.sender_id) {
             return message as Message;
           }
 
-          // Fetch sender profile information
           const { data: senderData, error: senderError } = await supabase
             .from('profiles')
             .select('id, first_name, last_name, avatar_url, language')
