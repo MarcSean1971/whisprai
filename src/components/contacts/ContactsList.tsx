@@ -1,5 +1,5 @@
 
-import { useContacts } from "@/hooks/use-contacts";
+import { useContacts, type ContactWithProfile } from "@/hooks/use-contacts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { UserRound } from "lucide-react";
