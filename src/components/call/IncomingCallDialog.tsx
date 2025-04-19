@@ -1,10 +1,9 @@
-
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Phone, PhoneOff } from "lucide-react";
 import { useEffect } from "react";
 import { CallStatus } from "@/components/call/useTwilioVoice";
-import { useCallStore } from "@/components/call/store/useCallStore";
+import { useCallStore } from '@/components/call/store';
 
 export function IncomingCallDialog() {
   const { 

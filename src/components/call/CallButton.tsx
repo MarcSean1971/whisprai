@@ -1,10 +1,9 @@
-
 import { Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/use-profile";
-import { useCallStore } from "@/components/call/store/useCallStore";
+import { useCallStore } from '@/components/call/store';
 
 interface CallButtonProps {
   recipientId: string;

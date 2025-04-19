@@ -1,7 +1,6 @@
-
 import { IncomingCallDialog } from "@/components/call/IncomingCallDialog";
 import { ActiveCallDialog } from "@/components/call/ActiveCallDialog";
-import { CallProvider } from "@/components/call/store/useCallStore";
+import { CallProvider } from '@/components/call/store';
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
