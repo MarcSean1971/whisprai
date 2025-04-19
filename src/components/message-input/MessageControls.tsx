@@ -1,7 +1,8 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, Send, Paperclip, Smile, Camera } from "lucide-react";
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { useState } from "react";
 
 interface MessageControlsProps {
   message: string;
@@ -26,8 +27,15 @@ export function MessageControls({
   inputRef,
   canAttach = true
 }: MessageControlsProps) {
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  const handleEmojiClick = (emojiData: EmojiClickData) => {
+    onChange(message + emojiData.emoji);
+    setShowEmojiPicker(false);
+  };
+
   return (
-    <form onSubmit={onSubmit} className="flex gap-2 items-center">
+    <form onSubmit={onSubmit} className="flex gap-2 items-center relative">
       <Button
         type="button"
         size="icon"
@@ -69,10 +77,21 @@ export function MessageControls({
           variant="ghost"
           className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
           disabled={disabled}
+          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
         >
           <Smile className="h-5 w-5" />
           <span className="sr-only">Add emoji</span>
         </Button>
+        
+        {showEmojiPicker && (
+          <div className="absolute right-0 bottom-full mb-2 z-50">
+            <EmojiPicker 
+              onEmojiClick={handleEmojiClick} 
+              height={350} 
+              width={300} 
+            />
+          </div>
+        )}
       </div>
       
       {message.trim() ? (
