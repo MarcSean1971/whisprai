@@ -2,14 +2,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-export function useConversations() {
+export function useContacts() {
   return useQuery({
-    queryKey: ['all-contacts'],
+    queryKey: ['contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Get contacts and their profiles in a single query
+      // Get all contacts and their profiles in a single query
       const { data, error } = await supabase
         .from('contacts')
         .select(`

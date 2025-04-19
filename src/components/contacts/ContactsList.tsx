@@ -1,37 +1,35 @@
 
-import { useConversations } from "@/hooks/use-conversations";
+import { useContacts } from "@/hooks/use-contacts";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { UserRound } from "lucide-react";
 import { ContactProfileDialog } from "./ContactProfileDialog";
 import { useState } from "react";
-
-interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-  tagline: string | null;
-}
-
-interface Contact {
-  id: string;
-  contact_id: string;
-  contact_profile: Profile | null;
-}
+import { Skeleton } from "@/components/ui/skeleton";
 
 export function ContactsList() {
   const [selectedContact, setSelectedContact] = useState<any>(null);
-  const { data: contacts, isLoading } = useConversations();
+  const { data: contacts, isLoading } = useContacts();
 
   if (isLoading) {
-    return <div className="p-4">Loading contacts...</div>;
+    return (
+      <div className="space-y-4 p-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center gap-4">
+            <Skeleton className="h-12 w-12 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-[200px]" />
+              <Skeleton className="h-4 w-[150px]" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-2">
-      {contacts?.map((contact: Contact) => {
+      {contacts?.map((contact) => {
         const profile = contact.contact_profile;
         
         return (
@@ -60,7 +58,7 @@ export function ContactsList() {
               variant="ghost"
               size="icon"
               onClick={() => setSelectedContact({
-                id: contact.contact_id, // Use contact_id which is the actual user ID
+                id: contact.contact_id,
                 email: "",
                 profile: {
                   first_name: profile?.first_name,
@@ -68,7 +66,7 @@ export function ContactsList() {
                   avatar_url: profile?.avatar_url,
                   bio: profile?.bio,
                   tagline: profile?.tagline,
-                  birthdate: null
+                  birthdate: profile?.birthdate
                 }
               })}
             >
