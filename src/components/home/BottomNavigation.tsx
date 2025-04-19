@@ -38,10 +38,10 @@ export function BottomNavigation({
 
   return (
     <div className="border-t bg-background py-2 px-2 fixed bottom-0 left-0 right-0">
-      <div className="flex justify-between w-full max-w-screen-xl mx-auto">
+      <div className="flex justify-around w-full max-w-screen-xl mx-auto">
         <Button
           variant={currentTab === 'chats' ? 'default' : 'ghost'}
-          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
+          className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
           onClick={() => navigate('/chats')}
         >
           <MessageSquarePlus className="h-5 w-5" />
@@ -49,7 +49,7 @@ export function BottomNavigation({
         </Button>
         <Button
           variant={currentTab === 'contacts' ? 'default' : 'ghost'}
-          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
+          className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
           onClick={() => navigate('/contacts')}
         >
           <Users className="h-5 w-5" />
@@ -57,7 +57,7 @@ export function BottomNavigation({
         </Button>
         <Button
           variant={currentTab === 'settings' ? 'default' : 'ghost'}
-          className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
+          className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
           onClick={() => navigate('/profile-setup')}
         >
           <Settings className="h-5 w-5" />
@@ -66,7 +66,7 @@ export function BottomNavigation({
         {isAdmin && (
           <Button
             variant={currentTab === 'admin' ? 'default' : 'ghost'}
-            className="flex-1 h-auto flex flex-col items-center justify-center py-1 gap-1 min-w-0"
+            className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
             onClick={() => navigate('/admin')}
           >
             <Shield className="h-5 w-5" />
