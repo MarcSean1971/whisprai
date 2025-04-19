@@ -1,3 +1,4 @@
+
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,7 +12,6 @@ export function useDeviceSetup() {
         
         constructor() {
           this.events = {};
-          Object.setPrototypeOf(this, EventEmitter.prototype);
         }
         
         on(event: string, listener: Function) {
@@ -54,7 +54,10 @@ export function useDeviceSetup() {
         }
       }
 
-      // Set up EventEmitter on window and ensure proper inheritance
+      // Ensure EventEmitter.prototype is properly set up
+      const emitterProto = EventEmitter.prototype;
+      
+      // Set up EventEmitter on window
       (window as any).EventEmitter = EventEmitter;
       
       // Create events module structure that Twilio expects

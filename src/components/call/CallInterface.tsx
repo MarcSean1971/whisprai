@@ -36,10 +36,15 @@ export function CallInterface({ userId }: CallInterfaceProps) {
 
     // Cleanup function to help with potential memory leaks
     return () => {
-      if (window.events && window.events.EventEmitter) {
+      // Now TypeScript knows that window.events exists due to our type definition
+      if (window.events && typeof window.events.EventEmitter === 'function') {
         // Clean up any remaining listeners
-        const emitter = new window.events.EventEmitter();
-        emitter.removeAllListeners();
+        try {
+          const emitter = new window.events.EventEmitter();
+          emitter.removeAllListeners();
+        } catch (err) {
+          console.error('Error during cleanup:', err);
+        }
       }
     };
   }, []);
