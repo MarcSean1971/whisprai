@@ -1,10 +1,11 @@
 import { AvatarStack } from "@/components/home/AvatarStack";
-import { BackButton } from "@/components/home/BackButton";
+import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
 import { CallButton } from "@/components/call/CallButton";
 import { Menu, Search, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -19,11 +20,16 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
   const { data: participants } = useParticipants(conversationId);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
+  
+  const handleBack = () => {
+    navigate("/chats");
+  };
   
   return (
     <div className="flex items-center justify-between h-14 px-4 border-b py-3 sticky top-0 bg-background z-10">
       <div className="flex items-center gap-2">
-        <BackButton />
+        <BackButton onBack={handleBack} />
         {participants && participants.length > 0 ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center">
