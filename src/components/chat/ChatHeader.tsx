@@ -26,16 +26,10 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
         const { data: authData } = await supabase.auth.getUser();
         const currentUserId = authData.user?.id;
         
+        // First, get the user_id of the other participant
         const { data: participants, error: participantsError } = await supabase
           .from('conversation_participants')
-          .select(`
-            user_id,
-            profiles (
-              first_name,
-              last_name,
-              avatar_url
-            )
-          `)
+          .select('user_id')
           .eq('conversation_id', conversationId);
 
         if (participantsError) {
@@ -44,20 +38,32 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
         }
 
         if (participants && participants.length > 0) {
-          const otherParticipant = participants.find(
+          // Find the other participant's user_id
+          const otherParticipantId = participants.find(
             p => p.user_id !== currentUserId
-          );
-
-          if (otherParticipant && otherParticipant.profiles) {
-            const profile = otherParticipant.profiles as {
-              first_name: string | null;
-              last_name: string | null;
-              avatar_url: string | null;
-            };
+          )?.user_id;
+          
+          if (!otherParticipantId) {
+            console.error('Could not find other participant');
+            return;
+          }
+          
+          // Now fetch the profile data using the user_id
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, avatar_url')
+            .eq('id', otherParticipantId)
+            .single();
             
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+            return;
+          }
+          
+          if (profileData) {
             setContact({
-              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
-              avatar_url: profile.avatar_url,
+              name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim() || 'Unknown',
+              avatar_url: profileData.avatar_url,
               isOnline: true
             });
           }
