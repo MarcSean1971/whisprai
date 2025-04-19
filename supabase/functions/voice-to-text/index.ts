@@ -21,17 +21,12 @@ serve(async (req) => {
 
     console.log('Processing voice message for user:', userId, 'in conversation:', conversationId);
 
-    // Convert base64 to binary using chunked processing to prevent memory issues
-    const binaryAudio = processBase64Chunks(audio);
-    console.log('Converted base64 to binary, size:', binaryAudio.length, 'bytes');
-    
-    if (binaryAudio.length < 100) {
-      throw new Error('Audio data is too small or empty');
-    }
+    // Convert base64 to binary
+    const binaryData = Uint8Array.from(atob(audio), c => c.charCodeAt(0));
+    const blob = new Blob([binaryData], { type: 'audio/webm' });
     
     // Prepare form data for transcription
     const formData = new FormData()
-    const blob = new Blob([binaryAudio], { type: 'audio/webm' })
     formData.append('file', blob, 'audio.webm')
     formData.append('model', 'whisper-1')
 
@@ -54,7 +49,7 @@ serve(async (req) => {
     const transcriptionResult = await transcriptionResponse.json();
     console.log('Transcription successful:', transcriptionResult.text.substring(0, 50) + '...');
 
-    // Generate a unique filename for the voice message that doesn't start with "voice_messages/"
+    // Generate a simple filename for the voice message
     const timestamp = new Date().getTime();
     const filename = `${userId}/${conversationId}/${timestamp}.webm`;
     
@@ -68,15 +63,13 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           'Content-Type': 'audio/webm',
-          'x-upsert': 'true'
         },
-        body: binaryAudio,
+        body: binaryData,
       }
     );
 
     if (!uploadResponse.ok) {
-      const uploadError = await uploadResponse.text();
-      console.error('Storage upload error:', uploadError);
+      console.error('Storage upload error:', await uploadResponse.text());
       throw new Error('Failed to upload voice message');
     }
 
@@ -106,33 +99,3 @@ serve(async (req) => {
     );
   }
 })
-
-// Process base64 in chunks to prevent memory issues
-function processBase64Chunks(base64String: string, chunkSize = 32768) {
-  const chunks: Uint8Array[] = [];
-  let position = 0;
-  
-  while (position < base64String.length) {
-    const chunk = base64String.slice(position, position + chunkSize);
-    const binaryChunk = atob(chunk);
-    const bytes = new Uint8Array(binaryChunk.length);
-    
-    for (let i = 0; i < binaryChunk.length; i++) {
-      bytes[i] = binaryChunk.charCodeAt(i);
-    }
-    
-    chunks.push(bytes);
-    position += chunkSize;
-  }
-
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const result = new Uint8Array(totalLength);
-  let offset = 0;
-
-  for (const chunk of chunks) {
-    result.set(chunk, offset);
-    offset += chunk.length;
-  }
-
-  return result;
-}

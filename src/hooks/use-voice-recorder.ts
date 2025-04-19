@@ -12,45 +12,22 @@ export function useVoiceRecorder() {
 
   const startRecording = useCallback(async () => {
     try {
-      console.log('Requesting microphone access...');
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1
-        } 
+        audio: true
       });
       
-      console.log('Microphone access granted');
       stream.current = mediaStream;
-
-      // Explicitly set MIME type for better cross-browser compatibility
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
       
-      console.log('Using MIME type:', mimeType);
-      
-      mediaRecorder.current = new MediaRecorder(mediaStream, {
-        mimeType,
-        audioBitsPerSecond: 128000
-      });
-      
+      mediaRecorder.current = new MediaRecorder(mediaStream);
       audioChunks.current = [];
       setRecordingDuration(0);
 
       mediaRecorder.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
-          console.log('Received audio chunk:', event.data.size, 'bytes');
           audioChunks.current.push(event.data);
-        } else {
-          console.warn('Received empty audio chunk');
         }
       };
 
-      // Clear any existing interval
       if (durationInterval.current) {
         window.clearInterval(durationInterval.current);
       }
@@ -59,12 +36,12 @@ export function useVoiceRecorder() {
         setRecordingDuration(prev => prev + 1);
       }, 1000);
 
-      mediaRecorder.current.start(100); // Collect data more frequently
+      mediaRecorder.current.start(100);
       setIsRecording(true);
       
     } catch (error) {
       console.error('Error accessing microphone:', error);
-      toast.error(error instanceof Error ? error.message : 'Could not access microphone');
+      toast.error('Could not access microphone');
       throw error;
     }
   }, []);
@@ -72,7 +49,6 @@ export function useVoiceRecorder() {
   const stopRecording = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
       if (!mediaRecorder.current || !isRecording) {
-        console.log('No active recording to stop');
         resolve(null);
         return;
       }
@@ -83,33 +59,15 @@ export function useVoiceRecorder() {
       }
 
       mediaRecorder.current.onstop = () => {
-        console.log('Recording stopped, creating audio blob from', audioChunks.current.length, 'chunks');
-        
         if (audioChunks.current.length === 0) {
-          console.warn('No audio chunks recorded');
           resolve(null);
           return;
         }
         
-        // Explicitly set MIME type for the blob
-        const audioBlob = new Blob(audioChunks.current, { 
-          type: mediaRecorder.current?.mimeType || 'audio/webm;codecs=opus'
-        });
-        
-        console.log('Audio blob created:', audioBlob.size, 'bytes');
-        
-        // Validate the audio blob
-        if (audioBlob.size < 100) { // Check if blob is too small
-          console.warn('Audio blob is too small, might be empty');
-          resolve(null);
-          return;
-        }
+        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
         
         if (stream.current) {
-          stream.current.getTracks().forEach(track => {
-            track.stop();
-            console.log('Audio track stopped:', track.id);
-          });
+          stream.current.getTracks().forEach(track => track.stop());
           stream.current = null;
         }
         
@@ -120,7 +78,6 @@ export function useVoiceRecorder() {
       try {
         mediaRecorder.current.stop();
         setIsRecording(false);
-        console.log('Stopped recording and released microphone');
       } catch (error) {
         console.error('Error stopping recording:', error);
         resolve(null);
@@ -132,20 +89,11 @@ export function useVoiceRecorder() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        try {
-          const base64String = reader.result as string;
-          const base64Data = base64String.split(',')[1];
-          console.log('Converted audio blob to base64, length:', base64Data.length);
-          resolve(base64Data);
-        } catch (error) {
-          console.error('Error extracting base64 data:', error);
-          reject(error);
-        }
+        const base64String = reader.result as string;
+        const base64Data = base64String.split(',')[1];
+        resolve(base64Data);
       };
-      reader.onerror = (error) => {
-        console.error('Error converting blob to base64:', error);
-        reject(error);
-      };
+      reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   }, []);
