@@ -12,6 +12,7 @@ export interface Message {
   sender_id: string | null;
   status: string;
   original_language?: string | null;
+  metadata?: any;
   sender?: {
     id: string;
     profiles?: {
@@ -32,7 +33,7 @@ export function useMessages(conversationId: string) {
       return;
     }
 
-    // Subscribe to both messages and ai_messages tables
+    // Subscribe to messages table
     const messagesChannel = supabase
       .channel(`messages:${conversationId}`)
       .on(
@@ -50,26 +51,8 @@ export function useMessages(conversationId: string) {
       )
       .subscribe();
 
-    const aiMessagesChannel = supabase
-      .channel(`ai_messages:${conversationId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'ai_messages',
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          console.log('AI Messages event received:', payload);
-          queryClient.invalidateQueries(['messages', conversationId]);
-        }
-      )
-      .subscribe();
-
     return () => {
       supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(aiMessagesChannel);
     };
   }, [conversationId, queryClient]);
 
@@ -81,44 +64,35 @@ export function useMessages(conversationId: string) {
           throw new Error('No conversation ID provided');
         }
 
-        const { data: user } = await supabase.auth.getUser();
-        const userId = user.user?.id;
-
-        // Fetch regular messages
+        // Fetch messages with sender profiles
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select('*')
+          .select(`
+            id,
+            content,
+            created_at, 
+            conversation_id,
+            sender_id,
+            status,
+            metadata,
+            original_language,
+            sender:sender_id(
+              id,
+              profiles(
+                first_name,
+                last_name,
+                avatar_url,
+                language
+              )
+            )
+          `)
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true });
 
         if (messagesError) throw messagesError;
 
-        // Fetch AI messages
-        const { data: aiMessages, error: aiError } = await supabase
-          .from('ai_messages')
-          .select('*')
-          .eq('conversation_id', conversationId)
-          .not('response', 'is', null)
-          .eq('status', 'completed');
-
-        if (aiError) throw aiError;
-
-        // Convert AI messages to regular message format
-        const formattedAiMessages = aiMessages?.map(ai => ({
-          id: ai.id,
-          content: ai.response,
-          created_at: ai.updated_at,
-          conversation_id: ai.conversation_id,
-          sender_id: null,
-          status: 'sent',
-          metadata: { isAI: true, ...ai.metadata }
-        })) || [];
-
-        // Combine and sort all messages
-        const allMessages = [...(messages || []), ...formattedAiMessages]
-          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-        return allMessages;
+        // Type assertion to ensure the returned data matches our Message interface
+        return messages as unknown as Message[];
       } catch (error) {
         console.error('Error in messages query:', error);
         toast.error('Failed to load messages');
