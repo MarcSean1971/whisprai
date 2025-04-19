@@ -23,7 +23,6 @@ export function ChatMessages({
   const { profile } = useProfile();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -93,15 +92,14 @@ export function ChatMessages({
   }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
   const handleMessageDelete = () => {
-    // Force a refresh of the messages
-    setRefreshKey(prev => prev + 1);
+    console.log('Message deleted, UI will update via realtime subscription');
   };
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
-        const isAI = message.sender_id === null && message.ai_metadata;
+        const isAI = message.sender_id === null;
         const showSender = !isOwn && !isAI && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
         
         const needsTranslation = !isOwn && !isAI && 
@@ -119,7 +117,7 @@ export function ChatMessages({
 
         return (
           <ChatMessage
-            key={`${message.id}-${refreshKey}`}
+            key={message.id}
             id={message.id}
             content={message.content}
             timestamp={formattedTimestamp}

@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -8,14 +9,12 @@ import { useChat } from "@/hooks/use-chat";
 import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
   const { data: messages, isLoading, error, refetch } = useMessages(id!);
   const { profile } = useProfile();
-  const { sendMessage, handleVoiceRecord } = useChat(id!);
+  const { sendMessage, handleVoiceRecord, userId } = useChat(id!);
   const { 
     suggestions, 
     isLoading: isLoadingSuggestions, 
@@ -23,27 +22,7 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!);
   
-  useEffect(() => {
-    if (!id) return;
-    
-    const subscription = supabase
-      .channel(`messages:${id}`)
-      .on('postgres_changes', 
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `conversation_id=eq.${id}`
-        }, 
-        () => {
-          refetch();
-        })
-      .subscribe();
-      
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [id, refetch]);
+  // We've removed the duplicate subscription here since useMessages already has one
   
   const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
     await sendMessage(content, location);

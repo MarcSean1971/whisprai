@@ -39,11 +39,17 @@ export function useMessages(conversationId: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
+          console.log('Realtime event received:', payload.eventType, payload);
+          
           if (payload.eventType === 'DELETE') {
+            // When a message is deleted, remove it from the cache
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-              return oldData ? oldData.filter(message => message.id !== payload.old.id) : [];
+              if (!oldData) return [];
+              // Use old.id from payload to filter out the deleted message
+              return oldData.filter(message => message.id !== payload.old.id);
             });
           } else if (payload.eventType === 'INSERT') {
+            // When a message is inserted, add it to the cache
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
               return oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
             });
