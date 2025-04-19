@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -19,6 +20,13 @@ export interface Message {
       language?: string;
     }
   };
+}
+
+// Define a type for the realtime payload
+interface RealtimePayload {
+  eventType: 'INSERT' | 'UPDATE' | 'DELETE';
+  new: Message & { viewer_id?: string | null };
+  old: Message;
 }
 
 export function useMessages(conversationId: string) {
@@ -48,7 +56,7 @@ export function useMessages(conversationId: string) {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
+        (payload: RealtimePayload) => {
           console.log('Realtime event received:', payload);
           
           const shouldProcess = 
