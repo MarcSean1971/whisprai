@@ -23,22 +23,14 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
   useEffect(() => {
     const fetchConversationDetails = async () => {
       try {
-        // Get current user
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        
-        if (authError) {
-          console.error('Error fetching user:', authError);
-          return;
-        }
-        
+        const { data: authData } = await supabase.auth.getUser();
         const currentUserId = authData.user?.id;
         
-        // Get participants with their profiles
         const { data: participants, error: participantsError } = await supabase
           .from('conversation_participants')
           .select(`
             user_id,
-            profiles:user_id (
+            profiles (
               first_name,
               last_name,
               avatar_url
@@ -52,14 +44,12 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
         }
 
         if (participants && participants.length > 0) {
-          // Find the other participant (not the current user)
           const otherParticipant = participants.find(
             p => p.user_id !== currentUserId
           );
 
           if (otherParticipant && otherParticipant.profiles) {
-            // First convert to unknown, then cast to the expected type
-            const profile = (otherParticipant.profiles as unknown) as {
+            const profile = otherParticipant.profiles as {
               first_name: string | null;
               last_name: string | null;
               avatar_url: string | null;
@@ -68,7 +58,7 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
             setContact({
               name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
               avatar_url: profile.avatar_url,
-              isOnline: true // You can implement real online status later if needed
+              isOnline: true
             });
           }
         }
