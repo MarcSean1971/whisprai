@@ -6,7 +6,10 @@ import { useLocation } from "@/hooks/use-location";
 import { useProfile } from "@/hooks/use-profile";
 import { toast } from "sonner";
 
-export function usePredictiveAnswers(conversationId: string) {
+export function usePredictiveAnswers(
+  conversationId: string,
+  translatedContents?: Record<string, string>
+) {
   const [suggestions, setSuggestions] = useState<PredictiveAnswer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,12 +39,14 @@ export function usePredictiveAnswers(conversationId: string) {
         console.log("Location not available:", e);
       }
 
-      // Call the edge function
+      // Call the edge function with translated content
       const { data, error } = await supabase.functions.invoke("generate-predictive-answers", {
         body: {
           conversationId,
           userId: user.id,
           language: profile?.language || "en",
+          userLanguage: profile?.language,
+          translatedContent: translatedContents,
           userLocation
         }
       });

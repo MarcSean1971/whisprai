@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -8,18 +9,21 @@ import { useChat } from "@/hooks/use-chat";
 import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
   const { data: messages, isLoading, error, refetch } = useMessages(id!);
   const { profile } = useProfile();
   const { sendMessage, handleVoiceRecord, userId } = useChat(id!);
+  const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
+  
   const { 
     suggestions, 
     isLoading: isLoadingSuggestions, 
     generateSuggestions, 
     clearSuggestions 
-  } = usePredictiveAnswers(id!);
+  } = usePredictiveAnswers(id!, translatedContents);
   
   const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
     await sendMessage(content, location);
@@ -29,6 +33,13 @@ export default function Chat() {
 
   const handleNewReceivedMessage = () => {
     generateSuggestions();
+  };
+
+  const handleTranslation = (messageId: string, translatedContent: string) => {
+    setTranslatedContents(prev => ({
+      ...prev,
+      [messageId]: translatedContent
+    }));
   };
 
   if (!id) {
@@ -71,6 +82,7 @@ export default function Chat() {
         messages={messages || []} 
         userLanguage={profile?.language}
         onNewReceivedMessage={handleNewReceivedMessage}
+        onTranslation={handleTranslation}
       />
       <ChatInput
         onSendMessage={handleSendMessage}

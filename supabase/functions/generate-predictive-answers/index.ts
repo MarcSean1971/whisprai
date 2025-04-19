@@ -9,7 +9,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -24,7 +23,7 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const { conversationId, userId, language = 'en', userLocation } = await req.json();
+    const { conversationId, userId, language = 'en', userLanguage, translatedContent } = await req.json();
 
     if (!conversationId || !userId) {
       throw new Error('Missing required parameters');
@@ -80,21 +79,23 @@ serve(async (req) => {
       );
     }
 
-    // Format conversation history for the AI
-    const formattedHistory = conversationHistory.map(msg => ({
-      role: msg.sender_id === userId ? "user" : "other",
-      content: msg.content
-    }));
+    // Use translated content if available for the conversation history
+    const formattedHistory = conversationHistory.map(msg => {
+      const msgContent = translatedContent && translatedContent[msg.id] 
+        ? translatedContent[msg.id] 
+        : msg.content;
+      
+      return {
+        role: msg.sender_id === userId ? "user" : "other",
+        content: msgContent
+      };
+    });
 
     // Create prompt for OpenAI
     let prompt = `Generate 3-5 short, relevant, natural-sounding reply suggestions for the following conversation. 
-    The suggestions should be in ${language} language.
+    The suggestions should be in ${userLanguage || language} language.
     Each suggestion should be a possible response that the user might want to send.
     Keep suggestions brief (under 100 characters each) and varied in tone and content.`;
-
-    if (userLocation) {
-      prompt += `\nConsider the user's location: Latitude ${userLocation.latitude}, Longitude ${userLocation.longitude}.`;
-    }
 
     // Get AI instructions for predictive answers
     const { data: instructions, error: instructionsError } = await supabase
@@ -149,7 +150,6 @@ serve(async (req) => {
       const parsedContent = JSON.parse(content);
       suggestions = Array.isArray(parsedContent) ? parsedContent : parsedContent.suggestions || [];
       
-      // Ensure consistent format and add unique IDs
       suggestions = suggestions.map((suggestion, index) => ({
         id: `suggestion-${index}`,
         text: typeof suggestion === 'string' ? suggestion : suggestion.text

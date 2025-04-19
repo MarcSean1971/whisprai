@@ -9,12 +9,14 @@ interface ChatMessagesProps {
   messages: any[];
   userLanguage?: string;
   onNewReceivedMessage?: () => void;
+  onTranslation?: (messageId: string, translatedContent: string) => void;
 }
 
 export function ChatMessages({ 
   messages = [], 
   userLanguage = 'en',
-  onNewReceivedMessage 
+  onNewReceivedMessage,
+  onTranslation
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { translateMessage } = useTranslation();
@@ -62,11 +64,6 @@ export function ChatMessages({
         const isOwn = message.sender_id === currentUserId;
         const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
         
-        // Only translate if:
-        // 1. Message is not from current user
-        // 2. Message has an original language
-        // 3. Original language is different from user's preferred language
-        // 4. Message hasn't been translated yet
         const needsTranslation = !isOwn && 
           !isAI && 
           message.original_language && 
@@ -80,6 +77,10 @@ export function ChatMessages({
             if (translated !== message.content) {
               console.log(`Translation completed for message ${message.id}`);
               newTranslations[message.id] = translated;
+              
+              if (onTranslation) {
+                onTranslation(message.id, translated);
+              }
             }
           } catch (error) {
             console.error('Translation error:', error);
@@ -94,7 +95,7 @@ export function ChatMessages({
     };
     
     processTranslations();
-  }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
+  }, [messages, profile?.language, translateMessage, currentUserId, translatedContents, onTranslation]);
 
   const handleMessageDelete = () => {
     console.log('Message was deleted, UI will update via React Query cache');
