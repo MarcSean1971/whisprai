@@ -251,5 +251,5 @@ export function CallProvider({ userId, children }: { userId: string, children: R
     }
   }, [twilioError]);
   
-  return <>{children}</>;
+  return children;
 }
