@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -42,7 +41,7 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
         const needsTranslation = !isOwn && 
           message.original_language && 
           message.original_language !== profile.language &&
-          message.original_language !== 'en' && // Prevent translation for English messages
+          message.original_language !== 'en' &&
           !translatedContents[message.id];
         
         if (needsTranslation) {
@@ -69,21 +68,14 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
-        const showSender = 
-          !isOwn && 
-          (index === 0 || messages[index - 1].sender_id !== message.sender_id);
-          
-        const needsTranslation = 
-          !isOwn && 
+        const showSender = !isOwn && (index === 0 || messages[index - 1].sender_id !== message.sender_id);
+        
+        const needsTranslation = !isOwn && 
           message.original_language && 
           message.original_language !== profile?.language &&
-          message.original_language !== 'en'; // Prevent translation for English messages
+          message.original_language !== 'en';
 
-        const translatedContent = needsTranslation 
-          ? translatedContents[message.id]
-          : undefined;
-
-        // Convert timestamp to 24-hour format
+        const translatedContent = needsTranslation ? translatedContents[message.id] : undefined;
         const formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
 
         return (

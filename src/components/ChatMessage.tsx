@@ -1,4 +1,3 @@
-
 import { Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -51,7 +50,7 @@ export function ChatMessage({
 
   const [showOriginal, setShowOriginal] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
-  const hasTranslation = !!translatedContent;
+  const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
 
   return (
@@ -80,7 +79,7 @@ export function ChatMessage({
         
         <div className="flex items-start gap-2">
           <div className={cn(
-            "rounded-lg py-2 px-3 relative", // Added 'relative' for absolute positioning
+            "rounded-lg py-2 px-3",
             isOwn
               ? "bg-primary text-primary-foreground"
               : isAI
@@ -89,9 +88,9 @@ export function ChatMessage({
           )}>
             <div className="text-sm">{displayContent}</div>
             
-            <div className="flex items-center justify-between mt-0.5 text-[10px] opacity-70">
+            <div className="flex items-center justify-end mt-0.5 text-[10px] opacity-70">
               <span>{timestamp}</span>
-              {isOwn && getStatusIcon()}
+              {isOwn && <span className="ml-1">{getStatusIcon()}</span>}
             </div>
           </div>
 
