@@ -58,7 +58,8 @@ export function useUserConversations() {
                 id, 
                 first_name,
                 last_name,
-                avatar_url
+                avatar_url,
+                language
               )
             `)
             .eq('conversation_id', conversation.id);
@@ -92,7 +93,8 @@ export function useUserConversations() {
                 id: p.profiles?.id || p.user_id,
                 first_name: p.profiles?.first_name || null,
                 last_name: p.profiles?.last_name || null,
-                avatar_url: p.profiles?.avatar_url || null
+                avatar_url: p.profiles?.avatar_url || null,
+                language: p.profiles?.language || 'en' // Add language property with fallback to 'en'
               }
             })) || [];
 
