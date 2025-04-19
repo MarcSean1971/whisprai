@@ -28,10 +28,10 @@ export function MessageWrapper({
       "flex gap-2 w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
-      {!isOwn && !isAIPrompt && sender && (
+      {!isOwn && (
         <MessageAvatar
-          name={sender.name}
-          avatar={sender.avatar}
+          name={isAIMessage ? "AI Assistant" : (sender?.name || "User")}
+          avatar={sender?.avatar}
           isAI={isAIMessage}
         />
       )}
