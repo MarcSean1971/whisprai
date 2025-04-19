@@ -81,7 +81,7 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
           <ChatMessage
             key={message.id}
             content={message.content}
-            timestamp={new Date(message.created_at).toLocaleTimeString()}
+            timestamp={new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             isOwn={isOwn}
             status={message.status}
             sender={message.sender && {

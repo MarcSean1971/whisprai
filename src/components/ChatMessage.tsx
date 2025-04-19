@@ -1,4 +1,3 @@
-
 import { Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -55,7 +54,7 @@ export function ChatMessage({
 
   return (
     <div className={cn(
-      "flex gap-2 w-full",
+      "flex gap-2 w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
       {!isOwn && sender && (
@@ -65,6 +64,13 @@ export function ChatMessage({
             {sender.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
+      )}
+
+      {hasTranslation && !isOwn && (
+        <TranslationIcon 
+          originalLanguage={originalLanguage || 'unknown'}
+          onClick={() => setShowOriginal(!showOriginal)}
+        />
       )}
 
       <div className={cn(
@@ -87,20 +93,19 @@ export function ChatMessage({
         )}>
           <div className="text-sm">{displayContent}</div>
           
-          <div className="flex items-center gap-1 mt-0.5">
-            {hasTranslation && !isOwn && (
-              <TranslationIcon 
-                originalLanguage={originalLanguage || 'unknown'}
-                onClick={() => setShowOriginal(!showOriginal)}
-              />
-            )}
-            <span className="text-[10px] opacity-70">
-              {timestamp}
-            </span>
+          <div className="flex items-center gap-1 mt-0.5 text-[10px] opacity-70">
+            <span>{timestamp}</span>
             {isOwn && getStatusIcon()}
           </div>
         </div>
       </div>
+
+      {hasTranslation && isOwn && (
+        <TranslationIcon 
+          originalLanguage={originalLanguage || 'unknown'}
+          onClick={() => setShowOriginal(!showOriginal)}
+        />
+      )}
     </div>
   );
 }
