@@ -7,6 +7,16 @@ export function useUserConversations() {
   return useQuery({
     queryKey: ['user-conversations'],
     queryFn: async () => {
+      // Get current user first
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('Error fetching user:', userError);
+        throw userError;
+      }
+      if (!user) throw new Error('Not authenticated');
+      
+      console.log('Fetching conversations for user:', user.id);
+
       // Fetch conversations with participants and messages in a single query
       const { data: conversations, error: conversationsError } = await supabase
         .from('conversations')
@@ -29,15 +39,13 @@ export function useUserConversations() {
             status
           )
         `)
+        .eq('conversation_participants.user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (conversationsError) {
         console.error('Error fetching conversations:', conversationsError);
         throw conversationsError;
       }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
 
       return conversations.map(conversation => {
         // Filter participants to exclude the current user
@@ -73,6 +81,12 @@ export function useUserConversations() {
           avatar: primaryProfile?.avatar_url || null
         };
       });
-    }
+    },
+    retry: 1,
+    staleTime: 1000 * 60, // Cache for 1 minute
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    refetchInterval: 1000 * 30 // Refetch every 30 seconds
   });
 }
+
