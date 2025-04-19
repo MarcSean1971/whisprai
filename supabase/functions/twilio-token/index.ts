@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import twilio from "npm:twilio@4.13.0"
-import { AccessToken } from "npm:twilio@4.13.0/lib/jwt/AccessToken"
+import { Twilio } from "https://esm.sh/twilio@4.13.0"
+import { AccessToken } from "https://esm.sh/twilio@4.13.0/lib/jwt/AccessToken"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,6 +18,7 @@ serve(async (req) => {
     const { identity } = await req.json();
     
     if (!identity) {
+      console.error('Missing identity parameter');
       throw new Error('Missing required parameter: identity');
     }
 
@@ -26,14 +27,20 @@ serve(async (req) => {
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
     const twilioApiSecret = Deno.env.get('TWILIO_API_SECRET');
+    const twilioTwimlAppSid = Deno.env.get('TWILIO_TWIML_APP_SID');
 
-    if (!twilioAccountSid || !twilioApiKey || !twilioApiSecret) {
-      console.error('Missing Twilio credentials');
+    if (!twilioAccountSid || !twilioApiKey || !twilioApiSecret || !twilioTwimlAppSid) {
+      console.error('Missing Twilio credentials', {
+        hasAccountSid: !!twilioAccountSid,
+        hasApiKey: !!twilioApiKey,
+        hasApiSecret: !!twilioApiSecret,
+        hasTwimlAppSid: !!twilioTwimlAppSid
+      });
       throw new Error('Server configuration error: Missing Twilio credentials');
     }
 
     try {
-      // Create an access token using the AccessToken class directly
+      // Create an access token using the ESM-compatible AccessToken class
       const token = new AccessToken(
         twilioAccountSid,
         twilioApiKey,
@@ -41,9 +48,9 @@ serve(async (req) => {
         { identity }
       );
 
-      // Create a Voice grant for this token
+      // Create a Voice grant using the correct TwiML App SID
       const voiceGrant = new AccessToken.VoiceGrant({
-        outgoingApplicationSid: twilioAccountSid,
+        outgoingApplicationSid: twilioTwimlAppSid, // Use TwiML App SID instead of Account SID
         incomingAllow: true,
       });
 
@@ -55,7 +62,11 @@ serve(async (req) => {
       console.log('Token generated successfully');
 
       return new Response(
-        JSON.stringify({ token: tokenString }),
+        JSON.stringify({ 
+          token: tokenString,
+          identity,
+          accountSid: twilioAccountSid 
+        }),
         { 
           headers: { 
             ...corsHeaders, 
@@ -65,7 +76,7 @@ serve(async (req) => {
       );
     } catch (tokenError) {
       console.error('Error generating Twilio token:', tokenError);
-      throw new Error('Failed to generate access token');
+      throw new Error(`Failed to generate access token: ${tokenError.message}`);
     }
 
   } catch (error) {

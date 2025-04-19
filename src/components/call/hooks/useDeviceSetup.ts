@@ -44,9 +44,14 @@ export function useDeviceSetup() {
         body: { identity: userId }
       });
 
-      if (tokenError || !tokenData?.token) {
+      if (tokenError) {
         console.error('Failed to get Twilio token:', tokenError);
-        throw new Error(tokenError?.message || 'Failed to get access token');
+        throw new Error(tokenError.message || 'Failed to get access token');
+      }
+
+      if (!tokenData?.token) {
+        console.error('No token received from server');
+        throw new Error('No token received from server');
       }
 
       console.log('Creating new Twilio device instance');
@@ -56,7 +61,9 @@ export function useDeviceSetup() {
       await device.setup(tokenData.token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'] as unknown as Codec[]
+        codecPreferences: ['opus', 'pcmu'] as unknown as Codec[],
+        // Add warnings for connection issues
+        warnings: ['device-not-ready', 'network-quality-warning']
       });
 
       // Wait briefly to ensure device is really ready
@@ -64,6 +71,12 @@ export function useDeviceSetup() {
       
       if (!device.isInitialized) {
         throw new Error('Device failed to initialize properly');
+      }
+
+      // Validate the connection state
+      const connectionState = device.state();
+      if (connectionState !== 'ready') {
+        throw new Error(`Device in unexpected state: ${connectionState}`);
       }
 
       console.log('Device setup completed successfully');
@@ -80,7 +93,7 @@ export function useDeviceSetup() {
         return initializeDevice(userId, retryCount + 1);
       }
       
-      toast.error('Failed to initialize call system. Please try again later.');
+      toast.error('Could not initialize call system. Please try again later.');
       throw err;
     }
   };
