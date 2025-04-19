@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -57,6 +56,33 @@ export function ChatMessages({
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage]);
 
   useEffect(() => {
+    // Listen for real-time message deletions
+    const channel = supabase
+      .channel('messages-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${messages[0]?.conversation_id}`
+        },
+        (payload) => {
+          console.log('Message deleted:', payload);
+          // Filter out the deleted message from the local state
+          const updatedMessages = messages.filter(msg => msg.id !== payload.old.id);
+          // Update the messages array
+          messages = updatedMessages;
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [messages]);
+
+  useEffect(() => {
     const processTranslations = async () => {
       if (!profile?.language || !currentUserId) return;
 
@@ -92,7 +118,7 @@ export function ChatMessages({
   }, [messages, profile?.language, translateMessage, currentUserId, translatedContents]);
 
   const handleMessageDelete = () => {
-    console.log('Message deleted, UI will update via realtime subscription');
+    console.log('Message was deleted, UI will update via realtime subscription');
   };
 
   return (

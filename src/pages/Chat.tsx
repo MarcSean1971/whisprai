@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -22,11 +21,10 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!);
   
-  // We've removed the duplicate subscription here since useMessages already has one
-  
   const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
     await sendMessage(content, location);
     clearSuggestions();
+    refetch();
   };
 
   const handleNewReceivedMessage = () => {
