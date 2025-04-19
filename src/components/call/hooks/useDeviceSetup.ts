@@ -8,11 +8,10 @@ export function useDeviceSetup() {
     if (typeof window !== 'undefined') {
       // Create a mock EventEmitter to prevent errors with twilio-client
       class EventEmitter {
-        constructor() {
-          this.events = {};
-        }
+        // Properly define the events property with its type
+        private events: Record<string, Function[]> = {};
         
-        on(event, listener) {
+        on(event: string, listener: Function) {
           if (!this.events[event]) {
             this.events[event] = [];
           }
@@ -20,13 +19,13 @@ export function useDeviceSetup() {
           return this;
         }
         
-        removeListener(event, listener) {
+        removeListener(event: string, listener: Function) {
           if (!this.events[event]) return this;
           this.events[event] = this.events[event].filter(l => l !== listener);
           return this;
         }
         
-        emit(event, ...args) {
+        emit(event: string, ...args: any[]) {
           if (!this.events[event]) return false;
           this.events[event].forEach(listener => listener(...args));
           return true;
