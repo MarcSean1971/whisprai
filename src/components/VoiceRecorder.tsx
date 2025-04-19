@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Mic, StopCircle, Send, X } from "lucide-react";
+import { Mic, StopCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { cn } from "@/lib/utils";
