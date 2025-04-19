@@ -1,9 +1,14 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+
+import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
 import { format } from "date-fns";
+import { MessageSkeleton } from "./message/MessageSkeleton";
+
+// Memoized ChatMessage component
+const MemoizedChatMessage = memo(ChatMessage);
 
 interface ChatMessagesProps {
   messages: any[];
@@ -62,61 +67,62 @@ export function ChatMessages({
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress]);
 
   const processTranslations = useCallback(async () => {
-    if (!profile?.language || !currentUserId) return;
+    if (!profile?.language || !currentUserId || translationsInProgress > 0) return;
 
-    const pendingTranslations: Promise<void>[] = [];
-    let translationsCount = 0;
-
-    for (const message of messages) {
-      const isOwn = message.sender_id === currentUserId;
-      const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
-      
-      const needsTranslation = !isOwn && 
-        !isAI && 
-        message.original_language && 
+    const pendingTranslations = messages
+      .filter(message => 
+        message.sender_id !== currentUserId &&
+        message.sender_id !== null &&
+        message.original_language &&
         message.original_language !== profile.language &&
-        !translatedContents[message.id];
-      
-      if (needsTranslation) {
-        translationsCount++;
-        const translationPromise = (async () => {
-          try {
-            console.log(`Starting translation for message ${message.id}`);
-            const translated = await translateMessage(message.content, profile.language);
-            if (translated !== message.content) {
-              console.log(`Translation completed for message ${message.id}`);
-              setTranslatedContents(prev => ({
-                ...prev,
-                [message.id]: translated
-              }));
-              
-              if (onTranslation) {
-                onTranslation(message.id, translated);
-              }
-            }
-          } catch (error) {
-            console.error('Translation error:', error);
-          }
-        })();
-        pendingTranslations.push(translationPromise);
-      }
-    }
+        !translatedContents[message.id]
+      )
+      .slice(0, 5); // Process max 5 translations at a time
+
+    if (pendingTranslations.length === 0) return;
+
+    setTranslationsInProgress(pendingTranslations.length);
     
-    if (translationsCount > 0) {
-      setTranslationsInProgress(translationsCount);
-      await Promise.all(pendingTranslations);
-      setTranslationsInProgress(0);
-      console.log("All translations completed");
-    }
-  }, [messages, profile?.language, currentUserId, translatedContents, translateMessage, onTranslation]);
+    await Promise.all(
+      pendingTranslations.map(async (message) => {
+        try {
+          const translated = await translateMessage(message.content, profile.language);
+          if (translated !== message.content) {
+            setTranslatedContents(prev => ({
+              ...prev,
+              [message.id]: translated
+            }));
+            
+            if (onTranslation) {
+              onTranslation(message.id, translated);
+            }
+          }
+        } catch (error) {
+          console.error('Translation error:', error);
+        }
+      })
+    );
+
+    setTranslationsInProgress(0);
+  }, [messages, profile?.language, currentUserId, translatedContents, translateMessage, onTranslation, translationsInProgress]);
 
   useEffect(() => {
     processTranslations();
   }, [processTranslations]);
 
-  const handleMessageDelete = () => {
+  const handleMessageDelete = useCallback(() => {
     console.log('Message was deleted, UI will update via React Query cache');
-  };
+  }, []);
+
+  if (messages.length === 0) {
+    return (
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
+        <MessageSkeleton />
+        <MessageSkeleton />
+        <MessageSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
@@ -143,7 +149,7 @@ export function ChatMessages({
         } : undefined;
 
         return (
-          <ChatMessage
+          <MemoizedChatMessage
             key={message.id}
             id={message.id}
             content={message.content}
@@ -169,6 +175,11 @@ export function ChatMessages({
         );
       })}
       <div ref={messagesEndRef} />
+      {translationsInProgress > 0 && (
+        <div className="text-sm text-muted-foreground text-center py-2">
+          Translating messages...
+        </div>
+      )}
     </div>
   );
 }
