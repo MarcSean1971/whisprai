@@ -15,9 +15,7 @@ export function useUserConversations() {
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
-        console.log('Fetching conversations for user:', user.id);
-        
-        // Get conversation IDs directly from the database using RPC function
+        // Get conversation IDs using the database function
         const { data: conversationIds, error: conversationIdsError } = await supabase
           .rpc('get_user_conversation_ids', { user_uuid: user.id });
 
@@ -32,7 +30,7 @@ export function useUserConversations() {
           return [];
         }
         
-        // Fetch conversations using the IDs - conversationIds is now an array of UUIDs
+        // Fetch conversations using the IDs
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select('*, created_at, updated_at, is_group')
@@ -91,7 +89,7 @@ export function useUserConversations() {
                 first_name: p.profiles?.first_name || null,
                 last_name: p.profiles?.last_name || null,
                 avatar_url: p.profiles?.avatar_url || null,
-                language: p.profiles?.language || 'en' // Add language property with fallback to 'en'
+                language: p.profiles?.language || 'en'
               }
             })) || [];
 
