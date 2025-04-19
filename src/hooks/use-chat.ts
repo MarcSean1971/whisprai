@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/use-profile";
+import { detectLanguage } from "@/lib/language-detection";
 
 export function useChat(conversationId: string) {
   const [userId, setUserId] = useState<string | null>(null);
@@ -32,27 +34,34 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Create a new AI message record
-      const { data: aiMessage, error: createError } = await supabase
-        .from('ai_messages')
+      // Instead of using ai_messages table, we'll use the regular messages table with metadata
+      const aiPrompt = content.replace(/^AI:\s*/, '').trim();
+      
+      // Create a message with metadata indicating it's an AI prompt
+      const { data: aiPromptMessage, error: createError } = await supabase
+        .from('messages')
         .insert({
           conversation_id: conversationId,
-          prompt: content.replace(/^AI:\s*/, '').trim(),
-          user_id: userId,
-          status: 'pending'
+          content: aiPrompt,
+          sender_id: userId,
+          status: 'sent',
+          metadata: { isAIPrompt: true }
         })
         .select()
         .single();
 
       if (createError) {
-        console.error('Error creating AI message:', createError);
+        console.error('Error creating AI prompt message:', createError);
         toast.error('Failed to create AI message');
         return false;
       }
 
       // Process with AI using the new message ID
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { aiMessageId: aiMessage.id }
+        body: { 
+          messageId: aiPromptMessage.id,
+          conversationId: conversationId
+        }
       });
 
       if (error) {

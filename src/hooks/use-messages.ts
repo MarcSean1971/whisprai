@@ -46,7 +46,7 @@ export function useMessages(conversationId: string) {
         },
         (payload) => {
           console.log('Messages event received:', payload);
-          queryClient.invalidateQueries(['messages', conversationId]);
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
       )
       .subscribe();
