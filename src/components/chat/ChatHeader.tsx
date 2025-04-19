@@ -4,9 +4,23 @@ import { BackButton } from "@/components/home/BackButton";
 import { TranslationIcon } from "@/components/home/TranslationIcon";
 import { useParticipants } from "@/hooks/use-participants";
 import { CallButton } from "@/components/call/CallButton";
+import { Menu, Search, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 
 export function ChatHeader({ conversationId }: { conversationId: string }) {
   const { data: participants } = useParticipants(conversationId);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   
   return (
     <div className="flex items-center justify-between h-14 px-4 border-b py-3 sticky top-0 bg-background z-10">
@@ -41,17 +55,70 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
           </div>
         )}
       </div>
-      <div className="flex items-center gap-1">
-        {participants && participants.length === 1 && (
-          <CallButton 
-            recipientId={participants[0].id}
-            recipientName={participants[0].first_name && participants[0].last_name 
-              ? `${participants[0].first_name} ${participants[0].last_name}` 
-              : "Unknown User"
-            }
-          />
+
+      <div className="flex items-center gap-2">
+        {isSearching ? (
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 w-[200px]"
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSearchQuery("");
+                setIsSearching(false);
+              }}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSearching(true)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
         )}
+
+        {participants && participants.length === 1 && (
+          <>
+            <CallButton 
+              recipientId={participants[0].id}
+              recipientName={participants[0].first_name && participants[0].last_name 
+                ? `${participants[0].first_name} ${participants[0].last_name}` 
+                : "Unknown User"
+              }
+            />
+            <Button variant="ghost" size="icon">
+              <Video className="h-4 w-4" />
+            </Button>
+          </>
+        )}
+
         <TranslationIcon language={participants?.[0]?.language || "unknown"} />
+
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Menu className="h-4 w-4" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <SheetHeader>
+              <SheetTitle>Chat Settings</SheetTitle>
+              <SheetDescription>
+                Configure chat preferences and options
+              </SheetDescription>
+            </SheetHeader>
+            {/* Menu content will be implemented based on requirements */}
+          </SheetContent>
+        </Sheet>
       </div>
     </div>
   );
