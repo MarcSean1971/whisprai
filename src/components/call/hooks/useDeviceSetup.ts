@@ -1,3 +1,4 @@
+
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -75,7 +76,7 @@ export function useDeviceSetup() {
           argv: ['node', 'browser'],
           pid: 1,
           title: 'browser',
-          arch: 'browser',
+          arch: "x64", // Changed from "browser" to a valid architecture
           cwd: () => '/',
           exit: (code?: number) => { throw new Error(`Process exited with code ${code}`); }
         };
