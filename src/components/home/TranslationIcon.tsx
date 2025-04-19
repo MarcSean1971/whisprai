@@ -1,5 +1,5 @@
 
-import { Translate } from "lucide-react";
+import { Languages } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
@@ -22,7 +22,7 @@ export function TranslationIcon({ language, onClick }: TranslationIconProps) {
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             )}
           >
-            <Translate className="h-4 w-4" />
+            <Languages className="h-4 w-4" />
           </button>
         </TooltipTrigger>
         <TooltipContent>
