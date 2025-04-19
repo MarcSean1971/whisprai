@@ -104,15 +104,22 @@ export function useMessages(conversationId: string) {
         if (aiError) throw aiError;
 
         // Convert AI messages to regular message format
-        const formattedAiMessages = aiMessages?.map(ai => ({
-          id: ai.id,
-          content: ai.response,
-          created_at: ai.updated_at,
-          conversation_id: ai.conversation_id,
-          sender_id: null,
-          status: 'sent',
-          metadata: { isAI: true, ...(ai.metadata || {}) }
-        })) || [];
+        const formattedAiMessages = aiMessages?.map(ai => {
+          // Create a safe metadata object to spread
+          const metadataObj = typeof ai.metadata === 'object' && ai.metadata !== null 
+            ? ai.metadata 
+            : {};
+            
+          return {
+            id: ai.id,
+            content: ai.response,
+            created_at: ai.updated_at,
+            conversation_id: ai.conversation_id,
+            sender_id: null,
+            status: 'sent',
+            metadata: { isAI: true, ...metadataObj }
+          };
+        }) || [];
 
         // Combine and sort all messages
         const allMessages = [...(messages || []), ...formattedAiMessages]
