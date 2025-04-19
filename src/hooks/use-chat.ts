@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -59,7 +58,7 @@ export function useChat(conversationId: string) {
 
       if (error) {
         console.error('AI chat error:', error);
-        toast.error('Failed to process AI message');
+        toast.error(error.message || 'Failed to process AI message');
         return false;
       }
 
@@ -69,7 +68,7 @@ export function useChat(conversationId: string) {
         return false;
       }
 
-      toast.success('AI message processed successfully');
+      console.log('AI message processed successfully');
       return true;
     } catch (error) {
       console.error('Error processing AI message:', error);
