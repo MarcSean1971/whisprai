@@ -22,51 +22,61 @@ serve(async (req) => {
 
     console.log(`Generating token for identity: ${identity}`);
 
-    // Create an access token
+    // Get and validate Twilio credentials
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
     const twilioApiSecret = Deno.env.get('TWILIO_API_SECRET');
 
     if (!twilioAccountSid || !twilioApiKey || !twilioApiSecret) {
-      throw new Error('Missing required Twilio credentials');
+      console.error('Missing Twilio credentials');
+      throw new Error('Server configuration error: Missing Twilio credentials');
     }
 
-    const token = new AccessToken(
-      twilioAccountSid,
-      twilioApiKey,
-      twilioApiSecret,
-      { identity }
-    );
+    // Create an access token with improved error handling
+    try {
+      const token = new AccessToken(
+        twilioAccountSid,
+        twilioApiKey,
+        twilioApiSecret,
+        { identity }
+      );
 
-    // Create a Voice grant for this token
-    const VoiceGrant = AccessToken.VoiceGrant;
-    const voiceGrant = new VoiceGrant({
-      outgoingApplicationSid: twilioAccountSid,
-      incomingAllow: true,
-    });
+      // Create a Voice grant for this token
+      const VoiceGrant = AccessToken.VoiceGrant;
+      const voiceGrant = new VoiceGrant({
+        outgoingApplicationSid: twilioAccountSid,
+        incomingAllow: true,
+      });
 
-    // Add the grant to the token
-    token.addGrant(voiceGrant);
+      // Add the grant to the token
+      token.addGrant(voiceGrant);
 
-    // Generate the token
-    const tokenString = token.toJwt();
-    console.log('Token generated successfully');
+      // Generate the token
+      const tokenString = token.toJwt();
+      console.log('Token generated successfully');
 
-    return new Response(
-      JSON.stringify({ token: tokenString }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    );
+      return new Response(
+        JSON.stringify({ token: tokenString }),
+        { 
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    } catch (tokenError) {
+      console.error('Error generating Twilio token:', tokenError);
+      throw new Error('Failed to generate access token');
+    }
 
   } catch (error) {
-    console.error('Error generating Twilio token:', error);
+    console.error('Error in Twilio token function:', error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'If this persists, please contact support.'
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

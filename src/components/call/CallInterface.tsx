@@ -5,6 +5,8 @@ import { CallProvider } from '@/components/call/store';
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useDeviceSetup } from '@/components/call/hooks/useDeviceSetup';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface CallInterfaceProps {
   userId: string;
@@ -29,19 +31,9 @@ export function CallInterface({ userId }: CallInterfaceProps) {
       } catch (error) {
         console.error('Failed to setup browser environment:', error);
         setHasError(true);
+        toast.error('Failed to initialize call system');
       }
     }
-
-    return () => {
-      if (window.events && typeof window.events.EventEmitter === 'function') {
-        try {
-          const emitter = new window.events.EventEmitter();
-          emitter.removeAllListeners();
-        } catch (err) {
-          console.error('Error during cleanup:', err);
-        }
-      }
-    };
   }, []);
 
   useEffect(() => {
@@ -70,7 +62,18 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     }
   }, [hasError, retryCounter, setupBrowserEnvironment]);
 
-  if (hasError || !polyfillsSetup) {
+  if (hasError) {
+    return (
+      <Alert variant="destructive" className="m-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Failed to initialize call system. Please refresh the page and try again.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!polyfillsSetup) {
     return null;
   }
 
