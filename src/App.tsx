@@ -3,8 +3,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react"; 
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect } from "react"; 
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Home from "./pages/Home";
@@ -16,52 +16,21 @@ import Admin from "./pages/Admin";
 import Chats from "./pages/Chats";
 import Contacts from "./pages/Contacts";
 import { CallInterface } from "@/components/call/CallInterface";
-import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: 0,
       refetchOnWindowFocus: false,
     },
   },
 });
 
 const App = () => {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true);
-
   useEffect(() => {
     if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
       document.documentElement.classList.add("dark");
     }
-  }, []);
-
-  useEffect(() => {
-    // Set up auth listener first
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log("Auth state changed in App:", event, session?.user?.id);
-        setUserId(session?.user?.id || null);
-        setIsAuthChecking(false);
-      }
-    );
-    
-    // Then check initial session
-    const fetchUserId = async () => {
-      try {
-        const { data } = await supabase.auth.getUser();
-        setUserId(data.user?.id || null);
-      } finally {
-        setIsAuthChecking(false);
-      }
-    };
-    
-    fetchUserId();
-    
-    return () => {
-      authListener?.subscription.unsubscribe();
-    };
   }, []);
 
   return (
@@ -70,15 +39,17 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          {userId && <CallInterface userId={userId} />}
           <Routes>
-            <Route path="/" element={<Navigate to={userId ? "/home" : "/auth"} replace />} />
-            <Route path="/auth" element={
-              userId ? <Navigate to="/home" replace /> : <Auth />
-            } />
+            {/* Public routes */}
+            <Route path="/auth" element={<Auth />} />
             <Route path="/verify" element={<Verify />} />
             
-            {/* Protected Routes */}
+            {/* Protected routes */}
+            <Route path="/" element={
+              <ProtectedRoute>
+                <Chats />
+              </ProtectedRoute>
+            } />
             <Route path="/profile-setup" element={
               <ProtectedRoute>
                 <ProfileSetup />
@@ -111,6 +82,7 @@ const App = () => {
             } />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <CallInterface userId={null} />
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>

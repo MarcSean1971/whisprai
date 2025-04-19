@@ -1,32 +1,14 @@
 
-import { ReactNode, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useAuthProtection } from '@/hooks/use-auth-protection';
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const navigate = useNavigate();
-  const [isNavigating, setIsNavigating] = useState(false);
-  
-  const { data: session, isLoading } = useQuery({
-    queryKey: ['auth-session'],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session;
-    },
-  });
-
-  useEffect(() => {
-    if (!isLoading && !session && !isNavigating) {
-      setIsNavigating(true);
-      navigate('/auth');
-    }
-  }, [session, isLoading, navigate, isNavigating]);
+  const { isLoading, isAuthenticated } = useAuthProtection();
 
   if (isLoading) {
     return (
@@ -36,8 +18,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!session) {
-    return null; // Will redirect in useEffect
+  if (!isAuthenticated) {
+    return null; // Will redirect in useEffect from useAuthProtection
   }
 
   return <>{children}</>;

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
@@ -14,12 +13,11 @@ export default function Auth() {
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
-    // Check initial session first
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          console.log("Initial session found, navigating to /home");
+          console.log("Session found in Auth page, navigating to /home");
           navigate('/home', { replace: true });
         }
       } catch (error) {
@@ -30,18 +28,6 @@ export default function Auth() {
     };
     
     checkSession();
-    
-    // Set up auth state change listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
-      if (session) {
-        navigate('/home', { replace: true });
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, [navigate]);
 
   if (isChecking) {
