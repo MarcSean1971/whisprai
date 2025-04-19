@@ -1,7 +1,7 @@
 
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
-import { setupPolyfills } from '@/lib/polyfills/setup';
+import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 
 export function useDeviceSetup() {
   const initializeDevice = async (userId: string): Promise<Device> => {
@@ -13,6 +13,7 @@ export function useDeviceSetup() {
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
+    initializeTwilioEnvironment();
     const device = new Device();
     
     try {
@@ -30,7 +31,6 @@ export function useDeviceSetup() {
   };
 
   return {
-    setupPolyfills,
     initializeDevice
   };
 }
