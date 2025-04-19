@@ -10,13 +10,15 @@ interface ChatHeaderProps {
   conversationId: string;
 }
 
+type ContactDetails = {
+  name: string;
+  avatar_url?: string | null;
+  isOnline?: boolean;
+};
+
 export function ChatHeader({ conversationId }: ChatHeaderProps) {
   const navigate = useNavigate();
-  const [contact, setContact] = useState<{
-    name: string;
-    avatar?: string;
-    isOnline?: boolean;
-  }>({ name: "Chat" });
+  const [contact, setContact] = useState<ContactDetails>({ name: "" });
 
   useEffect(() => {
     const fetchConversationDetails = async () => {
@@ -31,12 +33,12 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
         
         const currentUserId = authData.user?.id;
         
-        // Get participants
+        // Get participants with their profiles
         const { data: participants, error: participantsError } = await supabase
           .from('conversation_participants')
           .select(`
             user_id,
-            profiles:user_id(
+            profiles:user_id (
               first_name,
               last_name,
               avatar_url
@@ -57,7 +59,6 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
 
           if (otherParticipant && otherParticipant.profiles) {
             // First convert to unknown, then cast to the expected type
-            // This is a safer approach when TypeScript is having trouble with direct type conversion
             const profile = (otherParticipant.profiles as unknown) as {
               first_name: string | null;
               last_name: string | null;
@@ -65,9 +66,9 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
             };
             
             setContact({
-              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim(),
-              avatar: profile.avatar_url || undefined,
-              isOnline: true
+              name: `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown',
+              avatar_url: profile.avatar_url,
+              isOnline: true // You can implement real online status later if needed
             });
           }
         }
@@ -92,7 +93,7 @@ export function ChatHeader({ conversationId }: ChatHeaderProps) {
         </Button>
         
         <Avatar className="h-10 w-10">
-          <AvatarImage src={contact.avatar} alt={contact.name} />
+          <AvatarImage src={contact.avatar_url || undefined} alt={contact.name} />
           <AvatarFallback className="bg-primary/10 text-primary">
             {contact.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
