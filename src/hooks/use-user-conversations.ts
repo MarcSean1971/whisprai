@@ -16,13 +16,19 @@ interface Participant {
   profile?: Profile;
 }
 
+interface LastMessage {
+  content: string;
+  created_at: string;
+  sender_id: string;
+}
+
 interface Conversation {
   id: string;
   is_group: boolean;
   created_at: string;
   updated_at: string;
   participants: Participant[];
-  lastMessage?: any;
+  lastMessage?: LastMessage;
   name?: string;
   avatar?: string | null;
 }
@@ -58,10 +64,17 @@ export function useUserConversations() {
         const conversationIds = participations.map(p => p.conversation_id);
         console.log('Found', conversationIds.length, 'conversations');
 
-        // Fetch the conversation details
+        // Fetch conversations and their latest messages in a single query
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('*')
+          .select(`
+            *,
+            messages:messages(
+              content,
+              created_at,
+              sender_id
+            )
+          `)
           .in('id', conversationIds)
           .order('updated_at', { ascending: false });
 
@@ -117,10 +130,14 @@ export function useUserConversations() {
           // Get primary other participant for 1:1 chat (first one for simplicity)
           const primaryProfile = profiles[0];
           
+          // Get the last message for this conversation
+          const lastMessage = conversation.messages?.[0] as LastMessage | undefined;
+          
           // Add processed conversation to the result
           processedConversations.push({
             ...conversation,
             participants: processedParticipants,
+            lastMessage,
             name: primaryProfile?.first_name 
               ? `${primaryProfile.first_name || ''} ${primaryProfile.last_name || ''}`.trim()
               : `User ${primaryProfile?.id.slice(0, 8)}`,
