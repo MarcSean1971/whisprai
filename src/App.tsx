@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,14 +18,13 @@ import Contacts from "./pages/Contacts";
 import { CallInterface } from "@/components/call/CallInterface";
 import { toast } from "sonner";
 
-// Create a new query client with proper cache invalidation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
       staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000, // Changed from cacheTime to gcTime
+      gcTime: 10 * 60 * 1000,
     },
   },
 });
@@ -36,7 +34,6 @@ const App = () => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    // Get the current user ID
     const fetchUserId = async () => {
       try {
         const { data } = await supabase.auth.getUser();
@@ -51,20 +48,14 @@ const App = () => {
 
     fetchUserId();
 
-    // Set up auth state listener with improved error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
       
       if (event === 'SIGNED_OUT') {
         console.log('User signed out, cleaning up...');
-        // Clear all query cache on logout
-        queryClient.clear();
-        // Reset local state
         setUserId(null);
-        // Force reload after short delay to ensure clean state
-        setTimeout(() => {
-          window.location.href = '/auth';
-        }, 100);
+        queryClient.clear();
+        window.location.href = '/auth';
       } else if (event === 'SIGNED_IN') {
         console.log('User signed in');
         setUserId(session?.user?.id || null);
@@ -77,7 +68,7 @@ const App = () => {
   }, []);
 
   if (isInitializing) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   return (
@@ -85,45 +76,45 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <Routes>
-              {/* Public routes */}
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/verify" element={<Verify />} />
-              
-              {/* Protected routes */}
-              <Route path="/" element={<Navigate to="/chats" replace />} />
-              <Route path="/home" element={<Navigate to="/chats" replace />} />
-              
-              <Route path="/profile-setup" element={
-                <ProtectedRoute>
-                  <ProfileSetup />
-                </ProtectedRoute>
-              } />
-              <Route path="/chats" element={
-                <ProtectedRoute>
-                  <Chats />
-                </ProtectedRoute>
-              } />
-              <Route path="/contacts" element={
-                <ProtectedRoute>
-                  <Contacts />
-                </ProtectedRoute>
-              } />
-              <Route path="/chat/:id" element={
-                <ProtectedRoute>
-                  <Chat />
-                </ProtectedRoute>
-              } />
-              <Route path="/admin" element={
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            {userId && <CallInterface userId={userId} />}
+            <div className="mx-auto max-w-2xl bg-background min-h-screen">
+              <Toaster />
+              <Sonner />
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/verify" element={<Verify />} />
+                
+                <Route path="/" element={<Navigate to="/chats" replace />} />
+                <Route path="/home" element={<Navigate to="/chats" replace />} />
+                
+                <Route path="/profile-setup" element={
+                  <ProtectedRoute>
+                    <ProfileSetup />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chats" element={
+                  <ProtectedRoute>
+                    <Chats />
+                  </ProtectedRoute>
+                } />
+                <Route path="/contacts" element={
+                  <ProtectedRoute>
+                    <Contacts />
+                  </ProtectedRoute>
+                } />
+                <Route path="/chat/:id" element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin" element={
+                  <ProtectedRoute>
+                    <Admin />
+                  </ProtectedRoute>
+                } />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              {userId && <CallInterface userId={userId} />}
+            </div>
           </TooltipProvider>
         </BrowserRouter>
       </QueryClientProvider>

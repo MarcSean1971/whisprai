@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +64,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-full">
+    <div className="flex flex-col h-screen bg-background w-full">
       <Header 
         isSearching={isSearching}
         searchQuery={searchQuery}

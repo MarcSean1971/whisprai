@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
@@ -19,14 +18,11 @@ export default function Chats() {
   const { isAdmin } = useAdmin();
   const { data: conversations, isLoading, error, refetch } = useUserConversations();
   
-  // Use auth protection hook
   useAuthProtection();
 
-  // Effect to retry fetching if there was an error
   useEffect(() => {
     if (error) {
       console.error("Error loading conversations, will retry:", error);
-      // Add a timeout before retrying to avoid immediate retries
       const timer = setTimeout(() => {
         refetch();
       }, 2000);
@@ -50,7 +46,7 @@ export default function Chats() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background w-full max-w-full">
+    <div className="flex flex-col h-screen bg-background w-full">
       <Header 
         isSearching={isSearching}
         searchQuery={searchQuery}
