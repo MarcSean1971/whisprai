@@ -76,7 +76,7 @@ export function ConversationItem({
           )}
         </div>
         
-        <div className="flex justify-between items-center mt-1">
+        <div className="flex justify-between items-center">
           {lastMessage && (
             <p className="text-sm text-muted-foreground truncate max-w-[80%]">
               {lastMessage}
