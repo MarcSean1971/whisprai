@@ -26,12 +26,13 @@ export function useUserConversations() {
           throw conversationIdsError;
         }
 
-        if (!conversationIds?.length) {
+        // Handle null or empty array case
+        if (!conversationIds || !Array.isArray(conversationIds) || conversationIds.length === 0) {
           console.log('No conversations found for user');
           return [];
         }
         
-        // Fetch conversations using the IDs
+        // Fetch conversations using the IDs - conversationIds is now an array of UUIDs
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select('*, created_at, updated_at, is_group')
