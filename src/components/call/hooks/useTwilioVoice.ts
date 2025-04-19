@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { Device } from 'twilio-client';
 import { toast } from 'sonner';
@@ -18,7 +17,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     remoteParticipant: null
   });
 
-  const { setupPolyfills, initializeDevice } = useDeviceSetup();
+  const { setupBrowserEnvironment, initializeDevice } = useDeviceSetup();
   const { setupCallHandlers } = useCallHandlers({
     device: state.device,
     setCallStatus: (status) => setState(prev => ({ ...prev, callStatus: status })),
@@ -31,7 +30,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const setupDevice = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, callStatus: CallStatus.IDLE, error: null }));
-      setupPolyfills();
+      setupBrowserEnvironment();
 
       const newDevice = await initializeDevice(userId);
       setupCallHandlers(newDevice);
@@ -41,7 +40,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       setState(prev => ({ ...prev, error: err.message }));
       toast.error(`Setup error: ${err.message}`);
     }
-  }, [userId, setupPolyfills, initializeDevice, setupCallHandlers]);
+  }, [userId, setupBrowserEnvironment, initializeDevice, setupCallHandlers]);
 
   useEffect(() => {
     if (userId) {

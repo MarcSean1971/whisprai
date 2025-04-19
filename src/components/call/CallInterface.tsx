@@ -1,4 +1,3 @@
-
 import { IncomingCallDialog } from "@/components/call/IncomingCallDialog";
 import { ActiveCallDialog } from "@/components/call/ActiveCallDialog";
 import { CallProvider } from '@/components/call/store';
@@ -14,30 +13,26 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [hasError, setHasError] = useState(false);
   const [retryCounter, setRetryCounter] = useState(0);
   const [polyfillsSetup, setPolyfillsSetup] = useState(false);
-  const { setupPolyfills } = useDeviceSetup();
-  const polyfillAttemptRef = useRef(false);
+  const { setupBrowserEnvironment } = useDeviceSetup();
+  const setupAttemptRef = useRef(false);
 
-  // Initialize polyfills immediately on component mount
   useEffect(() => {
-    if (!polyfillAttemptRef.current) {
-      polyfillAttemptRef.current = true;
+    if (!setupAttemptRef.current) {
+      setupAttemptRef.current = true;
       
-      // Wrap in try-catch to handle any initialization errors
       try {
-        console.log('Setting up polyfills for Twilio');
-        setupPolyfills();
+        console.log('Setting up Twilio browser environment');
+        setupBrowserEnvironment();
         setPolyfillsSetup(true);
-        console.log('Polyfills successfully initialized');
+        console.log('Browser environment successfully initialized');
       } catch (error) {
-        console.error('Failed to setup polyfills:', error);
+        console.error('Failed to setup browser environment:', error);
         setHasError(true);
       }
     }
 
-    // Cleanup function to help with potential memory leaks
     return () => {
       if (window.events && typeof window.events.EventEmitter === 'function') {
-        // Clean up any remaining listeners
         try {
           const emitter = new window.events.EventEmitter();
           emitter.removeAllListeners();
@@ -48,7 +43,6 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     };
   }, []);
 
-  // Auto-retry initialization after a delay if there was an error
   useEffect(() => {
     if (hasError && retryCounter < 3) {
       const retryDelay = 2000 + (retryCounter * 1000); // Incremental backoff
@@ -58,7 +52,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         console.log(`Attempting recovery (attempt ${retryCounter + 1}/3)...`);
         
         try {
-          setupPolyfills();
+          setupBrowserEnvironment();
           setPolyfillsSetup(true);
           setHasError(false);
           console.log('Successfully recovered on retry');
@@ -73,9 +67,8 @@ export function CallInterface({ userId }: CallInterfaceProps) {
       console.error('Max retry attempts reached');
       toast.error('Unable to initialize call service. Please refresh the page.');
     }
-  }, [hasError, retryCounter, setupPolyfills]);
+  }, [hasError, retryCounter, setupBrowserEnvironment]);
 
-  // Only render call components when polyfills are properly initialized
   if (hasError || !polyfillsSetup) {
     return null;
   }

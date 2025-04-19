@@ -4,6 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 
 export function useDeviceSetup() {
+  const setupBrowserEnvironment = () => {
+    initializeTwilioEnvironment();
+  };
+
   const initializeDevice = async (userId: string): Promise<Device> => {
     const { data, error: tokenError } = await supabase.functions.invoke('twilio-token', {
       body: { identity: userId }
@@ -13,7 +17,7 @@ export function useDeviceSetup() {
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
-    initializeTwilioEnvironment();
+    setupBrowserEnvironment();
     const device = new Device();
     
     try {
@@ -31,6 +35,7 @@ export function useDeviceSetup() {
   };
 
   return {
-    initializeDevice
+    initializeDevice,
+    setupBrowserEnvironment
   };
 }
