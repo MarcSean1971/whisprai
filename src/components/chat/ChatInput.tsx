@@ -7,7 +7,6 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useChat } from "@/hooks/use-chat";
 
 interface ChatInputProps {
   conversationId: string;
@@ -24,6 +23,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
+  const [isProcessingVoice, setIsProcessingVoice] = useState(false);
 
   const handleSendMessage = async (content: string) => {
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
@@ -41,28 +41,53 @@ export function ChatInput({
 
   const handleVoiceMessage = async (base64Audio: string) => {
     try {
+      setIsProcessingVoice(true);
+      toast.info('Processing voice message...');
+      
+      console.log('Sending voice data to transcription service, length:', base64Audio.length);
+      
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id;
+      
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('voice-to-text', {
         body: { 
           audio: base64Audio, 
           conversationId, 
-          userId: await supabase.auth.getUser().then(res => res.data.user?.id) 
+          userId 
         }
       });
 
-      if (error) throw error;
-
-      if (data?.text && data?.audioPath) {
-        onSendMessage(data.text, { 
-          base64Audio, 
-          audioPath: data.audioPath 
-        });
-      } else {
-        throw new Error('No transcription or audio path received');
+      if (error) {
+        console.error('Voice-to-text function error:', error);
+        throw error;
       }
+
+      if (!data?.text) {
+        throw new Error('No transcription received');
+      }
+
+      if (!data?.audioPath) {
+        throw new Error('No audio path received');
+      }
+
+      console.log('Voice message processed successfully. Text:', data.text.substring(0, 50) + '...');
+      console.log('Audio path:', data.audioPath);
+      
+      toast.success('Voice message transcribed');
+      
+      onSendMessage(data.text, { 
+        base64Audio, 
+        audioPath: data.audioPath 
+      });
     } catch (error) {
       console.error('Error processing voice message:', error);
-      toast.error('Failed to process voice message');
+      toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
     } finally {
+      setIsProcessingVoice(false);
       setIsRecording(false);
     }
   };
@@ -77,6 +102,7 @@ export function ChatInput({
           onSendVoice={handleVoiceMessage}
           onCancel={() => setIsRecording(false)}
           className="flex justify-center"
+          isProcessing={isProcessingVoice}
         />
       ) : (
         <MessageInput
@@ -84,6 +110,7 @@ export function ChatInput({
           onStartRecording={() => setIsRecording(true)}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
+          disabled={isProcessingVoice}
         />
       )}
     </div>

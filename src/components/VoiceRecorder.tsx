@@ -10,11 +10,16 @@ interface VoiceRecorderProps {
   onSendVoice: (base64Audio: string) => void;
   onCancel: () => void;
   className?: string;
+  isProcessing?: boolean;
 }
 
-export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorderProps) {
-  const { isRecording, startRecording, stopRecording, convertBlobToBase64 } = useVoiceRecorder();
-  const [isProcessing, setIsProcessing] = useState(false);
+export function VoiceRecorder({ 
+  onSendVoice, 
+  onCancel, 
+  className,
+  isProcessing = false
+}: VoiceRecorderProps) {
+  const { isRecording, recordingDuration, startRecording, stopRecording, convertBlobToBase64 } = useVoiceRecorder();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -43,6 +48,12 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
     checkPermission();
   }, []);
 
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const handleStartRecording = async () => {
     if (!hasPermission) {
       toast.error('Please allow microphone access to record messages');
@@ -60,21 +71,17 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
 
   const handleStopRecording = async () => {
     try {
-      setIsProcessing(true);
       const blob = await stopRecording();
       
-      if (blob) {
+      if (blob && blob.size > 0) {
         const base64 = await convertBlobToBase64(blob);
         await onSendVoice(base64);
-        toast.success('Voice message sent');
       } else {
         toast.error('No audio recorded');
       }
     } catch (error) {
       console.error('Error processing recording:', error);
       toast.error('Failed to process recording');
-    } finally {
-      setIsProcessing(false);
     }
   };
 
@@ -99,48 +106,75 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
   }
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      {isRecording ? (
-        <>
-          <Button
-            variant="destructive"
-            size="icon"
-            onClick={handleStopRecording}
-            className={cn(
-              "animate-pulse", 
-              isProcessing && "opacity-50",
-              "rounded-full h-10 w-10"
+    <div className={cn("flex flex-col items-center gap-2", className)}>
+      <div className="flex items-center gap-2">
+        {isRecording ? (
+          <>
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={handleStopRecording}
+              className={cn(
+                isRecording && "animate-pulse", 
+                isProcessing && "opacity-50",
+                "rounded-full h-10 w-10"
+              )}
+              disabled={isProcessing}
+            >
+              {isProcessing ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <StopCircle className="h-5 w-5" />
+              )}
+              <span className="sr-only">Stop recording</span>
+            </Button>
+            
+            {isRecording && !isProcessing && (
+              <div className="text-sm font-medium">
+                {formatDuration(recordingDuration)}
+              </div>
             )}
-            disabled={isProcessing}
-          >
-            {isProcessing ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <StopCircle className="h-5 w-5" />
+            
+            {isProcessing && (
+              <div className="text-sm text-muted-foreground">
+                Processing...
+              </div>
             )}
-            <span className="sr-only">Stop recording</span>
-          </Button>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleCancel}
-            disabled={isProcessing}
-            className="rounded-full h-10 w-10"
-          >
-            <X className="h-5 w-5" />
-            <span className="sr-only">Cancel recording</span>
-          </Button>
-        </>
-      ) : (
-        <Button
-          variant="default"
-          size="icon"
-          onClick={handleStartRecording}
-          className="rounded-full h-10 w-10"
-        >
-          <Mic className="h-5 w-5" />
-          <span className="sr-only">Start recording</span>
-        </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleCancel}
+              disabled={isProcessing}
+              className="rounded-full h-10 w-10"
+            >
+              <X className="h-5 w-5" />
+              <span className="sr-only">Cancel recording</span>
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              variant="default"
+              size="icon"
+              onClick={handleStartRecording}
+              className="rounded-full h-10 w-10"
+              disabled={isProcessing}
+            >
+              <Mic className="h-5 w-5" />
+              <span className="sr-only">Start recording</span>
+            </Button>
+            <span className="text-sm text-muted-foreground">
+              Tap to record audio
+            </span>
+          </>
+        )}
+      </div>
+      
+      {isRecording && (
+        <p className="text-xs text-muted-foreground mt-1">
+          Voice messages are automatically transcribed
+        </p>
       )}
     </div>
   );

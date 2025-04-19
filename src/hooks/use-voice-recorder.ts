@@ -4,9 +4,11 @@ import { toast } from 'sonner';
 
 export function useVoiceRecorder() {
   const [isRecording, setIsRecording] = useState(false);
+  const [recordingDuration, setRecordingDuration] = useState(0);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const audioChunks = useRef<Blob[]>([]);
   const stream = useRef<MediaStream | null>(null);
+  const durationInterval = useRef<number | null>(null);
 
   const startRecording = useCallback(async () => {
     try {
@@ -48,6 +50,7 @@ export function useVoiceRecorder() {
       });
       
       audioChunks.current = [];
+      setRecordingDuration(0);
 
       mediaRecorder.current.ondataavailable = (event) => {
         console.log('Received audio data chunk:', event.data.size, 'bytes');
@@ -56,7 +59,16 @@ export function useVoiceRecorder() {
         }
       };
 
-      mediaRecorder.current.start();
+      // Start duration timer
+      if (durationInterval.current) {
+        window.clearInterval(durationInterval.current);
+      }
+      
+      durationInterval.current = window.setInterval(() => {
+        setRecordingDuration(prev => prev + 1);
+      }, 1000);
+
+      mediaRecorder.current.start(1000); // Collect data every second
       setIsRecording(true);
       console.log('Started recording with MIME type:', selectedMimeType);
     } catch (error) {
@@ -74,8 +86,21 @@ export function useVoiceRecorder() {
         return;
       }
 
+      // Clear duration timer
+      if (durationInterval.current) {
+        window.clearInterval(durationInterval.current);
+        durationInterval.current = null;
+      }
+
       mediaRecorder.current.onstop = () => {
-        console.log('Recording stopped, creating audio blob');
+        console.log('Recording stopped, creating audio blob from', audioChunks.current.length, 'chunks');
+        
+        if (audioChunks.current.length === 0) {
+          console.warn('No audio chunks recorded');
+          resolve(null);
+          return;
+        }
+        
         const audioBlob = new Blob(audioChunks.current, { 
           type: mediaRecorder.current?.mimeType || 'audio/webm' 
         });
@@ -106,10 +131,15 @@ export function useVoiceRecorder() {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64String = reader.result as string;
-        const base64Data = base64String.split(',')[1];
-        console.log('Converted audio blob to base64');
-        resolve(base64Data);
+        try {
+          const base64String = reader.result as string;
+          const base64Data = base64String.split(',')[1];
+          console.log('Converted audio blob to base64, length:', base64Data.length);
+          resolve(base64Data);
+        } catch (error) {
+          console.error('Error extracting base64 data:', error);
+          reject(error);
+        }
       };
       reader.onerror = (error) => {
         console.error('Error converting blob to base64:', error);
@@ -121,6 +151,7 @@ export function useVoiceRecorder() {
 
   return {
     isRecording,
+    recordingDuration,
     startRecording,
     stopRecording,
     convertBlobToBase64

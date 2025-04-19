@@ -19,20 +19,20 @@ serve(async (req) => {
       throw new Error('Missing required parameters')
     }
 
-    // Convert base64 to binary
-    const binaryString = atob(audio);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    console.log('Processing voice message for user:', userId, 'in conversation:', conversationId);
+
+    // Convert base64 to binary using chunked processing to prevent memory issues
+    const binaryAudio = processBase64Chunks(audio);
+    console.log('Converted base64 to binary, size:', binaryAudio.length, 'bytes');
     
     // Prepare form data for transcription
     const formData = new FormData()
-    const blob = new Blob([bytes], { type: 'audio/webm' })
+    const blob = new Blob([binaryAudio], { type: 'audio/webm' })
     formData.append('file', blob, 'audio.webm')
     formData.append('model', 'whisper-1')
 
     // Transcribe audio
+    console.log('Sending audio to OpenAI for transcription');
     const transcriptionResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST',
       headers: {
@@ -48,12 +48,13 @@ serve(async (req) => {
     }
 
     const transcriptionResult = await transcriptionResponse.json();
+    console.log('Transcription successful:', transcriptionResult.text.substring(0, 50) + '...');
 
     // Generate a unique filename for the voice message
     const timestamp = new Date().getTime();
     const filename = `${userId}/${conversationId}/${timestamp}.webm`;
     
-    console.log('Uploading voice message:', filename);
+    console.log('Uploading voice message to path:', filename);
 
     // Upload to Supabase Storage
     const uploadResponse = await fetch(
@@ -65,7 +66,7 @@ serve(async (req) => {
           'Content-Type': 'audio/webm',
           'x-upsert': 'true'  // Allow overwriting if file exists
         },
-        body: bytes,
+        body: binaryAudio,
       }
     );
 
@@ -75,7 +76,7 @@ serve(async (req) => {
       throw new Error('Failed to upload voice message');
     }
 
-    console.log('Voice message uploaded successfully');
+    console.log('Voice message uploaded successfully to:', filename);
 
     return new Response(
       JSON.stringify({ 
@@ -101,3 +102,33 @@ serve(async (req) => {
     );
   }
 })
+
+// Process base64 in chunks to prevent memory issues with large audio files
+function processBase64Chunks(base64String: string, chunkSize = 32768) {
+  const chunks: Uint8Array[] = [];
+  let position = 0;
+  
+  while (position < base64String.length) {
+    const chunk = base64String.slice(position, position + chunkSize);
+    const binaryChunk = atob(chunk);
+    const bytes = new Uint8Array(binaryChunk.length);
+    
+    for (let i = 0; i < binaryChunk.length; i++) {
+      bytes[i] = binaryChunk.charCodeAt(i);
+    }
+    
+    chunks.push(bytes);
+    position += chunkSize;
+  }
+
+  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+
+  for (const chunk of chunks) {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  }
+
+  return result;
+}
