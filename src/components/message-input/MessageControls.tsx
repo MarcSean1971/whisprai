@@ -35,6 +35,7 @@ export function MessageControls({
         className="text-muted-foreground hover:text-foreground"
         onClick={onAttachmentClick}
         disabled={disabled || !canAttach}
+        title="Attach files (images, documents, etc.)"
       >
         <Paperclip className="h-5 w-5" />
         <span className="sr-only">Attach files</span>
@@ -47,6 +48,7 @@ export function MessageControls({
         className="text-muted-foreground hover:text-foreground"
         onClick={onCameraClick}
         disabled={disabled || !canAttach}
+        title="Take a photo"
       >
         <Camera className="h-5 w-5" />
         <span className="sr-only">Use camera</span>
