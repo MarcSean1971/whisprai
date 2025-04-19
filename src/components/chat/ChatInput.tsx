@@ -7,14 +7,17 @@ import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useChat } from "@/hooks/use-chat";
 
 interface ChatInputProps {
-  onSendMessage: (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => void;
+  conversationId: string;
+  onSendMessage: (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
 }
 
 export function ChatInput({ 
+  conversationId,
   onSendMessage, 
   suggestions = [],
   isLoadingSuggestions = false 
@@ -30,7 +33,7 @@ export function ChatInput({
 
     if (mightNeedLocation) {
       const location = await requestLocation();
-      onSendMessage(content, location || undefined);
+      onSendMessage(content, undefined, location || undefined);
     } else {
       onSendMessage(content);
     }
@@ -39,15 +42,22 @@ export function ChatInput({
   const handleVoiceMessage = async (base64Audio: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('voice-to-text', {
-        body: { audio: base64Audio }
+        body: { 
+          audio: base64Audio, 
+          conversationId, 
+          userId: await supabase.auth.getUser().then(res => res.data.user?.id) 
+        }
       });
 
       if (error) throw error;
 
-      if (data?.text) {
-        handleSendMessage(data.text);
+      if (data?.text && data?.audioPath) {
+        onSendMessage(data.text, { 
+          base64Audio, 
+          audioPath: data.audioPath 
+        });
       } else {
-        throw new Error('No transcription received');
+        throw new Error('No transcription or audio path received');
       }
     } catch (error) {
       console.error('Error processing voice message:', error);

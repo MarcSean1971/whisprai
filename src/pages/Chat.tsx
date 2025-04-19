@@ -25,8 +25,8 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!, translatedContents);
   
-  const handleSendMessage = async (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => {
-    await sendMessage(content, location);
+  const handleSendMessage = async (content: string, voiceMessageData?: { base64Audio: string; audioPath?: string }, location?: { latitude: number; longitude: number; accuracy: number }) => {
+    await sendMessage(content, voiceMessageData, location);
     clearSuggestions();
     refetch();
   };
@@ -87,6 +87,7 @@ export default function Chat() {
         onTranslation={handleTranslation}
       />
       <ChatInput
+        conversationId={id}
         onSendMessage={handleSendMessage}
         suggestions={suggestions}
         isLoadingSuggestions={isLoadingSuggestions}

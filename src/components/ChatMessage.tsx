@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -118,11 +119,9 @@ export function ChatMessage({
     if (!voiceMessagePath) return;
 
     try {
-      const { data, error } = await supabase.storage
+      const { data } = await supabase.storage
         .from('voice_messages')
         .getPublicUrl(voiceMessagePath);
-
-      if (error) throw error;
 
       if (isPlaying) {
         audioRef.current?.pause();
@@ -187,9 +186,13 @@ export function ChatMessage({
             size="icon" 
             onClick={handlePlayPauseVoiceMessage}
           >
-            {isPlaying ? <Pause /> : <Play />}
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
           </Button>
-          <audio ref={audioRef} src={`https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`} />
+          <audio 
+            ref={audioRef} 
+            src={`https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`}
+            onEnded={() => setIsPlaying(false)}
+          />
         </div>
       )}
     </div>
