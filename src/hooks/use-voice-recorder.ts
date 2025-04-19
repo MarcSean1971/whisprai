@@ -19,12 +19,6 @@ export function useVoiceRecorder() {
         }
       };
 
-      mediaRecorder.current.onstop = () => {
-        const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
-        audioChunks.current = [];
-        convertBlobToBase64(audioBlob);
-      };
-
       mediaRecorder.current.start();
       setIsRecording(true);
     } catch (error) {
@@ -33,12 +27,22 @@ export function useVoiceRecorder() {
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorder.current && isRecording) {
-      mediaRecorder.current.stop();
-      setIsRecording(false);
-      mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
-    }
+  const stopRecording = (): Promise<Blob | null> => {
+    return new Promise((resolve) => {
+      if (mediaRecorder.current && isRecording) {
+        mediaRecorder.current.onstop = () => {
+          const audioBlob = new Blob(audioChunks.current, { type: 'audio/webm' });
+          audioChunks.current = [];
+          resolve(audioBlob);
+        };
+        
+        mediaRecorder.current.stop();
+        setIsRecording(false);
+        mediaRecorder.current.stream.getTracks().forEach(track => track.stop());
+      } else {
+        resolve(null);
+      }
+    });
   };
 
   const convertBlobToBase64 = (blob: Blob): Promise<string> => {

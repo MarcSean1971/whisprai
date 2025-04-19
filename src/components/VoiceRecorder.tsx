@@ -21,9 +21,8 @@ export function VoiceRecorder({ onSendVoice, onCancel, className }: VoiceRecorde
   };
 
   const handleStopRecording = async () => {
-    stopRecording();
-    if (audioChunks.current.length > 0) {
-      const blob = new Blob(audioChunks.current, { type: 'audio/webm' });
+    const blob = await stopRecording();
+    if (blob) {
       setAudioBlob(blob);
       const base64 = await convertBlobToBase64(blob);
       onSendVoice(base64);

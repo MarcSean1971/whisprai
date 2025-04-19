@@ -15,7 +15,7 @@ export default function Chat() {
   const { id } = useParams<{ id: string }>();
   const { data: messages, isLoading, error, refetch } = useMessages(id!);
   const { profile } = useProfile();
-  const { sendMessage, handleVoiceRecord, userId } = useChat(id!);
+  const { sendMessage, userId } = useChat(id!);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   
   const { 
@@ -88,7 +88,6 @@ export default function Chat() {
       />
       <ChatInput
         onSendMessage={handleSendMessage}
-        onStartRecording={handleVoiceRecord}
         suggestions={suggestions}
         isLoadingSuggestions={isLoadingSuggestions}
       />
