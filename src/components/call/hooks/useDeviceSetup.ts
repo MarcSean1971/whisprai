@@ -8,7 +8,13 @@ type Codec = any;
 
 export function useDeviceSetup() {
   const setupBrowserEnvironment = () => {
-    initializeTwilioEnvironment();
+    try {
+      initializeTwilioEnvironment();
+      console.log('Browser environment initialized for Twilio');
+    } catch (err) {
+      console.error('Failed to initialize browser environment for Twilio:', err);
+      throw err;
+    }
   };
 
   const initializeDevice = async (userId: string): Promise<Device> => {
@@ -23,12 +29,14 @@ export function useDeviceSetup() {
     const device = new Device();
     
     try {
+      console.log('Setting up Twilio device with token');
       await device.setup(data.token, {
         debug: true,
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[] // Type assertion to fix the TypeScript error
       });
       
+      console.log('Twilio device setup successful');
       return device;
     } catch (err) {
       console.error('Error in device setup:', err);

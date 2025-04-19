@@ -30,5 +30,10 @@ export default defineConfig(({ mode }) => ({
         global: 'globalThis'
       }
     }
+  },
+  build: {
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   }
 }));
