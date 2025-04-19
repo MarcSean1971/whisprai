@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -73,21 +72,6 @@ export function ChatMessage({
       setIsDeleting(true);
       console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
-      // First verify the user is a conversation participant
-      const { data: isParticipant, error: participantError } = await supabase
-        .from('conversation_participants')
-        .select('user_id')
-        .eq('conversation_id', conversationId)
-        .eq('user_id', userId)
-        .single();
-
-      if (participantError || !isParticipant) {
-        console.error('User is not a conversation participant:', participantError);
-        toast.error('You do not have permission to delete this message');
-        return;
-      }
-
-      // If user is a participant, proceed with deletion
       const { error: deleteError } = await supabase
         .from('messages')
         .delete()
