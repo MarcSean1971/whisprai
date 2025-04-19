@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isLoading, isAuthenticated } = useAuthProtection();
+  const { isLoading, isAuthenticated, error } = useAuthProtection();
 
   if (isLoading) {
     return (
@@ -18,8 +18,16 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen text-destructive">
+        Authentication error. Please try refreshing the page.
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
-    return null; // Will redirect in useEffect from useAuthProtection
+    return null; // Redirect will happen in useAuthProtection
   }
 
   return <>{children}</>;

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Logo } from "@/components/Logo";
@@ -15,6 +16,7 @@ export default function Auth() {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        console.log('Auth page: Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           console.log("Session found in Auth page, navigating to /home");
