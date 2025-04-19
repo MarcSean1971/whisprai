@@ -130,7 +130,7 @@ export function ChatMessages({
             translatedContent={translatedContent}
             location={location}
             userId={currentUserId}
-            viewerId={message.viewer_id}
+            conversationId={message.conversation_id}
             onDelete={handleMessageDelete}
           />
         );

@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -30,6 +31,7 @@ interface ChatMessageProps {
   onDelete?: () => void;
   userId?: string | null;
   viewerId?: string | null;
+  conversationId: string;
 }
 
 export function ChatMessage({
@@ -45,7 +47,7 @@ export function ChatMessage({
   location,
   onDelete,
   userId,
-  viewerId
+  conversationId
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,17 +71,34 @@ export function ChatMessage({
     
     try {
       setIsDeleting(true);
-      console.log('Attempting to delete message:', id, 'isAI:', isAI);
+      console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
-      const { error } = await supabase
+      // First verify the user is a conversation participant
+      const { data: isParticipant, error: participantError } = await supabase
+        .from('conversation_participants')
+        .select('user_id')
+        .eq('conversation_id', conversationId)
+        .eq('user_id', userId)
+        .single();
+
+      if (participantError || !isParticipant) {
+        console.error('User is not a conversation participant:', participantError);
+        toast.error('You do not have permission to delete this message');
+        return;
+      }
+
+      // If user is a participant, proceed with deletion
+      const { error: deleteError } = await supabase
         .from('messages')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('conversation_id', conversationId)
+        .is('sender_id', null); // Ensure we're only deleting AI messages
         
-      if (error) {
-        console.error('Error deleting message:', error);
+      if (deleteError) {
+        console.error('Error deleting message:', deleteError);
         toast.error('Failed to delete message');
-        throw error;
+        throw deleteError;
       }
       
       console.log('Message deleted successfully:', id);
