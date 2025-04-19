@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,8 @@ export function ChatMessage({
       
       // Handle voice message deletion with retry mechanism
       if (metadata?.voiceMessage) {
-        console.log('Deleting voice message:', metadata.voiceMessage);
+        const voicePath = metadata.voiceMessage.replace(/^voice_messages\/+/, '');
+        console.log('Normalized voice message path for deletion:', voicePath);
         
         let retryCount = 0;
         const maxRetries = 3;
@@ -97,7 +99,7 @@ export function ChatMessage({
           try {
             const { error: storageError } = await supabase.storage
               .from('voice_messages')
-              .remove([metadata.voiceMessage]);
+              .remove([voicePath]);
               
             if (!storageError) {
               console.log('Voice message file deleted successfully');
