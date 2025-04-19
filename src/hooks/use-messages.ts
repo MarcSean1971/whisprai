@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export interface Message {
   id: string;
@@ -23,8 +23,19 @@ export interface Message {
 
 export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
+    const getUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id);
+    };
+    getUserId();
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
     console.log('Setting up realtime subscription for conversation:', conversationId);
     
     const channel = supabase
@@ -39,6 +50,15 @@ export function useMessages(conversationId: string) {
         },
         (payload) => {
           console.log('Realtime event received:', payload);
+          
+          const shouldProcess = 
+            payload.new?.sender_id !== null || 
+            (payload.new?.sender_id === null && payload.new?.viewer_id === userId);
+
+          if (!shouldProcess) {
+            console.log('Skipping message due to privacy rules');
+            return;
+          }
           
           if (payload.eventType === 'DELETE') {
             console.log('Processing delete event for message:', payload.old.id);
@@ -64,15 +84,20 @@ export function useMessages(conversationId: string) {
       console.log('Cleaning up realtime subscription for conversation:', conversationId);
       supabase.removeChannel(channel);
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, userId]);
 
   return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
+      if (!userId) {
+        return [];
+      }
+
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .eq('conversation_id', conversationId)
+        .or(`sender_id.neq.null,and(sender_id.is.null,viewer_id.eq.${userId})`)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -120,5 +145,6 @@ export function useMessages(conversationId: string) {
 
       return messagesWithSender;
     },
+    enabled: !!userId
   });
 }
