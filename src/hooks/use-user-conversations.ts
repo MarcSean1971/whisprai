@@ -9,20 +9,16 @@ export function useUserConversations() {
     queryFn: async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) {
-          console.error('Error fetching user:', userError);
-          throw userError;
-        }
+        if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
         console.log('Fetching conversations for user:', user.id);
         
-        // Now fetch the actual conversations with all data
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants!inner (
+            conversation_participants!left (
               user_id,
               profiles (
                 id,
@@ -51,19 +47,16 @@ export function useUserConversations() {
 
         return conversations.map(conversation => {
           const participants = conversation.conversation_participants
-            .filter(p => p.user_id !== user.id)
-            .map(p => {
-              const profile = p.profiles;
-              return {
-                user_id: p.user_id,
-                profile: {
-                  id: profile?.id || p.user_id,
-                  first_name: profile?.first_name || null,
-                  last_name: profile?.last_name || null,
-                  avatar_url: profile?.avatar_url || null
-                }
-              };
-            });
+            .filter(p => p.user_id !== user.id && p.profiles)
+            .map(p => ({
+              user_id: p.user_id,
+              profile: {
+                id: p.profiles?.id || p.user_id,
+                first_name: p.profiles?.first_name || null,
+                last_name: p.profiles?.last_name || null,
+                avatar_url: p.profiles?.avatar_url || null
+              }
+            }));
 
           const lastMessage = conversation.messages?.[0];
           const primaryProfile = participants[0]?.profile;
@@ -87,10 +80,6 @@ export function useUserConversations() {
         throw error;
       }
     },
-    retry: 3, // Increase retry attempts
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
-    refetchOnMount: true,
-    refetchOnWindowFocus: true, // Enable automatic refetch on window focus
-    refetchInterval: 1000 * 60 // Refetch every minute
+    retry: 1
   });
 }
