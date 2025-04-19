@@ -26,9 +26,10 @@ export function useDeviceSetup() {
       throw new Error(tokenError?.message || 'Failed to get access token');
     }
 
-    const device = new Device();
-    
     try {
+      console.log('Creating new Twilio device instance');
+      const device = new Device();
+      
       console.log('Setting up Twilio device with token');
       await device.setup(data.token, {
         debug: true,

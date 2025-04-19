@@ -33,42 +33,39 @@ class TwilioEnvironment {
 
   private setupEventEmitter() {
     if (typeof window !== 'undefined') {
-      // Define a proper EventEmitter class
-      class EventEmitter {
-        private events: { [key: string]: Function[] } = {};
+      // Define a proper EventEmitter class with prototype inheritance
+      const EventEmitter = function(this: any) {
+        this.events = {};
+        return this;
+      } as any;
 
-        constructor() {
+      EventEmitter.prototype.on = function(this: any, event: string, listener: Function) {
+        if (!this.events[event]) {
+          this.events[event] = [];
+        }
+        this.events[event].push(listener);
+        return this;
+      };
+
+      EventEmitter.prototype.emit = function(this: any, event: string, ...args: any[]) {
+        if (!this.events[event]) return false;
+        this.events[event].forEach((listener: Function) => listener(...args));
+        return true;
+      };
+
+      EventEmitter.prototype.removeAllListeners = function(this: any, event?: string) {
+        if (event) {
+          delete this.events[event];
+        } else {
           this.events = {};
         }
+        return this;
+      };
 
-        on(event: string, listener: Function) {
-          if (!this.events[event]) {
-            this.events[event] = [];
-          }
-          this.events[event].push(listener);
-          return this;
-        }
-
-        emit(event: string, ...args: any[]) {
-          if (!this.events[event]) return false;
-          this.events[event].forEach((listener) => listener(...args));
-          return true;
-        }
-
-        removeAllListeners(event?: string) {
-          if (event) {
-            delete this.events[event];
-          } else {
-            this.events = {};
-          }
-          return this;
-        }
-      }
-
-      // Create a proper prototype chain for EventEmitter
+      // Make EventEmitter available globally
       window.EventEmitter = EventEmitter;
       
-      // Set up the events module
+      // Set up the events module properly
       window.events = {
         EventEmitter: EventEmitter,
         defaultMaxListeners: 10,
@@ -79,5 +76,11 @@ class TwilioEnvironment {
 }
 
 export function initializeTwilioEnvironment() {
-  TwilioEnvironment.getInstance();
+  try {
+    TwilioEnvironment.getInstance();
+    console.log('Successfully initialized Twilio browser environment');
+  } catch (error) {
+    console.error('Failed to initialize Twilio browser environment:', error);
+    throw error;
+  }
 }
