@@ -7,6 +7,7 @@ import { useProfile } from "@/hooks/use-profile";
 
 export function useChat(conversationId: string) {
   const [userId, setUserId] = useState<string | null>(null);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const { profile } = useProfile();
 
   useEffect(() => {
@@ -21,9 +22,16 @@ export function useChat(conversationId: string) {
     try {
       if (!userId) {
         console.error('No user ID available');
-        return;
+        toast.error('Please log in to use AI features');
+        return false;
       }
 
+      if (isProcessingAI) {
+        console.log('Already processing an AI message');
+        return false;
+      }
+
+      setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
       // Save the original user's "AI:" message with proper metadata
@@ -39,8 +47,8 @@ export function useChat(conversationId: string) {
 
       if (userMessageError) {
         console.error('Error saving user message:', userMessageError);
-        toast.error('Failed to send message');
-        throw userMessageError;
+        toast.error('Failed to save your message');
+        return false;
       }
 
       // Process with AI using the trimmed content
@@ -55,16 +63,26 @@ export function useChat(conversationId: string) {
         }
       });
 
-      if (error || !data.success) {
+      if (error) {
         console.error('AI chat error:', error);
         toast.error('Failed to process AI message');
-        throw error;
+        return false;
       }
 
+      if (!data?.success) {
+        console.error('AI processing failed:', data);
+        toast.error('AI processing failed');
+        return false;
+      }
+
+      toast.success('AI message processed successfully');
       return true;
     } catch (error) {
       console.error('Error processing AI message:', error);
       toast.error('Failed to process AI message');
+      return false;
+    } finally {
+      setIsProcessingAI(false);
     }
   };
 
@@ -74,7 +92,7 @@ export function useChat(conversationId: string) {
   ) => {
     if (!conversationId || !content.trim()) {
       console.error("Cannot send message: missing conversation ID or content");
-      return;
+      return false;
     }
 
     // Check if this is an AI message
@@ -83,9 +101,10 @@ export function useChat(conversationId: string) {
       return handleAIMessage(content);
     }
     
-    if (!conversationId || !content.trim() || !userId) {
-      console.error("Cannot send message: missing conversation ID, content, or user ID");
-      return;
+    if (!userId) {
+      console.error("Cannot send message: missing user ID");
+      toast.error('Please log in to send messages');
+      return false;
     }
     
     try {
@@ -108,7 +127,8 @@ export function useChat(conversationId: string) {
 
       if (error) {
         console.error('Error sending message:', error);
-        throw error;
+        toast.error('Failed to send message');
+        return false;
       }
       
       const { error: updateError } = await supabase
@@ -119,9 +139,12 @@ export function useChat(conversationId: string) {
       if (updateError) {
         console.error('Error updating conversation timestamp:', updateError);
       }
+
+      return true;
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+      return false;
     }
   };
 
@@ -132,6 +155,7 @@ export function useChat(conversationId: string) {
   return {
     sendMessage,
     handleVoiceRecord,
-    userId
+    userId,
+    isProcessingAI
   };
 }
