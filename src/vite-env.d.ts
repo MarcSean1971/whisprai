@@ -126,29 +126,7 @@ interface Window {
     default?: any;
   };
   EventEmitter: EventEmitterConstructor;
-  process?: {
-    nextTick: (fn: Function) => void;
-    env: { NODE_ENV: string; [key: string]: string };
-    version: string;
-    versions: ProcessVersions;
-    platform: "darwin" | "win32" | "linux" | "aix" | "android" | "freebsd" | "haiku" | "openbsd" | "sunos" | "cygwin" | "netbsd";
-    stdout?: any;
-    stderr?: any;
-    stdin?: any;
-    argv?: string[];
-    pid?: number;
-    arch?: string;
-    title?: string;
-    cwd?: () => string;
-    exit?: (code?: number) => never;
-    argv0?: string;
-    execArgv?: string[];
-    execPath?: string;
-    abort?: () => never;
-    chdir?: (directory: string) => void;
-    kill?: (pid: number, signal?: string | number) => boolean;
-    ppid?: number;
-  } & Partial<Process>;
+  process?: Process;
   Buffer?: BufferConstructor;
   global?: Window;
 }
