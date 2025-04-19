@@ -1,6 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,6 +16,8 @@ serve(async (req) => {
   try {
     const { content, conversationId } = await req.json()
     const prompt = content.replace(/^AI:\s*/, '').trim()
+    
+    console.log('Processing AI message:', { conversationId, prompt })
 
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -34,8 +37,22 @@ serve(async (req) => {
       }),
     })
 
+    if (!openAIResponse.ok) {
+      const error = await openAIResponse.text()
+      console.error('OpenAI API error:', error)
+      throw new Error(`OpenAI API error: ${error}`)
+    }
+
     const aiData = await openAIResponse.json()
+    console.log('OpenAI response:', aiData)
+    
     const aiResponse = aiData.choices[0].message.content
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
     // Store AI message in the database
     const { data: messageData, error: messageError } = await supabase
@@ -54,8 +71,11 @@ serve(async (req) => {
       .single()
 
     if (messageError) {
+      console.error('Database error:', messageError)
       throw messageError
     }
+
+    console.log('Message stored successfully:', messageData)
 
     return new Response(
       JSON.stringify({ message: messageData }),
