@@ -1,4 +1,3 @@
-
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -6,60 +5,75 @@ import { toast } from 'sonner';
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      // Initialize EventEmitter with proper prototype chain
-      if (!(window as any).EventEmitter) {
-        class EventEmitter {
-          private events: Record<string, Function[]> = {};
-          
-          on(event: string, listener: Function) {
-            if (!this.events[event]) {
-              this.events[event] = [];
-            }
-            this.events[event].push(listener);
-            return this;
+      // Create a proper EventEmitter class with correct prototype chain
+      class EventEmitter {
+        private events: Record<string, Function[]>;
+        
+        constructor() {
+          this.events = {};
+          Object.setPrototypeOf(this, EventEmitter.prototype);
+        }
+        
+        on(event: string, listener: Function) {
+          if (!this.events[event]) {
+            this.events[event] = [];
           }
-          
-          removeListener(event: string, listener: Function) {
-            if (!this.events[event]) return this;
-            this.events[event] = this.events[event].filter(l => l !== listener);
-            return this;
-          }
-          
-          emit(event: string, ...args: any[]) {
-            if (!this.events[event]) return false;
-            this.events[event].forEach(listener => listener(...args));
-            return true;
-          }
+          this.events[event].push(listener);
+          return this;
+        }
+        
+        removeListener(event: string, listener: Function) {
+          if (!this.events[event]) return this;
+          this.events[event] = this.events[event].filter(l => l !== listener);
+          return this;
+        }
+        
+        emit(event: string, ...args: any[]) {
+          if (!this.events[event]) return false;
+          this.events[event].forEach(listener => listener(...args));
+          return true;
         }
 
-        // Make EventEmitter available globally
-        (window as any).EventEmitter = EventEmitter;
+        // Add other EventEmitter methods that Twilio might use
+        once(event: string, listener: Function) {
+          const onceWrapper = (...args: any[]) => {
+            listener(...args);
+            this.removeListener(event, onceWrapper);
+          };
+          this.on(event, onceWrapper);
+          return this;
+        }
+
+        removeAllListeners(event?: string) {
+          if (event) {
+            delete this.events[event];
+          } else {
+            this.events = {};
+          }
+          return this;
+        }
       }
 
-      // Setup events module for CommonJS/Node.js compatibility
-      if (!(window as any).events || !(window as any).events.EventEmitter) {
-        // Create full events module structure
-        (window as any).events = {
-          EventEmitter: (window as any).EventEmitter
-        };
-        
-        // Also make it available as a named export and default export
-        (window as any).events.default = (window as any).events;
-      }
+      // Set up EventEmitter on window and ensure proper inheritance
+      (window as any).EventEmitter = EventEmitter;
       
-      // Add better support for Node.js built-ins
-      // Define global for Node.js compatibility
-      if (!(window as any).global) {
-        (window as any).global = window;
-      }
+      // Create events module structure that Twilio expects
+      (window as any).events = {
+        EventEmitter,
+        defaultMaxListeners: 10,
+        setMaxListeners: function() { return this; }
+      };
+      
+      // Ensure proper exports for both named and default
+      (window as any).events.default = (window as any).events;
       
       // Define process for Node.js compatibility
       if (!(window as any).process) {
         (window as any).process = {
           nextTick: (fn: Function) => setTimeout(fn, 0),
-          env: {},
+          env: { NODE_ENV: 'production' },
           version: '',
-          versions: {},
+          versions: { node: '14.0.0' },
           platform: 'browser'
         };
       }
@@ -68,29 +82,15 @@ export function useDeviceSetup() {
       if (!(window as any).Buffer) {
         (window as any).Buffer = {
           isBuffer: () => false,
-          from: (value: any) => ({ value })
+          from: (value: any) => ({ value }),
+          alloc: (size: number) => new Uint8Array(size)
         };
       }
-      
-      // Properly define require for CommonJS modules
-      if (!(window as any).require) {
-        (window as any).require = function(moduleName: string) {
-          if (moduleName === 'events') {
-            return (window as any).events;
-          }
-          throw new Error(`Module ${moduleName} not found`);
-        };
+
+      // Define global for Node.js compatibility
+      if (!(window as any).global) {
+        (window as any).global = window;
       }
-      
-      // Fix Object.setPrototypeOf usage with undefined prototype
-      const originalSetPrototypeOf = Object.setPrototypeOf;
-      Object.setPrototypeOf = function(obj: any, proto: any) {
-        if (proto === undefined) {
-          console.warn('Attempted to set prototype to undefined, using Object.prototype instead');
-          return originalSetPrototypeOf(obj, Object.prototype);
-        }
-        return originalSetPrototypeOf(obj, proto);
-      };
     }
   };
 

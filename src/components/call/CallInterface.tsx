@@ -16,93 +16,63 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [polyfillsSetup, setPolyfillsSetup] = useState(false);
   const { setupPolyfills } = useDeviceSetup();
   const polyfillAttemptRef = useRef(false);
-  const errorHandlerRef = useRef<(event: ErrorEvent) => void>();
 
   // Initialize polyfills immediately on component mount
-  // Do this BEFORE any Twilio code executes
   useEffect(() => {
     if (!polyfillAttemptRef.current) {
       polyfillAttemptRef.current = true;
+      
+      // Wrap in try-catch to handle any initialization errors
       try {
-        console.log('Setting up polyfills');
+        console.log('Setting up polyfills for Twilio');
         setupPolyfills();
         setPolyfillsSetup(true);
-        console.log('Polyfills successfully set up');
+        console.log('Polyfills successfully initialized');
       } catch (error) {
-        console.error('Failed to setup polyfills on first attempt:', error);
+        console.error('Failed to setup polyfills:', error);
         setHasError(true);
       }
     }
-  }, []);
 
-  // Set up global error handler for Twilio client errors
-  useEffect(() => {
-    // Create a handler function that we can reference for cleanup
-    const handleError = (event: ErrorEvent) => {
-      // Capture errors related to Twilio or our known issues
-      if (event.message.includes('twilio') || 
-          event.filename?.includes('twilio') ||
-          event.message.includes('Object prototype may only be an Object or null') ||
-          event.message.includes('events.EventEmitter')) {
-        
-        console.error('Twilio error caught:', event.message, event);
-        setHasError(true);
-        
-        // Prevent default to try to keep our app running despite the error
-        event.preventDefault();
-        
-        // Only show toast once to avoid spam
-        if (!hasError) {
-          toast.error('Communication service error. We\'ll try to recover automatically.');
-        }
-      }
-    };
-
-    // Store the handler reference for cleanup
-    errorHandlerRef.current = handleError;
-    
-    window.addEventListener('error', handleError);
-    
+    // Cleanup function to help with potential memory leaks
     return () => {
-      if (errorHandlerRef.current) {
-        window.removeEventListener('error', errorHandlerRef.current);
+      if (window.events && window.events.EventEmitter) {
+        // Clean up any remaining listeners
+        const emitter = new window.events.EventEmitter();
+        emitter.removeAllListeners();
       }
     };
-  }, [hasError]);
+  }, []);
 
   // Auto-retry initialization after a delay if there was an error
   useEffect(() => {
     if (hasError && retryCounter < 3) {
+      const retryDelay = 2000 + (retryCounter * 1000); // Incremental backoff
+      console.log(`Scheduling retry attempt ${retryCounter + 1}/3 in ${retryDelay}ms`);
+      
       const timer = setTimeout(() => {
-        console.log(`Attempting to recover from Twilio error (attempt ${retryCounter + 1}/3)...`);
+        console.log(`Attempting recovery (attempt ${retryCounter + 1}/3)...`);
         
-        // Attempt to re-initialize polyfills
         try {
           setupPolyfills();
           setPolyfillsSetup(true);
           setHasError(false);
-          console.log('Polyfills re-initialized on retry');
+          console.log('Successfully recovered on retry');
         } catch (error) {
-          console.error(`Failed to re-setup polyfills on retry ${retryCounter + 1}:`, error);
+          console.error(`Recovery attempt ${retryCounter + 1} failed:`, error);
+          setRetryCounter(prev => prev + 1);
         }
-        
-        setRetryCounter(prev => prev + 1);
-      }, 2000 + (retryCounter * 1000)); // Increase delay with each retry
+      }, retryDelay);
       
       return () => clearTimeout(timer);
     } else if (hasError && retryCounter >= 3) {
+      console.error('Max retry attempts reached');
       toast.error('Unable to initialize call service. Please refresh the page.');
     }
   }, [hasError, retryCounter, setupPolyfills]);
 
-  // Only render the call components when polyfills are set up and we don't have errors
-  if (hasError) {
-    // Show UI for error state but still allow retry
-    return null; 
-  }
-
-  if (!polyfillsSetup) {
-    // Don't render anything while polyfills are being setup
+  // Only render call components when polyfills are properly initialized
+  if (hasError || !polyfillsSetup) {
     return null;
   }
 
