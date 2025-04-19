@@ -25,7 +25,7 @@ interface Process {
   chdir(directory: string): void;
   cwd(): string;
   exit(code?: number): never;
-  kill(pid: number, signal?: string | number): boolean;
+  kill(pid: number, signal?: string | number): true;
   pid: number;
   ppid: number;
   title: string;

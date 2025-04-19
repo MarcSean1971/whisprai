@@ -88,7 +88,10 @@ export function useDeviceSetup() {
           execPath: '/usr/local/bin/node',
           abort: () => { throw new Error('Process aborted'); },
           chdir: (directory: string) => { /* Mock implementation */ },
-          kill: (pid: number) => false,
+          kill: (pid: number, signal?: string | number): true => {
+            console.log(`Mock kill called with pid ${pid} and signal ${signal}`);
+            return true;
+          },
           ppid: 0
         };
       }
