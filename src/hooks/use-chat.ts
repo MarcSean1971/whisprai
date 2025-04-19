@@ -34,10 +34,9 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Instead of using ai_messages table, we'll use the regular messages table with metadata
+      // Create a message with metadata indicating it's an AI prompt
       const aiPrompt = content.replace(/^AI:\s*/, '').trim();
       
-      // Create a message with metadata indicating it's an AI prompt
       const { data: aiPromptMessage, error: createError } = await supabase
         .from('messages')
         .insert({
@@ -118,7 +117,6 @@ export function useChat(conversationId: string) {
         original_language: detectedLanguage,
         sender_id: userId,
         status: 'sent',
-        viewer_id: userId,
         metadata: location ? { location } : null
       };
       
