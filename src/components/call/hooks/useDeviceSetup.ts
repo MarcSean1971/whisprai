@@ -40,11 +40,11 @@ export function useDeviceSetup() {
     console.log(`Initializing Twilio device for user: ${userId} (attempt ${retryCount + 1})`);
     
     try {
-      const { data, error: tokenError } = await supabase.functions.invoke('twilio-token', {
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
         body: { identity: userId }
       });
 
-      if (tokenError || !data?.token) {
+      if (tokenError || !tokenData?.token) {
         console.error('Failed to get Twilio token:', tokenError);
         throw new Error(tokenError?.message || 'Failed to get access token');
       }
@@ -53,13 +53,13 @@ export function useDeviceSetup() {
       const device = new Device();
       
       console.log('Setting up device with token');
-      await device.setup(data.token, {
+      await device.setup(tokenData.token, {
         debug: true,
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[]
       });
 
-      // Wait a brief moment to ensure device is really ready
+      // Wait briefly to ensure device is really ready
       await new Promise(resolve => setTimeout(resolve, 500));
       
       if (!device.isInitialized) {
@@ -68,11 +68,11 @@ export function useDeviceSetup() {
 
       console.log('Device setup completed successfully');
       return device;
-    } catch (err) {
+    } catch (err: any) {
       console.error(`Error in device setup (attempt ${retryCount + 1}):`, err);
       
       // Implement retry logic with exponential backoff
-      if (retryCount < 2) { // Try up to 3 times
+      if (retryCount < 2) { // Try up to 3 times total
         const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
         console.log(`Retrying in ${delay}ms...`);
         
