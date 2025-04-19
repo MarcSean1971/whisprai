@@ -33,6 +33,10 @@ export function useDeviceSetup() {
   };
 
   const initializeDevice = async (userId: string, retryCount = 0): Promise<Device> => {
+    if (!userId) {
+      throw new Error('Cannot initialize Twilio device without a user ID');
+    }
+    
     console.log(`Initializing Twilio device for user: ${userId} (attempt ${retryCount + 1})`);
     
     try {
@@ -54,6 +58,13 @@ export function useDeviceSetup() {
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[]
       });
+
+      // Wait a brief moment to ensure device is really ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (!device.isInitialized) {
+        throw new Error('Device failed to initialize properly');
+      }
 
       console.log('Device setup completed successfully');
       return device;

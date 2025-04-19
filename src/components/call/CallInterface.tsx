@@ -9,7 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
 interface CallInterfaceProps {
-  userId: string;
+  userId: string | null;
 }
 
 export function CallInterface({ userId }: CallInterfaceProps) {
@@ -20,6 +20,11 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const setupAttemptRef = useRef(false);
 
   useEffect(() => {
+    // Only set up the browser environment if we have a userId
+    if (!userId) {
+      return;
+    }
+    
     if (!setupAttemptRef.current) {
       setupAttemptRef.current = true;
       
@@ -34,7 +39,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         toast.error('Failed to initialize call system');
       }
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (hasError && retryCounter < 3) {
@@ -61,6 +66,11 @@ export function CallInterface({ userId }: CallInterfaceProps) {
       toast.error('Unable to initialize call service. Please refresh the page.');
     }
   }, [hasError, retryCounter, setupBrowserEnvironment]);
+
+  // If no userId is provided, don't render anything
+  if (!userId) {
+    return null;
+  }
 
   if (hasError) {
     return (

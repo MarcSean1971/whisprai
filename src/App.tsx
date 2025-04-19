@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -25,6 +28,27 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Get the current user ID
+    const fetchUserId = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || null);
+    };
+
+    fetchUserId();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setUserId(session?.user?.id || null);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <ThemeProvider defaultTheme="system" storageKey="ui-theme">
       <QueryClientProvider client={queryClient}>
@@ -68,7 +92,7 @@ const App = () => {
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-            <CallInterface userId={null} />
+            {userId && <CallInterface userId={userId} />}
           </TooltipProvider>
         </BrowserRouter>
       </QueryClientProvider>

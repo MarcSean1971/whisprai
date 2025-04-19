@@ -35,25 +35,39 @@ export function useCallProviderEffects({
   twilioToggleMute: () => void;
   twilioError: string | null;
 }) {
-  // Handle call initiation
+  // Handle call initiation with debouncing
   useEffect(() => {
+    let callInitTimeout: number | null = null;
+    
     if (callStatus === CallStatus.CONNECTING && 
         recipientId && 
         isReady && 
         showActiveCall) {
-      try {
-        twilioStartCall(recipientId);
-      } catch (error) {
-        console.error('Error starting call:', error);
-        toast.error(`Failed to start call: ${error.message}`);
-        updateCallStatus(CallStatus.FAILED);
-      }
+      
+      // Small delay to ensure the UI has time to update
+      callInitTimeout = window.setTimeout(() => {
+        try {
+          console.log(`Initiating call to ${recipientId}`);
+          twilioStartCall(recipientId);
+        } catch (error) {
+          console.error('Error starting call:', error);
+          toast.error(`Failed to start call: ${error.message}`);
+          updateCallStatus(CallStatus.FAILED);
+        }
+      }, 500);
     }
+    
+    return () => {
+      if (callInitTimeout) {
+        window.clearTimeout(callInitTimeout);
+      }
+    };
   }, [callStatus, recipientId, isReady, showActiveCall, twilioStartCall, updateCallStatus]);
 
   // Handle call status changes
   useEffect(() => {
     if (twilioCallStatus !== callStatus) {
+      console.log(`Call status changed: ${callStatus} -> ${twilioCallStatus}`);
       updateCallStatus(twilioCallStatus);
       
       switch (twilioCallStatus) {
@@ -73,6 +87,7 @@ export function useCallProviderEffects({
   // Handle incoming calls
   useEffect(() => {
     if (twilioCallStatus === CallStatus.RINGING && remoteParticipant && !showIncomingCall) {
+      console.log(`Incoming call from ${remoteParticipant}`);
       useCallStore.getState().receiveCall(remoteParticipant);
     }
   }, [twilioCallStatus, remoteParticipant, showIncomingCall]);
@@ -87,6 +102,7 @@ export function useCallProviderEffects({
     useCallStore.setState({
       acceptCall: () => {
         try {
+          console.log('Accepting call');
           twilioAnswerCall();
         } catch (error) {
           console.error('Error in acceptCall:', error);
@@ -95,6 +111,7 @@ export function useCallProviderEffects({
       },
       rejectCall: () => {
         try {
+          console.log('Rejecting call');
           twilioRejectCall();
         } catch (error) {
           console.error('Error in rejectCall:', error);
@@ -103,6 +120,7 @@ export function useCallProviderEffects({
       },
       endCall: () => {
         try {
+          console.log('Ending call');
           twilioEndCall();
         } catch (error) {
           console.error('Error in endCall:', error);
@@ -111,6 +129,7 @@ export function useCallProviderEffects({
       },
       toggleMute: () => {
         try {
+          console.log('Toggling mute');
           twilioToggleMute();
         } catch (error) {
           console.error('Error in toggleMute:', error);
@@ -132,6 +151,7 @@ export function useCallProviderEffects({
   // Handle Twilio errors
   useEffect(() => {
     if (twilioError) {
+      console.error('Twilio error:', twilioError);
       toast.error(`Call error: ${twilioError}`);
     }
   }, [twilioError]);
