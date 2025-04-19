@@ -87,9 +87,10 @@ export function ChatMessage({
       setIsDeleting(true);
       console.log('Attempting to delete message:', id, 'from conversation:', conversationId);
       
-      // Handle voice message deletion with retry mechanism
+      // Handle voice message deletion
       if (metadata?.voiceMessage) {
-        const voicePath = metadata.voiceMessage.replace(/^voice_messages\/+/, '');
+        // Extract just the unique path part without 'voice_messages/' prefix
+        const voicePath = metadata.voiceMessage.replace(/^voice_messages\/*/, '');
         console.log('Normalized voice message path for deletion:', voicePath);
         
         let retryCount = 0;
