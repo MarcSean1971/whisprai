@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { detectLanguage } from "@/lib/language-detection";
 import { toast } from "sonner";
 import { useProfile } from "@/hooks/use-profile";
 
@@ -33,42 +32,27 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Save the original user's "AI:" message
-      const { error: userMessageError } = await supabase
-        .from('messages')
+      // Create a new AI message record
+      const { data: aiMessage, error: createError } = await supabase
+        .from('ai_messages')
         .insert({
           conversation_id: conversationId,
-          content: content,
-          sender_id: userId,
-          status: 'sent',
-          metadata: { isAIPrompt: true }
-        });
+          prompt: content.replace(/^AI:\s*/, '').trim(),
+          user_id: userId,
+          status: 'pending'
+        })
+        .select()
+        .single();
 
-      if (userMessageError) {
-        console.error('Error saving user message:', userMessageError);
-        toast.error('Failed to save your message');
+      if (createError) {
+        console.error('Error creating AI message:', createError);
+        toast.error('Failed to create AI message');
         return false;
       }
 
-      // Get user's language preference
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('language')
-        .eq('id', userId)
-        .maybeSingle();
-
-      const userLanguage = profileData?.language || 'en';
-
-      // Process with AI using the trimmed content
-      const trimmedContent = content.replace(/^AI:\s*/, '').trim();
-      
+      // Process with AI using the new message ID
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
-        body: { 
-          content: trimmedContent, 
-          conversationId, 
-          userId,
-          language: userLanguage
-        }
+        body: { aiMessageId: aiMessage.id }
       });
 
       if (error) {
@@ -83,6 +67,7 @@ export function useChat(conversationId: string) {
         return false;
       }
 
+      toast.success('AI message processed successfully');
       return true;
     } catch (error) {
       console.error('Error processing AI message:', error);

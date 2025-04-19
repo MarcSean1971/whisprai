@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -31,9 +32,8 @@ export function useMessages(conversationId: string) {
       return;
     }
 
-    console.log('Setting up realtime subscription for conversation:', conversationId);
-    
-    const channel = supabase
+    // Subscribe to both messages and ai_messages tables
+    const messagesChannel = supabase
       .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
@@ -44,36 +44,32 @@ export function useMessages(conversationId: string) {
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Realtime event received:', payload);
-          
-          if (payload.eventType === 'DELETE') {
-            console.log('Processing delete event for message:', payload.old.id);
-            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-              if (!oldData) return [];
-              return oldData.filter(message => message.id !== payload.old.id);
-            });
-          } else if (payload.eventType === 'INSERT') {
-            console.log('Processing insert event for message:', payload.new.id);
-            queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-              const newMessage = payload.new as Message;
-              return oldData ? [...oldData, newMessage] : [newMessage];
-            });
-          }
+          console.log('Messages event received:', payload);
+          queryClient.invalidateQueries(['messages', conversationId]);
         }
       )
-      .subscribe((status) => {
-        console.log(`Subscription status for ${conversationId}:`, status);
-        if (status === 'SUBSCRIBED') {
-          console.log('Successfully subscribed to messages');
-        } else if (status === 'CHANNEL_ERROR') {
-          console.error('Failed to subscribe to messages');
-          toast.error('Failed to connect to chat. Please refresh the page.');
+      .subscribe();
+
+    const aiMessagesChannel = supabase
+      .channel(`ai_messages:${conversationId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ai_messages',
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        (payload) => {
+          console.log('AI Messages event received:', payload);
+          queryClient.invalidateQueries(['messages', conversationId]);
         }
-      });
+      )
+      .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription for conversation:', conversationId);
-      supabase.removeChannel(channel);
+      supabase.removeChannel(messagesChannel);
+      supabase.removeChannel(aiMessagesChannel);
     };
   }, [conversationId, queryClient]);
 
@@ -86,51 +82,48 @@ export function useMessages(conversationId: string) {
         }
 
         const { data: user } = await supabase.auth.getUser();
-        if (!user.user) {
-          throw new Error('No authenticated user');
-        }
+        const userId = user.user?.id;
 
+        // Fetch regular messages
         const { data: messages, error: messagesError } = await supabase
           .from('messages')
-          .select(`
-            id,
-            content,
-            created_at,
-            conversation_id,
-            sender_id,
-            status,
-            metadata,
-            ai_metadata,
-            original_language,
-            sender:sender_id (
-              id,
-              profiles:profiles (
-                first_name,
-                last_name,
-                avatar_url,
-                language
-              )
-            )
-          `)
+          .select('*')
           .eq('conversation_id', conversationId)
           .order('created_at', { ascending: true });
 
-        if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
-          throw messagesError;
-        }
+        if (messagesError) throw messagesError;
 
-        if (!messages) {
-          return [];
-        }
+        // Fetch AI messages
+        const { data: aiMessages, error: aiError } = await supabase
+          .from('ai_messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .not('response', 'is', null)
+          .eq('status', 'completed');
 
-        return messages as Message[];
+        if (aiError) throw aiError;
+
+        // Convert AI messages to regular message format
+        const formattedAiMessages = aiMessages?.map(ai => ({
+          id: ai.id,
+          content: ai.response,
+          created_at: ai.updated_at,
+          conversation_id: ai.conversation_id,
+          sender_id: null,
+          status: 'sent',
+          metadata: { isAI: true, ...ai.metadata }
+        })) || [];
+
+        // Combine and sort all messages
+        const allMessages = [...(messages || []), ...formattedAiMessages]
+          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+        return allMessages;
       } catch (error) {
         console.error('Error in messages query:', error);
-        toast.error('Failed to load messages. Please try again.');
+        toast.error('Failed to load messages');
         throw error;
       }
-    },
-    retry: 1,
+    }
   });
 }

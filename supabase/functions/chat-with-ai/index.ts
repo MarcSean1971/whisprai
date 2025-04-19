@@ -14,11 +14,48 @@ serve(async (req) => {
   }
 
   try {
-    const { content, conversationId, userId, language = 'en' } = await req.json()
+    const { aiMessageId } = await req.json()
+    console.log('Processing AI message:', aiMessageId)
 
-    if (!content || !conversationId || !userId) {
-      throw new Error('Missing required parameters')
+    // Initialize Supabase client
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Fetch the AI message
+    const { data: aiMessage, error: fetchError } = await supabase
+      .from('ai_messages')
+      .select('*')
+      .eq('id', aiMessageId)
+      .single()
+
+    if (fetchError || !aiMessage) {
+      console.error('Error fetching AI message:', fetchError)
+      throw new Error('AI message not found')
     }
+
+    // Update status to processing
+    await supabase
+      .from('ai_messages')
+      .update({ status: 'processing' })
+      .eq('id', aiMessageId)
+
+    // Fetch relevant chat history
+    const { data: chatHistory } = await supabase
+      .from('messages')
+      .select('content, created_at, sender_id')
+      .eq('conversation_id', aiMessage.conversation_id)
+      .order('created_at', { ascending: false })
+      .limit(20)
+
+    // Create the system message with context
+    const systemMessage = `
+You are a helpful AI assistant in a chat conversation. Keep responses concise and natural.
+
+Recent chat history for context (newest messages first):
+${chatHistory ? formatChatHistory(chatHistory) : 'No previous messages.'}
+`;
 
     // Make the API call to OpenAI
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -30,44 +67,38 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { 
-            role: 'system', 
-            content: `You are a helpful assistant. Respond in ${language} language.` 
-          },
-          { role: 'user', content: content }
+          { role: 'system', content: systemMessage },
+          { role: 'user', content: aiMessage.prompt }
         ],
       }),
     })
 
     if (!openAIResponse.ok) {
-      const errorData = await openAIResponse.text()
-      console.error('OpenAI API error:', errorData)
-      throw new Error(`OpenAI API error: ${errorData}`)
+      const error = await openAIResponse.text()
+      console.error('OpenAI API error:', error)
+      throw new Error(`OpenAI API error: ${error}`)
     }
 
     const aiData = await openAIResponse.json()
     const aiResponse = aiData.choices[0].message.content
 
-    // Save the AI response as a new message
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const { error: messageError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: conversationId,
-        content: aiResponse,
-        sender_id: null,
-        viewer_id: userId,
-        metadata: { isAIResponse: true },
-        original_language: language
+    // Update the AI message with the response
+    const { error: updateError } = await supabase
+      .from('ai_messages')
+      .update({
+        response: aiResponse,
+        status: 'completed',
+        metadata: {
+          model: 'gpt-4o-mini',
+          tokens: aiData.usage
+        },
+        updated_at: new Date().toISOString()
       })
+      .eq('id', aiMessageId)
 
-    if (messageError) {
-      console.error('Error saving AI response:', messageError)
-      throw messageError
+    if (updateError) {
+      console.error('Error updating AI message:', updateError)
+      throw updateError
     }
 
     return new Response(
@@ -75,15 +106,18 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error in chat-with-ai function:', error)
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : 'Unknown error'
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
+
+function formatChatHistory(messages: any[]): string {
+  return messages.map(msg => {
+    const timestamp = new Date(msg.created_at).toLocaleString()
+    const sender = msg.sender_id ? 'User' : 'AI'
+    return `[${timestamp}] ${sender}: ${msg.content}`
+  }).join('\n\n')
+}
