@@ -16,11 +16,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
 import { Loader2, LogOut } from 'lucide-react';
+import { useAuthProtection } from '@/hooks/use-auth-protection';
 
 export default function ProfileSetup() {
+  const { isLoading: authLoading, isAuthenticated } = useAuthProtection();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const { profile, isLoading, updateProfile } = useProfile();
+  const { profile, isLoading: profileLoading, updateProfile } = useProfile();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<ProfileFormValues>({
@@ -88,12 +90,16 @@ export default function ProfileSetup() {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-pulse">Loading...</div>
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return null; // The useAuthProtection hook will handle the redirect
   }
 
   return (

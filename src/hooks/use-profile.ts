@@ -1,24 +1,19 @@
 
-import { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProfileFormValues } from "@/components/profile-setup/types";
 
 export function useProfile() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [profile, setProfile] = useState<ProfileFormValues | null>(null);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
+  const { data: profile, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        setIsLoading(false);
-        return;
+        return null;
       }
 
       const { data, error } = await supabase
@@ -30,7 +25,7 @@ export function useProfile() {
       if (error) throw error;
 
       if (data) {
-        const formattedProfile: ProfileFormValues = {
+        return {
           firstName: data.first_name || '',
           lastName: data.last_name || '',
           tagline: data.tagline || '',
@@ -40,26 +35,17 @@ export function useProfile() {
           interests: Array.isArray(data.interests) ? data.interests.map(i => String(i)) : [],
           avatarUrl: data.avatar_url || ''
         };
-        setProfile(formattedProfile);
       }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return null;
+    },
+  });
 
-  const updateProfile = async (values: ProfileFormValues) => {
-    console.log('Starting profile update with values:', values);
-    try {
+  const updateProfileMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      // Log the current user ID to help with debugging
-      console.log('Current user ID:', user.id);
-
-      const { error, data } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
           first_name: values.firstName,
@@ -74,23 +60,22 @@ export function useProfile() {
         })
         .eq('id', user.id);
 
-      if (error) {
-        console.error('Profile update error:', error);
-        throw error;
-      }
-      
-      console.log('Profile updated successfully:', data);
-      await fetchProfile(); // Refresh the profile data
+      if (error) throw error;
       return true;
-    } catch (error) {
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast.success('Profile updated successfully');
+    },
+    onError: (error) => {
       console.error('Profile update error:', error);
-      return false;
-    }
-  };
+      toast.error('Failed to update profile');
+    },
+  });
 
   return {
     profile,
     isLoading,
-    updateProfile
+    updateProfile: updateProfileMutation.mutateAsync
   };
 }
