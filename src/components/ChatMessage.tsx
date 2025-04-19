@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -53,7 +54,10 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  const canDelete = isAI;
+  // Allow deletion if:
+  // 1. Message is from AI (sender_id is null) AND the current user is the viewer who triggered the AI
+  // 2. Message is from the current user
+  const canDelete = isAI ? (viewerId === userId) : isOwn;
 
   const handleLocationClick = () => {
     if (location) {
@@ -69,7 +73,7 @@ export function ChatMessage({
     
     try {
       setIsDeleting(true);
-      console.log('Deleting message:', id);
+      console.log('Deleting message:', id, 'isAI:', isAI, 'viewerId:', viewerId, 'userId:', userId);
       
       const { error } = await supabase
         .from('messages')
