@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
@@ -9,7 +8,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -85,11 +83,10 @@ serve(async (req) => {
       role: msg.sender_id === userId ? "user" : "other",
       content: msg.content
     }));
-
-    // Create prompt for OpenAI
-    let prompt = `Generate 3-5 short, relevant, natural-sounding reply suggestions for the following conversation. 
-    The suggestions should be in ${language} language.
-    Each suggestion should be a possible response that the user might want to send.
+    
+    // Create prompt that specifies the target language
+    let prompt = `Generate 3-5 short, relevant, natural-sounding reply suggestions in ${language} language. 
+    The suggestions should be possible responses that the user might want to send.
     Keep suggestions brief (under 100 characters each) and varied in tone and content.`;
 
     if (userLocation) {
@@ -108,7 +105,7 @@ serve(async (req) => {
       prompt += `\n${instructions.content}`;
     }
 
-    // Call OpenAI API
+    // Call OpenAI API with language-specific prompt
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {

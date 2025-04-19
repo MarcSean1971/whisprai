@@ -22,13 +22,11 @@ export function usePredictiveAnswers(conversationId: string) {
       setIsLoading(true);
       setError(null);
 
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error("Not authenticated");
       }
 
-      // Request location if available
       let userLocation = null;
       try {
         userLocation = await requestLocation();
@@ -36,7 +34,6 @@ export function usePredictiveAnswers(conversationId: string) {
         console.log("Location not available:", e);
       }
 
-      // Call the edge function
       const { data, error } = await supabase.functions.invoke("generate-predictive-answers", {
         body: {
           conversationId,
@@ -59,7 +56,6 @@ export function usePredictiveAnswers(conversationId: string) {
     }
   };
 
-  // Clear suggestions whenever the conversation changes
   useEffect(() => {
     clearSuggestions();
   }, [conversationId]);
