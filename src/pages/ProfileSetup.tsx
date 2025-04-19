@@ -16,7 +16,7 @@ import { useProfile } from '@/hooks/use-profile';
 import { supabase } from '@/integrations/supabase/client';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, LogOut } from 'lucide-react';
 
 export default function ProfileSetup() {
   const navigate = useNavigate();
@@ -102,7 +102,17 @@ export default function ProfileSetup() {
     <div className="flex flex-col h-screen bg-background w-full max-w-full">
       <div className="flex items-center justify-between gap-4 px-4 py-3 border-b">
         <Logo variant="full" />
-        <ThemeToggle />
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleLogout}
+            className="text-destructive hover:text-destructive/90"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
 
       <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-32">
