@@ -49,24 +49,14 @@ export function useUserConversations() {
         const participants = conversation.conversation_participants
           .filter(p => p.user_id !== user.id)
           .map(p => {
-            // Handle the profiles data safely with type checking
-            // TypeScript needs more explicit type checking here
+            // Ensure profile data is safely handled
             const profileData = p.profiles || null;
             
-            // Create a safe profile object with defaults
             const profile = {
-              id: typeof profileData === 'object' && profileData !== null && 'id' in profileData 
-                ? String(profileData.id) 
-                : p.user_id,
-              first_name: typeof profileData === 'object' && profileData !== null && 'first_name' in profileData 
-                ? String(profileData.first_name || '') 
-                : null,
-              last_name: typeof profileData === 'object' && profileData !== null && 'last_name' in profileData 
-                ? String(profileData.last_name || '') 
-                : null,
-              avatar_url: typeof profileData === 'object' && profileData !== null && 'avatar_url' in profileData 
-                ? String(profileData.avatar_url || '') 
-                : null
+              id: profileData?.id ? String(profileData.id) : p.user_id,
+              first_name: profileData?.first_name ?? null,
+              last_name: profileData?.last_name ?? null,
+              avatar_url: profileData?.avatar_url ?? null
             };
             
             return {
