@@ -1,36 +1,42 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/use-admin";
+import { useUserConversations } from "@/hooks/use-user-conversations";
 
 // Components
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
 import { TabsSection } from "@/components/home/TabsSection";
-
-// Sample data
-import { conversations } from "@/lib/sample-data";
+import { Loader2 } from "lucide-react";
 
 export default function Home() {
   const navigate = useNavigate();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredConversations, setFilteredConversations] = useState(conversations);
   const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
   const { isAdmin } = useAdmin();
+  const { data: conversations, isLoading, error } = useUserConversations();
+  
+  const filteredConversations = searchQuery && conversations
+    ? conversations.filter(convo => 
+        convo.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : conversations || [];
 
   useEffect(() => {
-    if (searchQuery) {
-      const filtered = conversations.filter(
-        convo => convo.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      setFilteredConversations(filtered);
-    } else {
-      setFilteredConversations(conversations);
-    }
-  }, [searchQuery]);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/');
+      }
+    };
+    
+    checkAuth();
+  }, [navigate]);
 
   const handleConversationClick = (id: string) => {
     navigate(`/chat/${id}`);
@@ -68,14 +74,23 @@ export default function Home() {
       />
       
       <div className="flex-1 overflow-y-auto">
-        <TabsSection 
-          activeTab={activeTab}
-          filteredConversations={filteredConversations}
-          searchQuery={searchQuery}
-          onConversationClick={handleConversationClick}
-          onClearSearch={handleClearSearch}
-          onTabChange={(value) => setActiveTab(value as 'chats' | 'contacts')}
-        />
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center h-[70vh] p-4">
+            <Loader2 className="h-8 w-8 text-primary animate-spin mb-4" />
+            <p className="text-muted-foreground">Loading conversations...</p>
+          </div>
+        ) : (
+          <TabsSection 
+            activeTab={activeTab}
+            filteredConversations={filteredConversations}
+            searchQuery={searchQuery}
+            onConversationClick={handleConversationClick}
+            onClearSearch={handleClearSearch}
+            onTabChange={(value) => setActiveTab(value as 'chats' | 'contacts')}
+            isLoading={isLoading}
+            error={error}
+          />
+        )}
       </div>
 
       <NewMessageButton />

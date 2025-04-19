@@ -1,6 +1,6 @@
 
 import { EmptyState } from "@/components/EmptyState";
-import { Search } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ContactsList } from "@/components/contacts/ContactsList";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
@@ -8,6 +8,7 @@ import { ConversationItem } from "@/components/ConversationItem";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentRequests } from "@/components/contacts/SentRequests";
 import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TabsSectionProps {
   activeTab: 'chats' | 'contacts';
@@ -16,6 +17,8 @@ interface TabsSectionProps {
   onConversationClick: (id: string) => void;
   onClearSearch: () => void;
   onTabChange: (value: string) => void;
+  isLoading?: boolean;
+  error?: Error | null;
 }
 
 export function TabsSection({
@@ -25,12 +28,35 @@ export function TabsSection({
   onConversationClick,
   onClearSearch,
   onTabChange,
+  isLoading = false,
+  error = null,
 }: TabsSectionProps) {
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <TabsContent value="chats" className="mt-0">
         <div className="space-y-0.5">
-          {filteredConversations.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-2 p-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-3 p-2">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-[120px]" />
+                    <Skeleton className="h-3 w-[200px]" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="p-4 text-center">
+              <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-2" />
+              <h3 className="font-medium mb-1">Error loading conversations</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error instanceof Error ? error.message : 'Unknown error occurred'}
+              </p>
+              <Button onClick={() => window.location.reload()}>Try Again</Button>
+            </div>
+          ) : filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => (
               <ConversationItem
                 key={conversation.id}

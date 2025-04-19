@@ -67,7 +67,7 @@ export function useUserConversations() {
         
       } catch (error) {
         console.error('Error in useUserConversations:', error);
-        throw error;
+        return []; // Return empty array on error instead of throwing
       }
     },
     retry: 1,
