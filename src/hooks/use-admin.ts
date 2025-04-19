@@ -1,21 +1,37 @@
 
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useAdmin = () => {
-  const { data: isAdmin, isLoading: loading } = useQuery({
+  const { data: isAdmin, isLoading, error } = useQuery({
     queryKey: ['admin-status'],
     queryFn: async () => {
+      console.log('Checking admin status...');
       const { data: { user } } = await supabase.auth.getUser();
-      return user?.email === 'marc.s@seelenbinderconsulting.com';
+      
+      if (!user) {
+        console.log('No user found');
+        return false;
+      }
+      
+      console.log('Checking email:', user.email);
+      const isAdminUser = user.email === 'marc.s@seelenbinderconsulting.com';
+      console.log('Is admin?', isAdminUser);
+      return isAdminUser;
     },
-    initialData: false,
     refetchOnMount: true,
-    refetchOnWindowFocus: false,
-    retry: false,
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: true,
+    retry: 2,
+    staleTime: 1000 * 30, // Cache for 30 seconds
   });
 
-  return { isAdmin, loading };
+  if (error) {
+    console.error('Error checking admin status:', error);
+  }
+
+  return { 
+    isAdmin: Boolean(isAdmin), 
+    loading: isLoading,
+    error 
+  };
 };

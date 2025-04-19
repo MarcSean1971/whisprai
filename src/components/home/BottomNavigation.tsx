@@ -4,18 +4,21 @@ import {
   MessageSquarePlus, 
   Users, 
   Settings, 
-  Shield
+  Shield,
+  Loader2
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface BottomNavigationProps { 
   activeTab?: 'chats' | 'contacts' | 'settings' | 'admin';
-  isAdmin: boolean;
+  isAdmin?: boolean | null;
+  isLoading?: boolean;
 }
 
 export function BottomNavigation({ 
   activeTab, 
-  isAdmin 
+  isAdmin,
+  isLoading = false
 }: BottomNavigationProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -63,7 +66,16 @@ export function BottomNavigation({
           <Settings className="h-5 w-5" />
           <span className="text-xs truncate">Settings</span>
         </Button>
-        {isAdmin && (
+        {isLoading ? (
+          <Button
+            variant="ghost"
+            className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
+            disabled
+          >
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-xs truncate">Loading</span>
+          </Button>
+        ) : isAdmin && (
           <Button
             variant={currentTab === 'admin' ? 'default' : 'ghost'}
             className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
@@ -77,4 +89,3 @@ export function BottomNavigation({
     </div>
   );
 }
-
