@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 export function useDeviceSetup() {
   const setupPolyfills = () => {
     if (typeof window !== 'undefined') {
-      // Create a proper EventEmitter class first - BEFORE any other setup
+      // Initialize EventEmitter with proper prototype chain
       if (!(window as any).EventEmitter) {
         class EventEmitter {
           private events: Record<string, Function[]> = {};
@@ -34,31 +34,26 @@ export function useDeviceSetup() {
 
         // Make EventEmitter available globally
         (window as any).EventEmitter = EventEmitter;
-        
-        // Ensure proper prototype inheritance
-        if (typeof Object.setPrototypeOf === 'function') {
-          try {
-            Object.setPrototypeOf(EventEmitter.prototype, Object.prototype);
-          } catch (e) {
-            console.error('Error setting prototype:', e);
-          }
-        }
       }
-      
-      // Set up 'events' module for proper module resolution
-      if (!(window as any).events) {
-        // Create the module structure
+
+      // Setup events module for CommonJS/Node.js compatibility
+      if (!(window as any).events || !(window as any).events.EventEmitter) {
+        // Create full events module structure
         (window as any).events = {
           EventEmitter: (window as any).EventEmitter
         };
+        
+        // Also make it available as a named export and default export
+        (window as any).events.default = (window as any).events;
       }
       
-      // Ensure global is defined for browser compatibility
+      // Add better support for Node.js built-ins
+      // Define global for Node.js compatibility
       if (!(window as any).global) {
         (window as any).global = window;
       }
       
-      // Ensure process object exists for Node.js compatibility
+      // Define process for Node.js compatibility
       if (!(window as any).process) {
         (window as any).process = {
           nextTick: (fn: Function) => setTimeout(fn, 0),
@@ -69,13 +64,33 @@ export function useDeviceSetup() {
         };
       }
       
-      // Provide minimal Buffer implementation if needed
+      // Define Buffer for Node.js compatibility
       if (!(window as any).Buffer) {
         (window as any).Buffer = {
           isBuffer: () => false,
           from: (value: any) => ({ value })
         };
       }
+      
+      // Properly define require for CommonJS modules
+      if (!(window as any).require) {
+        (window as any).require = function(moduleName: string) {
+          if (moduleName === 'events') {
+            return (window as any).events;
+          }
+          throw new Error(`Module ${moduleName} not found`);
+        };
+      }
+      
+      // Fix Object.setPrototypeOf usage with undefined prototype
+      const originalSetPrototypeOf = Object.setPrototypeOf;
+      Object.setPrototypeOf = function(obj: any, proto: any) {
+        if (proto === undefined) {
+          console.warn('Attempted to set prototype to undefined, using Object.prototype instead');
+          return originalSetPrototypeOf(obj, Object.prototype);
+        }
+        return originalSetPrototypeOf(obj, proto);
+      };
     }
   };
 
