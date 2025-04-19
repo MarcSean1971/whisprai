@@ -9,7 +9,7 @@ import { useChat } from "@/hooks/use-chat";
 import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
@@ -31,16 +31,18 @@ export default function Chat() {
     refetch();
   };
 
-  const handleNewReceivedMessage = () => {
+  const handleNewReceivedMessage = useCallback(() => {
+    console.log("New message received, translations available:", translatedContents);
     generateSuggestions();
-  };
+  }, [generateSuggestions, translatedContents]);
 
-  const handleTranslation = (messageId: string, translatedContent: string) => {
+  const handleTranslation = useCallback((messageId: string, translatedContent: string) => {
+    console.log("Translation received:", { messageId, translatedContent });
     setTranslatedContents(prev => ({
       ...prev,
       [messageId]: translatedContent
     }));
-  };
+  }, []);
 
   if (!id) {
     return (

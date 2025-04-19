@@ -1,4 +1,5 @@
-import { useRef, useEffect, useState } from "react";
+
+import { useRef, useEffect, useState, useCallback } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ export function ChatMessages({
   const { profile } = useProfile();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
+  const [translationsInProgress, setTranslationsInProgress] = useState(0);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -37,46 +39,54 @@ export function ChatMessages({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle new message notification after translations are complete
   useEffect(() => {
     if (messages.length > 0 && currentUserId) {
       const lastMessage = messages[messages.length - 1];
       
       if (
         lastMessage.sender_id !== currentUserId && 
-        lastMessage.id !== lastProcessedMessageId
+        lastMessage.id !== lastProcessedMessageId &&
+        translationsInProgress === 0
       ) {
         setLastProcessedMessageId(lastMessage.id);
         
         if (onNewReceivedMessage) {
+          console.log("All translations complete, triggering new message handler");
           onNewReceivedMessage();
         }
       }
     }
-  }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage]);
+  }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress]);
 
-  useEffect(() => {
-    const processTranslations = async () => {
-      if (!profile?.language || !currentUserId) return;
+  const processTranslations = useCallback(async () => {
+    if (!profile?.language || !currentUserId) return;
 
-      const newTranslations: Record<string, string> = {};
+    const pendingTranslations: Promise<void>[] = [];
+    let translationsCount = 0;
+
+    for (const message of messages) {
+      const isOwn = message.sender_id === currentUserId;
+      const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
       
-      for (const message of messages) {
-        const isOwn = message.sender_id === currentUserId;
-        const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
-        
-        const needsTranslation = !isOwn && 
-          !isAI && 
-          message.original_language && 
-          message.original_language !== profile.language &&
-          !translatedContents[message.id];
-        
-        if (needsTranslation) {
+      const needsTranslation = !isOwn && 
+        !isAI && 
+        message.original_language && 
+        message.original_language !== profile.language &&
+        !translatedContents[message.id];
+      
+      if (needsTranslation) {
+        translationsCount++;
+        const translationPromise = (async () => {
           try {
-            console.log(`Translating message ${message.id} from ${message.original_language} to ${profile.language}`);
+            console.log(`Starting translation for message ${message.id}`);
             const translated = await translateMessage(message.content, profile.language);
             if (translated !== message.content) {
               console.log(`Translation completed for message ${message.id}`);
-              newTranslations[message.id] = translated;
+              setTranslatedContents(prev => ({
+                ...prev,
+                [message.id]: translated
+              }));
               
               if (onTranslation) {
                 onTranslation(message.id, translated);
@@ -85,17 +95,22 @@ export function ChatMessages({
           } catch (error) {
             console.error('Translation error:', error);
           }
-        }
+        })();
+        pendingTranslations.push(translationPromise);
       }
-      
-      if (Object.keys(newTranslations).length > 0) {
-        console.log('Adding new translations:', newTranslations);
-        setTranslatedContents(prev => ({ ...prev, ...newTranslations }));
-      }
-    };
+    }
     
+    if (translationsCount > 0) {
+      setTranslationsInProgress(translationsCount);
+      await Promise.all(pendingTranslations);
+      setTranslationsInProgress(0);
+      console.log("All translations completed");
+    }
+  }, [messages, profile?.language, currentUserId, translatedContents, translateMessage, onTranslation]);
+
+  useEffect(() => {
     processTranslations();
-  }, [messages, profile?.language, translateMessage, currentUserId, translatedContents, onTranslation]);
+  }, [processTranslations]);
 
   const handleMessageDelete = () => {
     console.log('Message was deleted, UI will update via React Query cache');
@@ -124,19 +139,6 @@ export function ChatMessages({
           latitude: message.metadata.location.latitude,
           longitude: message.metadata.location.longitude
         } : undefined;
-
-        console.log("Rendering message:", {
-          id: message.id, 
-          content: message.content,
-          isOwn,
-          isAI,
-          isAIPrompt: message.metadata?.isAIPrompt,
-          metadata: message.metadata,
-          originalLanguage: message.original_language,
-          userLanguage: profile?.language,
-          needsTranslation,
-          hasTranslation: !!translatedContent
-        });
 
         return (
           <ChatMessage

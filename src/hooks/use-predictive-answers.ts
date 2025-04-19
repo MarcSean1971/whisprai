@@ -39,6 +39,11 @@ export function usePredictiveAnswers(
         console.log("Location not available:", e);
       }
 
+      console.log("Generating suggestions with translated content:", {
+        conversationId,
+        translatedContent: translatedContents
+      });
+
       // Call the edge function with translated content
       const { data, error } = await supabase.functions.invoke("generate-predictive-answers", {
         body: {
