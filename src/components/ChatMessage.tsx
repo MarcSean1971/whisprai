@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageContent } from "./MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -43,11 +42,11 @@ interface ChatMessageProps {
       longitude: number;
     };
     voiceMessage?: string;
-    attachment?: {
+    attachments?: {
       url: string;
       name: string;
       type: string;
-    };
+    }[];
   };
 }
 
@@ -83,7 +82,7 @@ export function ChatMessage({
   const canDelete = isAIMessage;
   const isAIPrompt = metadata?.isAIPrompt;
   const voiceMessagePath = metadata?.voiceMessage;
-  const attachment = metadata?.attachment;
+  const attachments = metadata?.attachments;
 
   const handleLocationClick = () => {
     if (location) {
@@ -118,7 +117,7 @@ export function ChatMessage({
         canDelete={canDelete}
         onDelete={handleDelete}
         isDeleting={isDeleting}
-        attachment={attachment}
+        attachments={attachments}
       />
 
       {voiceMessagePath && (
