@@ -42,43 +42,61 @@ serve(async (req) => {
     })
 
     if (!transcriptionResponse.ok) {
-      throw new Error(`OpenAI API error: ${await transcriptionResponse.text()}`)
+      const errorText = await transcriptionResponse.text();
+      console.error('OpenAI API error:', errorText);
+      throw new Error(`OpenAI API error: ${errorText}`);
     }
 
-    const transcriptionResult = await transcriptionResponse.json()
+    const transcriptionResult = await transcriptionResponse.json();
 
-    // Prepare file upload to Supabase Storage
-    const uploadResponse = await fetch('https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/voice_messages/' + 
-      `${userId}/${conversationId}/${Date.now()}.webm`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        'Content-Type': 'audio/webm',
-      },
-      body: bytes,
-    })
+    // Generate a unique filename for the voice message
+    const timestamp = new Date().getTime();
+    const filename = `${userId}/${conversationId}/${timestamp}.webm`;
+    
+    console.log('Uploading voice message:', filename);
+
+    // Upload to Supabase Storage
+    const uploadResponse = await fetch(
+      `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/voice_messages/${filename}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          'Content-Type': 'audio/webm',
+        },
+        body: bytes,
+      }
+    );
 
     if (!uploadResponse.ok) {
-      throw new Error(`Storage upload error: ${await uploadResponse.text()}`)
+      const uploadError = await uploadResponse.text();
+      console.error('Storage upload error:', uploadError);
+      throw new Error('Failed to upload voice message');
     }
 
-    const uploadResult = await uploadResponse.json()
+    console.log('Voice message uploaded successfully');
 
     return new Response(
       JSON.stringify({ 
         text: transcriptionResult.text, 
-        audioPath: uploadResult.Key 
+        audioPath: filename
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
 
   } catch (error) {
+    console.error('Error processing voice message:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
-    )
+    );
   }
 })

@@ -1,6 +1,6 @@
 
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -20,25 +20,33 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
       const audio = audioRef.current;
       
       const handleCanPlay = () => {
+        console.log('Audio can play now');
         setIsLoading(false);
         setError(null);
       };
 
       const handleError = (e: Event) => {
         const audioError = (e.target as HTMLAudioElement).error;
-        console.error('Audio error:', audioError);
+        console.error('Audio loading error:', audioError);
         setError(audioError?.message || 'Failed to load audio');
         setIsLoading(false);
         toast.error('Failed to load audio message');
       };
 
+      const handleLoadStart = () => {
+        console.log('Audio loading started');
+        setIsLoading(true);
+      };
+
+      audio.addEventListener('loadstart', handleLoadStart);
       audio.addEventListener('canplay', handleCanPlay);
       audio.addEventListener('error', handleError);
       
-      // Preload audio
+      // Force load the audio
       audio.load();
 
       return () => {
+        audio.removeEventListener('loadstart', handleLoadStart);
         audio.removeEventListener('canplay', handleCanPlay);
         audio.removeEventListener('error', handleError);
       };
@@ -52,9 +60,11 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
       if (isPlaying) {
         audioRef.current.pause();
       } else {
+        console.log('Attempting to play audio');
         const playPromise = audioRef.current.play();
         if (playPromise) {
           await playPromise;
+          console.log('Audio playing successfully');
         }
       }
       setIsPlaying(!isPlaying);
@@ -71,6 +81,9 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
     }
   };
 
+  // Full URL construction for voice messages
+  const audioUrl = `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`;
+
   return (
     <div className="flex items-center space-x-2 bg-secondary/20 rounded-full p-1">
       <Button 
@@ -80,10 +93,13 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
         onClick={handlePlayPause}
         disabled={isLoading || !!error}
       >
-        {isPlaying ? 
-          <Pause className="h-4 w-4" /> : 
+        {isLoading ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : isPlaying ? (
+          <Pause className="h-4 w-4" />
+        ) : (
           <Play className="h-4 w-4" />
-        }
+        )}
       </Button>
 
       <Button
@@ -101,7 +117,7 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
 
       <audio 
         ref={audioRef} 
-        src={`https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`}
+        src={audioUrl}
         onEnded={() => setIsPlaying(false)}
         controls={false}
         preload="auto"
