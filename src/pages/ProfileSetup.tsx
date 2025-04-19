@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -67,7 +66,6 @@ export default function ProfileSetup() {
     setIsSubmitting(true);
 
     try {
-      // Get the current user to log for debugging
       const { data: authData } = await supabase.auth.getUser();
       console.log('Current auth user:', authData.user);
       
@@ -78,7 +76,7 @@ export default function ProfileSetup() {
         toast.success('Profile updated successfully');
         setTimeout(() => {
           navigate('/home');
-        }, 1000); // Short delay to let the toast be visible
+        }, 1000);
       } else {
         toast.error('Failed to update profile');
       }
@@ -146,7 +144,6 @@ export default function ProfileSetup() {
       </div>
       
       <BottomNavigation 
-        onLogout={handleLogout}
         isAdmin={isAdmin}
       />
     </div>
