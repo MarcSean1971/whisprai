@@ -1,3 +1,4 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -53,7 +54,7 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  const canDelete = isAI && viewerId === userId;
+  const canDelete = isOwn || (isAI && viewerId === userId);
 
   const handleLocationClick = () => {
     if (location) {
@@ -69,6 +70,10 @@ export function ChatMessage({
     
     try {
       setIsDeleting(true);
+      
+      console.log('Attempting to delete message:', id);
+      console.log('Current user ID:', userId);
+      console.log('Message viewer ID:', viewerId);
       
       const { error } = await supabase
         .from('messages')
