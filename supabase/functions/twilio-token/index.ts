@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Twilio, jwt } from "https://esm.sh/twilio@4.13.0"
+import { AccessToken } from "https://esm.sh/@twilio/jwt-token-validator@1.7.1"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,22 +39,22 @@ serve(async (req) => {
     }
 
     try {
-      // Create an access token using the jwt.AccessToken class from Twilio
-      const token = new jwt.AccessToken(
+      // Create an access token using the AccessToken class
+      const token = new AccessToken(
         twilioAccountSid,
         twilioApiKey,
         twilioApiSecret,
         { identity }
       );
 
-      // Create a Voice grant and add it to the token
-      const voiceGrant = new jwt.AccessToken.VoiceGrant({
+      // Create a Voice grant
+      const grant = new AccessToken.VoiceGrant({
         outgoingApplicationSid: twilioTwimlAppSid,
         incomingAllow: true,
       });
 
       // Add the grant to the token
-      token.addGrant(voiceGrant);
+      token.addGrant(grant);
 
       // Generate the token string
       const tokenString = token.toJwt();
