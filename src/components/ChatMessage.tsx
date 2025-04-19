@@ -1,4 +1,3 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { TranslationIcon } from "./chat/TranslationIcon";
@@ -61,15 +60,22 @@ export function ChatMessage({
   const [isDeleting, setIsDeleting] = useState(false);
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
-  const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
   
-  // Check if this is an AI message (either generated AI response or user's AI prompt)
+  const showTranslationToggle = hasTranslation;
+  
   const isAIMessage = isAI || metadata?.isAIPrompt;
-  // Is this an AI prompt specifically (user typing "AI: something")
   const isAIPrompt = metadata?.isAIPrompt;
   
-  // Only allow deletion of AI-related messages
   const canDelete = isAIMessage;
+
+  console.log('Message rendering details:', {
+    id,
+    hasTranslation,
+    showTranslationToggle,
+    originalLanguage,
+    translatedContent,
+    content
+  });
 
   const handleLocationClick = () => {
     if (location) {
@@ -92,7 +98,7 @@ export function ChatMessage({
         .delete()
         .eq('id', id)
         .eq('conversation_id', conversationId)
-        .is('sender_id', null); // Ensure we're only deleting AI messages
+        .is('sender_id', null);
         
       if (deleteError) {
         console.error('Error deleting message:', deleteError);
@@ -157,6 +163,13 @@ export function ChatMessage({
             </div>
           </div>
 
+          {showTranslationToggle && (
+            <TranslationIcon 
+              originalLanguage={originalLanguage || 'unknown'}
+              onClick={() => setShowOriginal(!showOriginal)}
+            />
+          )}
+          
           {location && (
             <button
               onClick={handleLocationClick}
@@ -165,13 +178,6 @@ export function ChatMessage({
             >
               <MapPin className="h-4 w-4" />
             </button>
-          )}
-
-          {showTranslationToggle && (
-            <TranslationIcon 
-              originalLanguage={originalLanguage || 'unknown'}
-              onClick={() => setShowOriginal(!showOriginal)}
-            />
           )}
           
           {canDelete && (
