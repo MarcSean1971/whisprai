@@ -61,9 +61,9 @@ export function ChatMessage({
   const displayContent = showOriginal ? content : (translatedContent || content);
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== 'en';
-  const isAIPrompt = metadata?.isAIPrompt;
+  const isAIMessage = isAI || metadata?.isAIPrompt;
   
-  const canDelete = isAI;
+  const canDelete = isAIMessage;
 
   const handleLocationClick = () => {
     if (location) {
@@ -110,7 +110,7 @@ export function ChatMessage({
       "flex gap-2 w-full items-start",
       isOwn ? "justify-end" : "justify-start"
     )}>
-      {!isOwn && !isAI && sender && !isAIPrompt && (
+      {!isOwn && !isAIMessage && sender && (
         <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarImage src={sender.avatar} alt={sender.name} />
           <AvatarFallback className="bg-primary/10 text-primary text-xs">
@@ -118,7 +118,7 @@ export function ChatMessage({
           </AvatarFallback>
         </Avatar>
       )}
-      {((!isOwn && isAI) || isAIPrompt) && (
+      {isAIMessage && (
         <Avatar className="h-6 w-6 flex-shrink-0">
           <AvatarFallback className="bg-violet-500/20 text-violet-700 text-xs">
             AI
@@ -130,7 +130,7 @@ export function ChatMessage({
         "flex flex-col max-w-[75%]",
         isOwn ? "items-end" : "items-start"
       )}>
-        {showSender && sender && !isOwn && !isAI && !isAIPrompt && (
+        {showSender && sender && !isOwn && !isAIMessage && (
           <span className="text-xs text-muted-foreground mb-0.5">
             {sender.name}
           </span>
@@ -141,7 +141,7 @@ export function ChatMessage({
             "rounded-lg py-2 px-3",
             isOwn
               ? "bg-primary text-primary-foreground"
-              : isAI || isAIPrompt
+              : isAIMessage
               ? "bg-violet-500/20 border border-violet-500/20"
               : "bg-secondary"
           )}>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -18,14 +19,14 @@ export function useChat(conversationId: string) {
 
   const handleAIMessage = async (content: string) => {
     try {
-      // First, save the user's message
+      // First, save the user's message as an AI prompt with null sender_id
       const userContent = content.replace(/^AI:\s*/, '').trim();
       const { error: userMessageError } = await supabase
         .from('messages')
         .insert({
           conversation_id: conversationId,
           content: userContent,
-          sender_id: userId,
+          sender_id: null,
           status: 'sent',
           metadata: { isAIPrompt: true }
         });
