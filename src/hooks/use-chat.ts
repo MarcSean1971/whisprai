@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { detectLanguage } from "@/lib/language-detection";
@@ -34,7 +33,7 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      // Save the original user's "AI:" message with proper metadata
+      // Save the original user's "AI:" message
       const { error: userMessageError } = await supabase
         .from('messages')
         .insert({
@@ -53,7 +52,6 @@ export function useChat(conversationId: string) {
 
       // Process with AI using the trimmed content
       const trimmedContent = content.replace(/^AI:\s*/, '').trim();
-      console.log("Trimmed content for AI processing:", trimmedContent);
       
       const { data, error } = await supabase.functions.invoke('chat-with-ai', {
         body: { 
@@ -75,7 +73,6 @@ export function useChat(conversationId: string) {
         return false;
       }
 
-      toast.success('AI message processed successfully');
       return true;
     } catch (error) {
       console.error('Error processing AI message:', error);
