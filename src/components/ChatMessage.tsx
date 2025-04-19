@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageContent } from "./MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -19,6 +20,7 @@ interface ChatMessageProps {
     profiles?: {
       first_name?: string;
       last_name?: string;
+      language?: string;
     };
   };
   showSender?: boolean;
