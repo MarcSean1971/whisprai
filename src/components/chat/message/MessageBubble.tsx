@@ -14,31 +14,40 @@ interface MessageBubbleProps {
     name: string;
     type: string;
   };
+  attachments?: {
+    url: string;
+    name: string;
+    type: string;
+  }[];
 }
 
-export function MessageBubble({ content, timestamp, isOwn, isAIMessage, children, attachment }: MessageBubbleProps) {
-  const getAttachmentIcon = () => {
-    if (!attachment) return null;
-    
+export function MessageBubble({ 
+  content, 
+  timestamp, 
+  isOwn, 
+  isAIMessage, 
+  children, 
+  attachment,
+  attachments 
+}: MessageBubbleProps) {
+  const getAttachmentIcon = (file: { type: string }) => {
     const iconProps = { className: "h-6 w-6 mr-2 text-muted-foreground" };
     
-    if (attachment.type.startsWith('image/')) return <FileImage {...iconProps} />;
-    if (attachment.type.startsWith('video/')) return <FileVideo {...iconProps} />;
-    if (attachment.type.startsWith('audio/')) return <FileAudio {...iconProps} />;
-    if (attachment.type.includes('zip') || attachment.type.includes('rar')) return <FileArchive {...iconProps} />;
-    if (attachment.type.startsWith('text/')) return <FileText {...iconProps} />;
+    if (file.type.startsWith('image/')) return <FileImage {...iconProps} />;
+    if (file.type.startsWith('video/')) return <FileVideo {...iconProps} />;
+    if (file.type.startsWith('audio/')) return <FileAudio {...iconProps} />;
+    if (file.type.includes('zip') || file.type.includes('rar')) return <FileArchive {...iconProps} />;
+    if (file.type.startsWith('text/')) return <FileText {...iconProps} />;
     return <File {...iconProps} />;
   };
 
-  const renderAttachment = () => {
-    if (!attachment) return null;
-
-    if (attachment.type.startsWith('image/')) {
+  const renderFileAttachment = (file: { url: string; name: string; type: string }) => {
+    if (file.type.startsWith('image/')) {
       return (
-        <div className="mt-2 max-w-full">
+        <div className="mt-2 max-w-full" key={file.url}>
           <img 
-            src={attachment.url} 
-            alt={attachment.name}
+            src={file.url} 
+            alt={file.name}
             className="rounded-lg max-h-[300px] object-contain"
           />
         </div>
@@ -46,18 +55,28 @@ export function MessageBubble({ content, timestamp, isOwn, isAIMessage, children
     }
 
     return (
-      <div className="mt-2 flex items-center bg-muted/50 rounded-md p-2">
-        {getAttachmentIcon()}
+      <div className="mt-2 flex items-center bg-muted/50 rounded-md p-2" key={file.url}>
+        {getAttachmentIcon(file)}
         <a 
-          href={attachment.url} 
+          href={file.url} 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-sm hover:underline truncate max-w-[200px]"
         >
-          {attachment.name}
+          {file.name}
         </a>
       </div>
     );
+  };
+
+  const renderAttachments = () => {
+    if (attachments && attachments.length > 0) {
+      return attachments.map(file => renderFileAttachment(file));
+    }
+    if (attachment) {
+      return renderFileAttachment(attachment);
+    }
+    return null;
   };
 
   return (
@@ -70,7 +89,7 @@ export function MessageBubble({ content, timestamp, isOwn, isAIMessage, children
         : "bg-secondary"
     )}>
       <div className="text-sm break-words">{content}</div>
-      {renderAttachment()}
+      {renderAttachments()}
       {children}
       <div className="text-[10px] opacity-70 text-right mt-0.5">
         {timestamp}

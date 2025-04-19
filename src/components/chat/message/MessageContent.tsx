@@ -21,6 +21,11 @@ interface MessageContentProps {
     name: string;
     type: string;
   };
+  attachments?: {
+    url: string;
+    name: string;
+    type: string;
+  }[];
 }
 
 export function MessageContent({
@@ -36,7 +41,8 @@ export function MessageContent({
   canDelete,
   onDelete,
   isDeleting,
-  attachment
+  attachment,
+  attachments
 }: MessageContentProps) {
   return (
     <div className="flex items-start gap-2">
@@ -46,6 +52,7 @@ export function MessageContent({
         isOwn={isOwn}
         isAIMessage={isAIMessage}
         attachment={attachment}
+        attachments={attachments}
       />
 
       <MessageControls

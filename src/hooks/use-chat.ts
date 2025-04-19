@@ -121,7 +121,7 @@ export function useChat(conversationId: string) {
         metadata: {
           ...(location ? { location } : {}),
           ...(voiceMessageData?.audioPath ? { voiceMessage: voiceMessageData.audioPath } : {}),
-          ...(attachments && attachments.length > 0 ? { attachment: attachments[0] } : {})
+          ...(attachments && attachments.length > 0 ? { attachments } : {})
         }
       };
       
