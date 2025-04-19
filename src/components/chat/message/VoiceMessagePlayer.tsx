@@ -81,7 +81,7 @@ export function VoiceMessagePlayer({ voiceMessagePath }: VoiceMessagePlayerProps
     }
   };
 
-  // Full URL construction for voice messages
+  // Updated URL construction for voice messages
   const audioUrl = `https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/voice_messages/${voiceMessagePath}`;
 
   return (

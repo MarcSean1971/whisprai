@@ -63,6 +63,7 @@ serve(async (req) => {
         headers: {
           'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
           'Content-Type': 'audio/webm',
+          'x-upsert': 'true'  // Allow overwriting if file exists
         },
         body: bytes,
       }
