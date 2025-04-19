@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -8,14 +9,20 @@ import { format } from "date-fns";
 interface ChatMessagesProps {
   messages: any[];
   userLanguage?: string;
+  onNewReceivedMessage?: () => void;
 }
 
-export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessagesProps) {
+export function ChatMessages({ 
+  messages = [], 
+  userLanguage = 'en',
+  onNewReceivedMessage 
+}: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { translateMessage } = useTranslation();
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   const { profile } = useProfile();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -28,6 +35,26 @@ export function ChatMessages({ messages = [], userLanguage = 'en' }: ChatMessage
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    // Check if there's a new received message (not from current user)
+    if (messages.length > 0 && currentUserId) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // If this is a new message from someone else and we haven't processed it yet
+      if (
+        lastMessage.sender_id !== currentUserId && 
+        lastMessage.id !== lastProcessedMessageId
+      ) {
+        setLastProcessedMessageId(lastMessage.id);
+        
+        // Notify parent component about the new received message
+        if (onNewReceivedMessage) {
+          onNewReceivedMessage();
+        }
+      }
+    }
+  }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage]);
 
   useEffect(() => {
     const processTranslations = async () => {

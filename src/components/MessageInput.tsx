@@ -2,18 +2,15 @@
 import { useState, useRef, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile } from "lucide-react";
+import { Mic, Send, Paperclip, Smile, Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-interface SmartSuggestion {
-  id: string;
-  text: string;
-}
+import { PredictiveAnswer } from "@/types/predictive-answer";
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
   onStartRecording?: () => void;
-  suggestions?: SmartSuggestion[];
+  suggestions?: PredictiveAnswer[];
+  isLoadingSuggestions?: boolean;
   className?: string;
 }
 
@@ -21,6 +18,7 @@ export function MessageInput({
   onSendMessage,
   onStartRecording,
   suggestions = [],
+  isLoadingSuggestions = false,
   className,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
@@ -35,24 +33,41 @@ export function MessageInput({
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    onSendMessage(suggestion);
+    setMessage(suggestion);
+    // Focus the input after selecting a suggestion
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
 
   return (
     <div className={cn("w-full", className)}>
-      {suggestions.length > 0 && (
+      {(suggestions.length > 0 || isLoadingSuggestions) && (
         <div className="flex flex-wrap gap-2 mb-2">
-          {suggestions.map((suggestion) => (
+          {isLoadingSuggestions ? (
             <Button
-              key={suggestion.id}
               variant="outline"
               size="sm"
-              className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 transition-colors"
-              onClick={() => handleSuggestionClick(suggestion.text)}
+              className="bg-primary/5 border-primary/20 text-primary hover:bg-primary/10 transition-colors"
+              disabled
             >
-              {suggestion.text}
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              Generating suggestions...
             </Button>
-          ))}
+          ) : (
+            suggestions.map((suggestion) => (
+              <Button
+                key={suggestion.id}
+                variant="outline"
+                size="sm"
+                className="bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 transition-colors group"
+                onClick={() => handleSuggestionClick(suggestion.text)}
+              >
+                <Sparkles className="h-3 w-3 mr-1 text-primary/70 group-hover:text-primary/90" />
+                {suggestion.text}
+              </Button>
+            ))
+          )}
         </div>
       )}
       

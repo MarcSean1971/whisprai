@@ -2,14 +2,21 @@
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
 import { useLocation } from "@/hooks/use-location";
+import { PredictiveAnswer } from "@/types/predictive-answer";
 
 interface ChatInputProps {
   onSendMessage: (content: string, location?: { latitude: number; longitude: number; accuracy: number }) => void;
   onStartRecording: () => void;
-  suggestions: Array<{ id: string; text: string }>;
+  suggestions: PredictiveAnswer[];
+  isLoadingSuggestions?: boolean;
 }
 
-export function ChatInput({ onSendMessage, onStartRecording, suggestions }: ChatInputProps) {
+export function ChatInput({ 
+  onSendMessage, 
+  onStartRecording, 
+  suggestions = [],
+  isLoadingSuggestions = false 
+}: ChatInputProps) {
   const { requestLocation } = useLocation();
 
   const handleSendMessage = async (content: string) => {
@@ -36,6 +43,7 @@ export function ChatInput({ onSendMessage, onStartRecording, suggestions }: Chat
         onSendMessage={handleSendMessage}
         onStartRecording={onStartRecording}
         suggestions={suggestions}
+        isLoadingSuggestions={isLoadingSuggestions}
       />
     </div>
   );
