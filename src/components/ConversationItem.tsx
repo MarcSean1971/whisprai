@@ -11,7 +11,7 @@ interface ConversationItemProps {
   id: string;
   name: string;
   avatar?: string;
-  lastMessage?: string;
+  lastMessage?: any;
   timestamp?: string;
   unreadCount?: number;
   isPinned?: boolean;
@@ -35,6 +35,9 @@ export function ConversationItem({
   onClick,
 }: ConversationItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+
+  // Extract the message content properly
+  const messageContent = lastMessage?.content || "";
 
   return (
     <div
@@ -79,7 +82,7 @@ export function ConversationItem({
         <div className="flex justify-between items-center">
           {lastMessage && (
             <p className="text-sm text-muted-foreground truncate max-w-[80%]">
-              {lastMessage}
+              {messageContent}
             </p>
           )}
           
