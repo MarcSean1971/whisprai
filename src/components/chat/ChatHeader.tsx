@@ -1,7 +1,5 @@
-
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/home/BackButton";
-import { TranslationIcon } from "@/components/home/TranslationIcon";
 import { useParticipants } from "@/hooks/use-participants";
 import { CallButton } from "@/components/call/CallButton";
 import { Menu, Search, Video } from "lucide-react";
@@ -100,8 +98,6 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
             </Button>
           </>
         )}
-
-        <TranslationIcon language={participants?.[0]?.language || "unknown"} />
 
         <Sheet>
           <SheetTrigger asChild>
