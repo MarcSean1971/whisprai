@@ -54,20 +54,10 @@ export function useMessages(conversationId: string) {
   return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
+      // First fetch the messages without the sender join to ensure we get proper data
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:sender_id(
-            id,
-            profiles:profiles(
-              first_name,
-              last_name,
-              avatar_url,
-              language
-            )
-          )
-        `)
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
 
@@ -75,7 +65,48 @@ export function useMessages(conversationId: string) {
         console.error('Error fetching messages:', error);
         throw error;
       }
-      return data || [];
+
+      // Then for each message, fetch the sender information separately if needed
+      const messagesWithSender: Message[] = await Promise.all(
+        (data || []).map(async (message) => {
+          if (!message.sender_id) {
+            return message as Message;
+          }
+
+          // Fetch sender profile information
+          const { data: senderData, error: senderError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, avatar_url, language')
+            .eq('id', message.sender_id)
+            .single();
+
+          if (senderError) {
+            console.warn(`Could not fetch sender for message ${message.id}:`, senderError);
+            return {
+              ...message,
+              sender: {
+                id: message.sender_id,
+                profiles: undefined
+              }
+            } as Message;
+          }
+
+          return {
+            ...message,
+            sender: {
+              id: message.sender_id,
+              profiles: {
+                first_name: senderData.first_name,
+                last_name: senderData.last_name,
+                avatar_url: senderData.avatar_url,
+                language: senderData.language
+              }
+            }
+          } as Message;
+        })
+      );
+
+      return messagesWithSender;
     },
   });
 }
