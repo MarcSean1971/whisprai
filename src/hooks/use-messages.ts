@@ -1,9 +1,8 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
+import { toast } from "sonner";
 
-// Define a more specific type for messages
 export interface Message {
   id: string;
   content: string;
@@ -27,10 +26,15 @@ export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!conversationId) {
+      console.warn('No conversation ID provided');
+      return;
+    }
+
     console.log('Setting up realtime subscription for conversation:', conversationId);
     
     const channel = supabase
-      .channel('messages')
+      .channel(`messages:${conversationId}`)
       .on(
         'postgres_changes',
         {
@@ -46,21 +50,26 @@ export function useMessages(conversationId: string) {
             console.log('Processing delete event for message:', payload.old.id);
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
               if (!oldData) return [];
-              const filteredData = oldData.filter(message => message.id !== payload.old.id);
-              console.log('Updated messages after deletion:', filteredData.length);
-              return filteredData;
+              return oldData.filter(message => message.id !== payload.old.id);
             });
           } else if (payload.eventType === 'INSERT') {
             console.log('Processing insert event for message:', payload.new.id);
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-              const newData = oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
-              console.log('Updated messages after insertion:', newData.length);
-              return newData;
+              const newMessage = payload.new as Message;
+              return oldData ? [...oldData, newMessage] : [newMessage];
             });
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Subscription status for ${conversationId}:`, status);
+        if (status === 'SUBSCRIBED') {
+          console.log('Successfully subscribed to messages');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('Failed to subscribe to messages');
+          toast.error('Failed to connect to chat. Please refresh the page.');
+        }
+      });
 
     return () => {
       console.log('Cleaning up realtime subscription for conversation:', conversationId);
@@ -71,59 +80,76 @@ export function useMessages(conversationId: string) {
   return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
-      // First fetch the messages without the sender join to ensure we get proper data
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+      try {
+        if (!conversationId) {
+          throw new Error('No conversation ID provided');
+        }
 
-      if (error) {
-        console.error('Error fetching messages:', error);
-        throw error;
-      }
+        // First fetch messages
+        const { data: messages, error: messagesError } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('conversation_id', conversationId)
+          .order('created_at', { ascending: true });
 
-      // Then for each message, fetch the sender information separately if needed
-      const messagesWithSender: Message[] = await Promise.all(
-        (data || []).map(async (message) => {
+        if (messagesError) {
+          console.error('Error fetching messages:', messagesError);
+          throw messagesError;
+        }
+
+        if (!messages) {
+          return [];
+        }
+
+        // Then fetch sender profiles for all messages with a sender
+        const senderIds = messages
+          .filter(m => m.sender_id)
+          .map(m => m.sender_id as string);
+
+        if (senderIds.length === 0) {
+          return messages as Message[];
+        }
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, language')
+          .in('id', senderIds);
+
+        if (profilesError) {
+          console.warn('Error fetching profiles:', profilesError);
+          // Continue with messages even if profiles fail to load
+          return messages as Message[];
+        }
+
+        // Map profiles to messages
+        return messages.map(message => {
           if (!message.sender_id) {
             return message as Message;
           }
 
-          // Fetch sender profile information
-          const { data: senderData, error: senderError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url, language')
-            .eq('id', message.sender_id)
-            .single();
-
-          if (senderError) {
-            console.warn(`Could not fetch sender for message ${message.id}:`, senderError);
-            return {
-              ...message,
-              sender: {
-                id: message.sender_id,
-                profiles: undefined
-              }
-            } as Message;
-          }
-
+          const profile = profiles?.find(p => p.id === message.sender_id);
           return {
             ...message,
-            sender: {
+            sender: profile ? {
               id: message.sender_id,
               profiles: {
-                first_name: senderData.first_name,
-                last_name: senderData.last_name,
-                avatar_url: senderData.avatar_url,
-                language: senderData.language
+                first_name: profile.first_name,
+                last_name: profile.last_name,
+                avatar_url: profile.avatar_url,
+                language: profile.language
               }
+            } : {
+              id: message.sender_id,
+              profiles: undefined
             }
           } as Message;
-        })
-      );
-
-      return messagesWithSender;
+        });
+      } catch (error) {
+        console.error('Error in messages query:', error);
+        toast.error('Failed to load messages. Please try again.');
+        throw error;
+      }
     },
+    retry: 1,
   });
 }
