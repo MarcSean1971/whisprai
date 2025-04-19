@@ -10,7 +10,7 @@ interface ProcessVersions {
   modules: string;
   http_parser: string;
   openssl: string;
-  [key: string]: string; // Add index signature for compatibility with NodeJS.ProcessVersions
+  [key: string]: string; // Index signature for compatibility with NodeJS.ProcessVersions
 }
 
 interface Process {
@@ -30,6 +30,7 @@ interface Process {
   ppid: number;
   title: string;
   arch: string;
+  platform: "darwin" | "win32" | "linux" | "aix" | "android" | "freebsd" | "haiku" | "openbsd" | "sunos" | "cygwin" | "netbsd";
   // Add other required Process properties
 }
 
@@ -93,6 +94,13 @@ interface Window {
     title?: string;
     cwd?: () => string;
     exit?: (code?: number) => never;
+    argv0?: string;
+    execArgv?: string[];
+    execPath?: string;
+    abort?: () => never;
+    chdir?: (directory: string) => void;
+    kill?: (pid: number, signal?: string | number) => boolean;
+    ppid?: number;
   } & Partial<Process>;
   Buffer?: BufferConstructor;
   global?: Window;

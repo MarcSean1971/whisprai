@@ -1,4 +1,3 @@
-
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -57,7 +56,12 @@ export function useDeviceSetup() {
       if (!window.process) {
         window.process = {
           nextTick: (fn: Function) => setTimeout(fn, 0),
-          env: { NODE_ENV: 'production' },
+          env: { 
+            NODE_ENV: 'production',
+            PATH: '/usr/local/bin:/usr/bin:/bin',
+            HOME: '/home/user',
+            LANG: 'en_US.UTF-8'
+          },
           version: 'v14.0.0',
           versions: {
             node: '14.0.0',
@@ -78,7 +82,14 @@ export function useDeviceSetup() {
           title: 'browser',
           arch: "x64", // Changed from "browser" to a valid architecture
           cwd: () => '/',
-          exit: (code?: number) => { throw new Error(`Process exited with code ${code}`); }
+          exit: (code?: number) => { throw new Error(`Process exited with code ${code}`); },
+          argv0: 'node',
+          execArgv: [],
+          execPath: '/usr/local/bin/node',
+          abort: () => { throw new Error('Process aborted'); },
+          chdir: (directory: string) => { /* Mock implementation */ },
+          kill: (pid: number) => false,
+          ppid: 0
         };
       }
 
