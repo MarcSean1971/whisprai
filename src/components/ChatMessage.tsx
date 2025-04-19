@@ -69,7 +69,7 @@ export function ChatMessage({
     
     try {
       setIsDeleting(true);
-      console.log('Attempting to delete message:', id);
+      console.log('Deleting message:', id);
       
       const { error } = await supabase
         .from('messages')
@@ -82,10 +82,11 @@ export function ChatMessage({
         throw error;
       }
       
+      console.log('Message deleted successfully:', id);
       toast.success('Message deleted');
       if (onDelete) onDelete();
     } catch (error) {
-      console.error('Error deleting message:', error);
+      console.error('Error in delete handler:', error);
       toast.error('Failed to delete message');
     } finally {
       setIsDeleting(false);

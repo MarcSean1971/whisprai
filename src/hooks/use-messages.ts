@@ -27,31 +27,35 @@ export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Real-time subscription for messages changes
+    console.log('Setting up realtime subscription for conversation:', conversationId);
+    
     const channel = supabase
       .channel('messages')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events
+          event: '*',
           schema: 'public',
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          console.log('Realtime event received:', payload.eventType, payload);
+          console.log('Realtime event received:', payload);
           
           if (payload.eventType === 'DELETE') {
-            // When a message is deleted, remove it from the cache
+            console.log('Processing delete event for message:', payload.old.id);
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
               if (!oldData) return [];
-              console.log('Filtering out deleted message:', payload.old.id);
-              return oldData.filter(message => message.id !== payload.old.id);
+              const filteredData = oldData.filter(message => message.id !== payload.old.id);
+              console.log('Updated messages after deletion:', filteredData.length);
+              return filteredData;
             });
           } else if (payload.eventType === 'INSERT') {
-            // When a message is inserted, add it to the cache
+            console.log('Processing insert event for message:', payload.new.id);
             queryClient.setQueryData(['messages', conversationId], (oldData: Message[] | undefined) => {
-              return oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
+              const newData = oldData ? [...oldData, payload.new as Message] : [payload.new as Message];
+              console.log('Updated messages after insertion:', newData.length);
+              return newData;
             });
           }
         }
@@ -59,7 +63,7 @@ export function useMessages(conversationId: string) {
       .subscribe();
 
     return () => {
-      console.log('Cleaning up realtime subscription');
+      console.log('Cleaning up realtime subscription for conversation:', conversationId);
       supabase.removeChannel(channel);
     };
   }, [conversationId, queryClient]);

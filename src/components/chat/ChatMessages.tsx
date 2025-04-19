@@ -53,30 +53,6 @@ export function ChatMessages({
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('messages-channel')
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'messages',
-          filter: `conversation_id=eq.${messages[0]?.conversation_id}`
-        },
-        (payload) => {
-          console.log('Message deleted:', payload);
-          const updatedMessages = messages.filter(msg => msg.id !== payload.old.id);
-          messages = updatedMessages;
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [messages]);
-
-  useEffect(() => {
     const processTranslations = async () => {
       if (!profile?.language || !currentUserId) return;
 
