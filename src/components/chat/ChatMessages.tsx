@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -128,7 +127,7 @@ export function ChatMessages({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
         <MessageSkeleton />
         <MessageSkeleton />
         <MessageSkeleton />
@@ -137,7 +136,7 @@ export function ChatMessages({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+    <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
       {messages.map((message, index) => {
         const isOwn = message.sender_id === currentUserId;
         const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
