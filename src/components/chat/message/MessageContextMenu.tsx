@@ -1,3 +1,4 @@
+
 import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useState } from "react";
+import EmojiPicker from "emoji-picker-react";
+import { useMessageReactions } from "@/hooks/use-message-reactions";
 
 interface MessageContextMenuProps {
   children: React.ReactNode;
@@ -25,6 +34,14 @@ export function MessageContextMenu({
   isOwn,
   messageId
 }: MessageContextMenuProps) {
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const { addReaction } = useMessageReactions(messageId);
+
+  const handleEmojiSelect = (emojiData: any) => {
+    addReaction({ emoji: emojiData.emoji });
+    setIsEmojiPickerOpen(false);
+  };
+
   return (
     <div className="group flex items-start gap-2">
       {isOwn && (
@@ -54,10 +71,21 @@ export function MessageContextMenu({
                   <span>Toggle Translation</span>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="cursor-pointer">
-                <Smile className="mr-2 h-4 w-4" />
-                <span>Add Reaction</span>
-              </DropdownMenuItem>
+              <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+                <PopoverTrigger asChild>
+                  <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                    <Smile className="mr-2 h-4 w-4" />
+                    <span>Add Reaction</span>
+                  </DropdownMenuItem>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align={isOwn ? "start" : "end"}>
+                  <EmojiPicker
+                    width={300}
+                    height={350}
+                    onEmojiClick={handleEmojiSelect}
+                  />
+                </PopoverContent>
+              </Popover>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -94,10 +122,21 @@ export function MessageContextMenu({
                   <span>Toggle Translation</span>
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem className="cursor-pointer">
-                <Smile className="mr-2 h-4 w-4" />
-                <span>Add Reaction</span>
-              </DropdownMenuItem>
+              <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+                <PopoverTrigger asChild>
+                  <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                    <Smile className="mr-2 h-4 w-4" />
+                    <span>Add Reaction</span>
+                  </DropdownMenuItem>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align={isOwn ? "start" : "end"}>
+                  <EmojiPicker
+                    width={300}
+                    height={350}
+                    onEmojiClick={handleEmojiSelect}
+                  />
+                </PopoverContent>
+              </Popover>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
