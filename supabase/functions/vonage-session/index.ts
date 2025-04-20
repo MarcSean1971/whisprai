@@ -46,46 +46,52 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Format auth header correctly - remove 'Basic' prefix as it's added by Vonage
-    const authHeader = btoa(`${apiKey}:${apiSecret}`);
-    console.log('Attempting to create session with Vonage');
+    // Create auth header with proper base64 encoding
+    const auth = btoa(`${apiKey}:${apiSecret}`);
+    const authHeader = `Basic ${auth}`;
+    console.log('Creating Vonage session with provided credentials');
 
-    // Create session using Vonage Video API
+    // Create session with detailed logging
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
         'X-OPENTOK-AUTH': authHeader,
-        'X-TB-VERSION': '1',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: 'medium=routed&archiveMode=manual'
     });
 
+    const sessionResponseText = await sessionResponse.text();
+    console.log('Session response status:', sessionResponse.status);
+    console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
+    console.log('Session response body:', sessionResponseText);
+
     if (!sessionResponse.ok) {
-      const errorText = await sessionResponse.text();
-      console.error('Failed to create session:', errorText);
-      throw new Error(`Failed to create Vonage session: ${errorText}`);
+      throw new Error(`Failed to create Vonage session: ${sessionResponseText}`);
     }
 
-    const sessionData = await sessionResponse.json();
-    console.log('Session response:', sessionData);
-    
+    let sessionData;
+    try {
+      sessionData = JSON.parse(sessionResponseText);
+    } catch (e) {
+      console.error('Failed to parse session response:', e);
+      throw new Error('Invalid response format from Vonage');
+    }
+
     if (!sessionData.session_id) {
+      console.error('Invalid session data:', sessionData);
       throw new Error('Invalid session response from Vonage');
     }
 
     const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token using API Key and Secret with corrected auth header
+    // Generate token with same auth method
     const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
         'X-OPENTOK-AUTH': authHeader,
-        'X-TB-VERSION': '1',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
         'session_id': sessionId,
@@ -95,16 +101,25 @@ serve(async (req) => {
       }).toString()
     });
 
+    const tokenResponseText = await tokenResponse.text();
+    console.log('Token response status:', tokenResponse.status);
+    console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
+    console.log('Token response body:', tokenResponseText);
+
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Failed to generate token:', errorText);
-      throw new Error(`Failed to generate Vonage token: ${errorText}`);
+      throw new Error(`Failed to generate Vonage token: ${tokenResponseText}`);
     }
 
-    const tokenData = await tokenResponse.json();
-    console.log('Token response:', tokenData);
-    
+    let tokenData;
+    try {
+      tokenData = JSON.parse(tokenResponseText);
+    } catch (e) {
+      console.error('Failed to parse token response:', e);
+      throw new Error('Invalid token response format from Vonage');
+    }
+
     if (!tokenData.token) {
+      console.error('Invalid token data:', tokenData);
       throw new Error('Invalid token response from Vonage');
     }
 
