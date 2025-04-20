@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
@@ -144,7 +143,6 @@ export function useDeviceSetup() {
       device.setup(token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'],
         warnings: true
       });
 
