@@ -24,26 +24,21 @@ serve(async (req) => {
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
 
-    const sessionId = crypto.randomUUID()
-
-    // Create an NCCO that connects to the conversation
-    const ncco = [
-      {
-        action: 'conversation',
-        name: `conversation-${sessionId}`,
-        startOnEnter: true,
-        endOnExit: true,
-        record: false,
-        canSpeak: ['*'],
-        canHear: ['*'],
-        eventWebhook: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/vonage-events?sessionId=${sessionId}`
+    // Generate a JWT token for the client SDK
+    const token = vonage.generateJwt({
+      acl: {
+        paths: {
+          "/*/users/**": {},
+          "/*/conversations/**": {},
+          "/*/sessions/**": {}
+        }
       }
-    ]
+    })
 
     return new Response(
       JSON.stringify({ 
-        sessionId,
-        ncco
+        token,
+        applicationId: Deno.env.get('VONAGE_APPLICATION_ID')
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

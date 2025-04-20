@@ -6,27 +6,37 @@ import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
 
 interface VoiceCallProps {
-  sessionId: string
-  ncco: any[]
-  recipientId: string
-  onError: (error: Error) => void
+  recipientId: string;
+  onError: (error: Error) => void;
+}
+
+declare global {
+  interface Window {
+    Vonage: any;
+  }
 }
 
 export function VoiceCall({ 
-  sessionId, 
-  ncco, 
-  recipientId, 
+  recipientId,
   onError 
 }: VoiceCallProps) {
   const [isCallActive, setIsCallActive] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
   const ringtoneRef = useRef<HTMLAudioElement>(null)
-  const callId = useRef<string | null>(null)
-  
+  const clientRef = useRef<any>(null)
+  const sessionRef = useRef<any>(null)
+
   useEffect(() => {
+    // Load Vonage Client SDK script
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/npm/@vonage/client-sdk@1.3.0/dist/vonageClient.min.js'
+    script.async = true
+    document.body.appendChild(script)
+
     return () => {
-      if (callId.current) {
-        endCall().catch(console.error)
+      document.body.removeChild(script)
+      if (sessionRef.current) {
+        sessionRef.current.disconnect()
       }
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
@@ -34,46 +44,47 @@ export function VoiceCall({
     }
   }, [])
 
-  const startCall = async () => {
+  const initializeCall = async () => {
     try {
       setIsConnecting(true)
       
-      // Get token for the current user
-      const { data: userData } = await supabase.auth.getUser()
-      if (!userData.user) throw new Error('User not authenticated')
-
-      const { data: tokenResponse, error: tokenError } = await supabase.functions.invoke(
-        'vonage-token',
+      const { data: sessionResponse, error: sessionError } = await supabase.functions.invoke(
+        'vonage-session',
         {
-          body: { 
-            sessionId,
-            userId: userData.user.id
-          }
+          body: { recipientId }
         }
       )
 
-      if (tokenError) throw new Error(tokenError.message)
+      if (sessionError) throw new Error(sessionError.message)
       
+      const { token, applicationId } = sessionResponse
+      
+      if (!token || !applicationId) {
+        throw new Error('Failed to get Vonage credentials')
+      }
+
+      // Initialize Vonage client
+      clientRef.current = new window.Vonage(applicationId, {
+        debug: true
+      })
+
+      // Login with the JWT token
+      await clientRef.current.login(token)
+
+      // Create a session
+      sessionRef.current = await clientRef.current.createSession()
+
+      // Enable audio
+      await sessionRef.current.enableAudio()
+
       // Start playing ringtone
       if (ringtoneRef.current) {
         ringtoneRef.current.play().catch(console.error)
       }
 
-      // Create a voice call
-      const { data: callResponse, error: callError } = await supabase.functions.invoke(
-        'vonage-create-call',
-        {
-          body: { 
-            sessionId,
-            recipientId,
-            ncco
-          }
-        }
-      )
-
-      if (callError) throw new Error(callError.message)
+      // Call the recipient
+      await sessionRef.current.callUser(recipientId)
       
-      callId.current = callResponse.callId
       setIsCallActive(true)
       toast.success('Call connected')
       
@@ -89,30 +100,21 @@ export function VoiceCall({
   }
 
   const endCall = async () => {
-    if (!callId.current) return
-    
     try {
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
       }
 
-      const { error } = await supabase.functions.invoke(
-        'vonage-end-call',
-        {
-          body: { 
-            callId: callId.current 
-          }
-        }
-      )
-
-      if (error) throw new Error(error.message)
+      if (sessionRef.current) {
+        await sessionRef.current.hangup()
+        sessionRef.current = null
+      }
       
       toast.success('Call ended')
     } catch (error) {
       console.error('Error ending call:', error)
     } finally {
       setIsCallActive(false)
-      callId.current = null
     }
   }
 
@@ -147,7 +149,7 @@ export function VoiceCall({
           <Button
             variant="default"
             size="icon"
-            onClick={startCall}
+            onClick={initializeCall}
             disabled={isConnecting}
           >
             <PhoneCall className="h-5 w-5" />
