@@ -55,19 +55,33 @@ export function MessageControls({
     if (message.trim()) {
       analyzeToxicity(message);
     } else {
-      // Reset toxicity score when message is empty
       analyzeToxicity('');
     }
   }, [message, analyzeToxicity]);
 
   const getButtonStyle = () => {
-    const baseStyle = "transition-all duration-300";
-    if (!message.trim()) return baseStyle;
+    if (!message.trim()) {
+      return "bg-[#FFDEE2] hover:bg-[#FFD0D6] transition-colors duration-200";
+    }
 
-    const green = `rgba(34, 197, 94, ${1 - toxicityScore / 100})`;
-    const red = `rgba(239, 68, 68, ${toxicityScore / 100})`;
-    
-    return `${baseStyle} bg-gradient-to-r from-${green} to-${red}`;
+    if (isAnalyzing) {
+      return "bg-gray-200 hover:bg-gray-300 transition-colors duration-200";
+    }
+
+    let baseColor = "";
+    if (toxicityScore <= 20) {
+      baseColor = "bg-gradient-to-r from-[#F2FCE2] to-[#E0F5C8]";
+    } else if (toxicityScore <= 40) {
+      baseColor = "bg-gradient-to-r from-[#FEF7CD] to-[#FFF0A0]";
+    } else if (toxicityScore <= 60) {
+      baseColor = "bg-gradient-to-r from-[#FEC6A1] to-[#FEB182]";
+    } else if (toxicityScore <= 80) {
+      baseColor = "bg-gradient-to-r from-[#FFA07A] to-[#FF7F50]";
+    } else {
+      baseColor = "bg-gradient-to-r from-[#FF6B6B] to-[#ea384c]";
+    }
+
+    return `${baseColor} transition-all duration-200 ease-in-out hover:opacity-90`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -162,12 +176,11 @@ export function MessageControls({
             value={message}
             onChange={(e) => {
               onChange(e.target.value);
-              // Note: analyzeToxicity is now called via useEffect
             }}
             placeholder="Type a message..."
             className={cn(
               "pr-10 py-6 rounded-full",
-              isAnalyzing && "pr-16" // Add space for loading indicator
+              isAnalyzing && "pr-16"
             )}
             disabled={disabled}
           />

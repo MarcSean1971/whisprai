@@ -8,10 +8,17 @@ export function useToxicityAnalysis() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastAnalyzedText, setLastAnalyzedText] = useState('');
 
-  // Debounced analysis function to prevent too many API calls
   const debouncedAnalyze = useCallback(
     debounce(async (message: string) => {
-      if (!message.trim() || message === lastAnalyzedText) {
+      // Reset score if message is empty
+      if (!message.trim()) {
+        setToxicityScore(0);
+        setLastAnalyzedText('');
+        return;
+      }
+
+      // Skip if the same text was just analyzed
+      if (message === lastAnalyzedText) {
         return;
       }
 
@@ -22,15 +29,33 @@ export function useToxicityAnalysis() {
         });
 
         if (error) throw error;
-        setToxicityScore(data.score);
+        
+        // Smooth transition to new score
+        const currentScore = toxicityScore;
+        const targetScore = data.score;
+        const step = (targetScore - currentScore) / 10;
+        
+        // Animate the score change
+        let frame = 0;
+        const animate = () => {
+          if (frame < 10) {
+            setToxicityScore(prev => prev + step);
+            frame++;
+            requestAnimationFrame(animate);
+          } else {
+            setToxicityScore(targetScore);
+          }
+        };
+        
+        requestAnimationFrame(animate);
         setLastAnalyzedText(message);
       } catch (error) {
         console.error('Error analyzing toxicity:', error);
       } finally {
         setIsAnalyzing(false);
       }
-    }, 300), // 300ms delay before analyzing
-    []
+    }, 300),
+    [toxicityScore]
   );
 
   useEffect(() => {
