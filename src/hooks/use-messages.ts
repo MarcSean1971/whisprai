@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -83,17 +82,28 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
-      // Use a simpler query structure that doesn't rely on specific foreign key names
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:sender_id(id),
-          parent:parent_id(
+          sender:profiles!messages_sender_id_fkey(
+            id,
+            first_name,
+            last_name,
+            avatar_url,
+            language
+          ),
+          parent:messages!messages_parent_id_fkey(
             id,
             content,
             created_at,
-            sender_id
+            sender:profiles!messages_sender_id_fkey(
+              id,
+              first_name,
+              last_name,
+              avatar_url,
+              language
+            )
           )
         `)
         .eq('conversation_id', conversationId)
@@ -111,43 +121,12 @@ export function useMessages(conversationId: string) {
         return [];
       }
 
-      // After getting the messages, we'll fetch the profile data separately
-      const senderIds = messages
-        .map(m => m.sender_id)
-        .concat(messages.filter(m => m.parent).map(m => m.parent.sender_id))
-        .filter(Boolean);
-      
-      const uniqueSenderIds = [...new Set(senderIds)];
-      
-      // Fetch all relevant profiles in a single query
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', uniqueSenderIds);
-        
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        // Continue without profile data
-      }
-      
-      // Create a map of profiles by ID for easy access
-      const profilesMap = (profiles || []).reduce((map, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {});
-
-      // Transform the data to match the expected Message interface
       return messages.map(message => {
-        // Basic validation of required fields
         if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
           console.error('Invalid message structure:', message);
           return null;
         }
-        
-        const senderProfile = message.sender_id ? profilesMap[message.sender_id] : null;
-        const parentSenderProfile = message.parent?.sender_id ? profilesMap[message.parent.sender_id] : null;
-        
-        // Create a properly structured message object based on what's returned from DB
+
         return {
           id: message.id,
           content: message.content,
@@ -159,31 +138,31 @@ export function useMessages(conversationId: string) {
           metadata: message.metadata,
           private_room: message.private_room,
           private_recipient: message.private_recipient,
-          sender: message.sender_id ? {
-            id: message.sender_id,
-            profiles: senderProfile ? {
-              first_name: senderProfile.first_name,
-              last_name: senderProfile.last_name,
-              avatar_url: senderProfile.avatar_url,
-              language: senderProfile.language
-            } : undefined
+          sender: message.sender ? {
+            id: message.sender.id,
+            profiles: {
+              first_name: message.sender.first_name,
+              last_name: message.sender.last_name,
+              avatar_url: message.sender.avatar_url,
+              language: message.sender.language
+            }
           } : null,
           parent: message.parent ? {
             id: message.parent.id,
             content: message.parent.content,
             created_at: message.parent.created_at,
-            sender: message.parent.sender_id ? {
-              id: message.parent.sender_id,
-              profiles: parentSenderProfile ? {
-                first_name: parentSenderProfile.first_name,
-                last_name: parentSenderProfile.last_name,
-                avatar_url: parentSenderProfile.avatar_url,
-                language: parentSenderProfile.language
-              } : null
+            sender: message.parent.sender ? {
+              id: message.parent.sender.id,
+              profiles: {
+                first_name: message.parent.sender.first_name,
+                last_name: message.parent.sender.last_name,
+                avatar_url: message.parent.sender.avatar_url,
+                language: message.parent.sender.language
+              }
             } : null
           } : null
         };
-      }).filter(Boolean); // Remove any null messages from validation
+      }).filter(Boolean);
     }
   });
 }
