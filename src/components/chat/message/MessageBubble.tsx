@@ -3,6 +3,7 @@ import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { MessageReactions } from "@/components/chat/message/reactions/MessageReactions";
 
 interface MessageBubbleProps {
   id: string;
