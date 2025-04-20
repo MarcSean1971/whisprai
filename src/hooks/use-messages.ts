@@ -136,25 +136,36 @@ export function useMessages(conversationId: string) {
         }
       }
 
+      // Process the messages to have the correct type structure
       const messagesWithProfiles = messages.map(message => {
-        if (!message.sender_id) {
-          return message;
-        }
-        
-        const profile = profilesMap[message.sender_id];
-        
-        return {
+        // Process sender information
+        let processedMessage: Message = {
           ...message,
-          sender: profile ? {
+          sender: message.sender_id ? {
             id: message.sender_id,
-            profiles: {
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              avatar_url: profile.avatar_url,
-              language: profile.language
-            }
-          } : { id: message.sender_id }
+            profiles: profilesMap[message.sender_id] ? {
+              first_name: profilesMap[message.sender_id].first_name,
+              last_name: profilesMap[message.sender_id].last_name,
+              avatar_url: profilesMap[message.sender_id].avatar_url,
+              language: profilesMap[message.sender_id].language
+            } : undefined
+          } : undefined
         };
+
+        // Ensure parent message has the right structure if it exists
+        if (message.parent && typeof message.parent === 'object') {
+          processedMessage.parent = {
+            id: message.parent.id,
+            content: message.parent.content,
+            created_at: message.parent.created_at,
+            sender: message.parent.sender ? {
+              id: message.parent.sender.id,
+              profiles: message.parent.sender.profiles || null
+            } : null
+          };
+        }
+
+        return processedMessage;
       });
 
       return messagesWithProfiles;

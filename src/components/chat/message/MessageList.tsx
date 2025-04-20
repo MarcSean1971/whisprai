@@ -1,9 +1,10 @@
 
 import { format } from "date-fns";
 import { ChatMessage } from "@/components/ChatMessage";
+import { Message } from "@/hooks/use-messages";
 
 interface MessageListProps {
-  messages: any[];
+  messages: Message[];
   currentUserId: string | null;
   profile?: { language?: string };
   translatedContents: Record<string, string>;
