@@ -9,6 +9,7 @@ import { ContactsList } from "@/components/contacts/ContactsList";
 import { SentRequests } from "@/components/contacts/SentRequests";
 import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { AddContactDialog } from "@/components/contacts/AddContactDialog";
+import { ImportContactsDialog } from "@/components/contacts/ImportContactsDialog";
 
 export default function Contacts() {
   const navigate = useNavigate();
@@ -35,7 +36,12 @@ export default function Contacts() {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
         onSearchToggle={handleSearchToggle}
-        rightAction={<AddContactDialog />}
+        rightAction={
+          <div className="flex gap-2">
+            <ImportContactsDialog />
+            <AddContactDialog />
+          </div>
+        }
       />
       
       <div className="flex-1 overflow-y-auto">
