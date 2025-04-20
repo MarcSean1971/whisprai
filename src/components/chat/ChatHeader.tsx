@@ -30,16 +30,19 @@ export function ChatHeader({
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   
-  // Format participants for display
-  const participants = conversation?.participants?.map(p => ({
+  // Format participants for display, excluding current user
+  const otherParticipants = conversation?.participants?.filter(p => 
+    profile && p.id !== profile.id
+  ) || [];
+
+  const participants = otherParticipants.map(p => ({
     src: p.avatar_url || '',
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
-  })) || [];
+  }));
 
   // Format participant names for text display
-  const participantNames = conversation?.participants
-    ?.filter(p => profile && p.id !== profile.id)
-    ?.map(p => `${p.first_name || ''} ${p.last_name || ''}`.trim())
+  const participantNames = otherParticipants
+    .map(p => `${p.first_name || ''} ${p.last_name || ''}`.trim())
     .join(', ');
 
   const handleParticipantClick = (participant: any) => {
