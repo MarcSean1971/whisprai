@@ -1,4 +1,3 @@
-
 import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ export function MessageContextMenu({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
-  const { addReaction, removeReaction } = useMessageReactions(messageId);
+  const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
@@ -147,12 +146,8 @@ export function MessageContextMenu({
 
       <Popover 
         open={isEmojiPickerOpen} 
-        onOpenChange={(open) => {
-          setIsEmojiPickerOpen(open);
-          if (!open) {
-            setIsDropdownOpen(false);
-          }
-        }}
+        onOpenChange={setIsEmojiPickerOpen}
+        modal={true}
       >
         <PopoverTrigger asChild>
           <Button 
@@ -162,11 +157,23 @@ export function MessageContextMenu({
           />
         </PopoverTrigger>
         <PopoverContent 
-          className="w-full p-0 z-[100]"
+          className="w-full p-4 z-[100]"
           side="bottom"
           align={isOwn ? "start" : "end"}
           sideOffset={5}
         >
+          <div className="flex justify-between items-center mb-2">
+            <span className="text-sm font-medium">Choose an emoji</span>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => setIsEmojiPickerOpen(false)}
+              className="h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+          </div>
           <EmojiPicker
             width={300}
             height={350}

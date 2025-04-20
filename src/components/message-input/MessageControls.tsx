@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile, Camera } from "lucide-react";
+import { Mic, Send, Paperclip, Smile, Camera, X } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useState } from "react";
 import { 
@@ -96,11 +96,23 @@ export function MessageControls({
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-full p-0" 
+            className="w-full p-4 z-[100]" 
             align="end"
             side="top"
             sideOffset={5}
           >
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium">Choose an emoji</span>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsEmojiPickerOpen(false)}
+                className="h-8 w-8"
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </div>
             <EmojiPicker
               width={300}
               height={350}
