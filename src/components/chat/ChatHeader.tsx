@@ -1,6 +1,5 @@
 
 import { BackButton } from "@/components/ui/back-button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -30,7 +29,6 @@ export function ChatHeader({
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   
-  // Format participants for display, excluding current user
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
   ) || [];
@@ -40,10 +38,11 @@ export function ChatHeader({
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
   }));
 
-  // Format participant names for text display
-  const participantNames = otherParticipants
-    .map(p => `${p.first_name || ''} ${p.last_name || ''}`.trim())
-    .join(', ');
+  // Format participant names and taglines for display
+  const participantDetails = otherParticipants.map(p => ({
+    name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+    tagline: p.tagline || ''
+  }));
 
   const handleParticipantClick = (participant: any) => {
     setSelectedParticipant(participant);
@@ -55,14 +54,21 @@ export function ChatHeader({
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-4">
           <BackButton to="/chats" />
-          <div className="flex flex-col">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
               <AvatarStack 
                 avatars={participants} 
                 limit={3} 
-                size="sm"
+                size="lg"
               />
-              <span className="font-semibold">{participantNames}</span>
+              <div className="flex flex-col">
+                <span className="font-semibold">
+                  {participantDetails.map(p => p.name).join(', ')}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {participantDetails.map(p => p.tagline).filter(Boolean).join(', ')}
+                </span>
+              </div>
             </div>
           </div>
         </div>
