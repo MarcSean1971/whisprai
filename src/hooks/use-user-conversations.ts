@@ -76,17 +76,20 @@ export function useUserConversations() {
           // For direct chats, we usually show just the other person
           const primaryParticipant = otherParticipants[0]?.profiles;
           
+          // Fixed the error by removing the reference to conversation.name and using a default name instead
+          const displayName = conversation.is_group 
+            ? 'Group Chat' 
+            : primaryParticipant 
+              ? `${primaryParticipant.first_name || ''} ${primaryParticipant.last_name || ''}`.trim() || `User ${primaryParticipant.id.slice(0, 8)}`
+              : 'Unknown User';
+          
           return {
             ...conversation,
             participants: otherParticipants.map(p => ({
               user_id: p.user_id,
               profile: p.profiles
             })),
-            name: conversation.is_group 
-              ? conversation.name || 'Group Chat' 
-              : primaryParticipant 
-                ? `${primaryParticipant.first_name || ''} ${primaryParticipant.last_name || ''}`.trim() || `User ${primaryParticipant.id.slice(0, 8)}`
-                : 'Unknown User',
+            name: displayName,
             avatar: primaryParticipant?.avatar_url || null
           };
         }));
