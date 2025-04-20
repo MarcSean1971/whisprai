@@ -1,27 +1,12 @@
-import React, { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { 
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { Mic, Send, Paperclip, Smile, Camera, Sparkles, X } from "lucide-react";
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
-import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
-import { toast } from "sonner";
+
+import React, { useState } from "react";
+import { AttachmentControls } from "./controls/AttachmentControls";
+import { EnhanceButton } from "./controls/EnhanceButton";
+import { MessageField } from "./controls/MessageField";
+import { SendButton } from "./controls/SendButton";
+import { WarningDialog } from "./controls/WarningDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface MessageControlsProps {
   message: string;
@@ -42,28 +27,17 @@ export function MessageControls({
   onAttachmentClick,
   onCameraClick,
   onSubmit,
-  disabled,
+  disabled = false,
   inputRef,
   canAttach = true
 }: MessageControlsProps) {
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [toxicityScore, setToxicityScore] = useState(0);
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
-  const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
 
-  useEffect(() => {
-    if (message.trim()) {
-      analyzeToxicity(message);
-    }
-  }, [message, analyzeToxicity]);
-
-  useEffect(() => {
-    if (!isAnalyzing && toxicityScore !== undefined) {
-      setLastToxicityScore(toxicityScore);
-    }
-  }, [toxicityScore, isAnalyzing]);
-
+  // Utility function to get button style based on toxicity score
   const getButtonStyle = () => {
     if (!message.trim()) {
       if (lastToxicityScore > 0) {
@@ -80,20 +54,19 @@ export function MessageControls({
   };
 
   const getColorForScore = (score: number) => {
-    let baseColor = "";
-    if (score <= 20) {
-      baseColor = "bg-gradient-to-r from-[#4ade80] to-[#10b981]";
-    } else if (score <= 40) {
-      baseColor = "bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]";
-    } else if (score <= 60) {
-      baseColor = "bg-gradient-to-r from-[#fb923c] to-[#f97316]";
-    } else if (score <= 80) {
-      baseColor = "bg-gradient-to-r from-[#f87171] to-[#ef4444]";
-    } else {
-      baseColor = "bg-gradient-to-r from-[#dc2626] to-[#b91c1c]";
-    }
-    
-    return `${baseColor} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
+    const colors = {
+      low: "bg-gradient-to-r from-[#4ade80] to-[#10b981]",
+      medium: "bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]",
+      high: "bg-gradient-to-r from-[#fb923c] to-[#f97316]",
+      very_high: "bg-gradient-to-r from-[#f87171] to-[#ef4444]",
+      extreme: "bg-gradient-to-r from-[#dc2626] to-[#b91c1c]"
+    };
+
+    if (score <= 20) return `${colors.low} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
+    if (score <= 40) return `${colors.medium} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
+    if (score <= 60) return `${colors.high} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
+    if (score <= 80) return `${colors.very_high} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
+    return `${colors.extreme} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -103,16 +76,6 @@ export function MessageControls({
     } else {
       onSubmit(e);
     }
-  };
-
-  const handleConfirmSend = () => {
-    setShowWarning(false);
-    onSubmit({ preventDefault: () => {} } as React.FormEvent);
-  };
-
-  const handleEmojiSelect = (emojiData: EmojiClickData) => {
-    onChange(message + emojiData.emoji);
-    setIsEmojiPickerOpen(false);
   };
 
   const handleEnhanceMessage = async () => {
@@ -143,150 +106,45 @@ export function MessageControls({
   return (
     <>
       <form onSubmit={handleSubmit} className="flex gap-2 items-center relative">
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={onAttachmentClick}
-          disabled={disabled || !canAttach}
-          title="Attach files (images, documents, etc.)"
-        >
-          <Paperclip className="h-5 w-5" />
-          <span className="sr-only">Attach files</span>
-        </Button>
-        
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="text-muted-foreground hover:text-foreground"
-          onClick={onCameraClick}
-          disabled={disabled || !canAttach}
-          title="Take a photo"
-        >
-          <Camera className="h-5 w-5" />
-          <span className="sr-only">Use camera</span>
-        </Button>
+        <AttachmentControls
+          onAttachmentClick={onAttachmentClick}
+          onCameraClick={onCameraClick}
+          disabled={disabled}
+          canAttach={canAttach}
+        />
 
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-50"
-          onClick={handleEnhanceMessage}
-          disabled={disabled || isEnhancing || !message.trim()}
-          title="Enhance message with AI"
-        >
-          <Sparkles className={`h-5 w-5 ${isEnhancing ? 'animate-pulse' : ''}`} />
-          <span className="sr-only">Enhance message</span>
-        </Button>
-        
-        <div className="relative flex-1">
-          <Input
-            ref={inputRef}
-            value={message}
-            onChange={(e) => {
-              onChange(e.target.value);
-            }}
-            placeholder="Type a message..."
-            className={cn(
-              "pr-10 py-6 rounded-full",
-              isAnalyzing && "pr-16"
-            )}
-            disabled={disabled}
-          />
-          {isAnalyzing && (
-            <div className="absolute right-12 top-1/2 -translate-y-1/2">
-              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
-            </div>
-          )}
-          
-          <Popover 
-            open={isEmojiPickerOpen}
-            onOpenChange={setIsEmojiPickerOpen}
-            modal={true}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                disabled={disabled}
-              >
-                <Smile className="h-5 w-5" />
-                <span className="sr-only">Add emoji</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent 
-              className="w-full p-4 z-[100]" 
-              align="end"
-              side="top"
-              sideOffset={5}
-            >
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Choose an emoji</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setIsEmojiPickerOpen(false)}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </Button>
-              </div>
-              <EmojiPicker
-                width={300}
-                height={350}
-                onEmojiClick={handleEmojiSelect}
-                lazyLoadEmojis={true}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-        
-        {message.trim() ? (
-          <Button 
-            type="submit" 
-            size="icon" 
-            className={`rounded-full ${getButtonStyle()}`}
-            disabled={disabled}
-          >
-            <Send className="h-5 w-5" />
-            <span className="sr-only">Send message</span>
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            size="icon"
-            className={`rounded-full ${getButtonStyle()}`}
-            onClick={onStartRecording}
-            disabled={disabled}
-          >
-            <Mic className="h-5 w-5" />
-            <span className="sr-only">Record voice message</span>
-          </Button>
-        )}
+        <EnhanceButton
+          onEnhance={handleEnhanceMessage}
+          isEnhancing={isEnhancing}
+          disabled={disabled}
+          hasContent={!!message.trim()}
+        />
+
+        <MessageField
+          message={message}
+          onChange={onChange}
+          disabled={disabled}
+          isAnalyzing={isAnalyzing}
+          inputRef={inputRef}
+        />
+
+        <SendButton
+          hasMessage={!!message.trim()}
+          buttonStyle={getButtonStyle()}
+          onStartRecording={onStartRecording}
+          disabled={disabled}
+        />
       </form>
 
-      <AlertDialog open={showWarning} onOpenChange={setShowWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aggressive Content Warning</AlertDialogTitle>
-            <AlertDialogDescription>
-              This message appears to be quite aggressive (toxicity score: {toxicityScore}%). Are you sure you want to send it?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmSend} className="bg-red-500 hover:bg-red-600">
-              Send Anyway
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <WarningDialog
+        open={showWarning}
+        onOpenChange={setShowWarning}
+        onConfirm={() => {
+          setShowWarning(false);
+          onSubmit({ preventDefault: () => {} } as React.FormEvent);
+        }}
+        toxicityScore={toxicityScore}
+      />
     </>
   );
 }
