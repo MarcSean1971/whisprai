@@ -1,6 +1,6 @@
 
+import { createClient } from 'npm:@vonage/server-sdk'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createJWT } from "npm:@vonage/jwt"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +8,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -31,30 +30,31 @@ serve(async (req) => {
       throw new Error('Vonage credentials not configured')
     }
 
-    console.log('Generating JWT token for applicationId:', applicationId)
+    console.log('Initializing Vonage client')
+    
+    const vonage = new createClient({
+      applicationId,
+      privateKey
+    })
 
-    // Generate a JWT token for the client SDK
-    const token = createJWT(
-      privateKey,
-      {
-        application_id: applicationId,
-        sub: "chat",
-        exp: Math.round(new Date().getTime() / 1000) + 86400, // 24 hours
-        acl: {
-          paths: {
-            "/*/users/**": {},
-            "/*/conversations/**": {},
-            "/*/sessions/**": {}
-          }
+    // Generate JWT for RTC
+    const jwt = vonage.generateJwt({
+      exp: Math.round(new Date().getTime() / 1000) + 3600,
+      sub: recipientId,
+      acl: {
+        paths: {
+          "/*/rtc/**": {},
+          "/*/users/**": {},
+          "/*/conversations/**": {},
         }
       }
-    )
+    })
 
     console.log('JWT token generated successfully')
 
     return new Response(
       JSON.stringify({ 
-        token,
+        token: jwt,
         applicationId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -70,4 +70,3 @@ serve(async (req) => {
     )
   }
 })
-

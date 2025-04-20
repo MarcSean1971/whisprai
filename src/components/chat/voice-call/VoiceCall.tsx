@@ -24,7 +24,7 @@ export function VoiceCall({
   const [isConnecting, setIsConnecting] = useState(false)
   const ringtoneRef = useRef<HTMLAudioElement>(null)
   const clientRef = useRef<any>(null)
-  const sessionRef = useRef<any>(null)
+  const conversationRef = useRef<any>(null)
 
   useEffect(() => {
     // Load Vonage Client SDK script
@@ -35,8 +35,8 @@ export function VoiceCall({
 
     return () => {
       document.body.removeChild(script)
-      if (sessionRef.current) {
-        sessionRef.current.disconnect()
+      if (clientRef.current) {
+        clientRef.current.disconnect()
       }
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
@@ -64,26 +64,42 @@ export function VoiceCall({
       }
 
       // Initialize Vonage client
-      clientRef.current = new window.Vonage(applicationId, {
+      clientRef.current = new window.Vonage.Client({
         debug: true
       })
 
-      // Login with the JWT token
-      await clientRef.current.login(token)
+      // Set up event handlers
+      clientRef.current.on('error', (error: any) => {
+        console.error('Vonage client error:', error)
+        onError(new Error(error.message || 'Call failed'))
+      })
 
-      // Create a session
-      sessionRef.current = await clientRef.current.createSession()
+      clientRef.current.on('connected', () => {
+        console.log('Connected to Vonage')
+      })
+
+      // Login with JWT
+      await clientRef.current.createSession(token)
+
+      // Join conversation
+      conversationRef.current = await clientRef.current.conversation.create({
+        name: `call-${Date.now()}`,
+        display_name: `Call with ${recipientId}`
+      })
 
       // Enable audio
-      await sessionRef.current.enableAudio()
+      await conversationRef.current.media.enable({
+        audio: true,
+        video: false
+      })
+
+      // Invite the recipient
+      await conversationRef.current.invite(recipientId)
 
       // Start playing ringtone
       if (ringtoneRef.current) {
         ringtoneRef.current.play().catch(console.error)
       }
-
-      // Call the recipient
-      await sessionRef.current.callUser(recipientId)
       
       setIsCallActive(true)
       toast.success('Call connected')
@@ -105,9 +121,14 @@ export function VoiceCall({
         ringtoneRef.current.pause()
       }
 
-      if (sessionRef.current) {
-        await sessionRef.current.hangup()
-        sessionRef.current = null
+      if (conversationRef.current) {
+        await conversationRef.current.leave()
+        conversationRef.current = null
+      }
+
+      if (clientRef.current) {
+        await clientRef.current.disconnect()
+        clientRef.current = null
       }
       
       toast.success('Call ended')
