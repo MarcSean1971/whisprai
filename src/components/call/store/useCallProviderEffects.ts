@@ -1,5 +1,4 @@
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { CallStatus } from '@/components/call/types';
 import { useCallStore } from './callStore';
@@ -35,6 +34,9 @@ export function useCallProviderEffects({
   twilioToggleMute: () => void;
   twilioError: string | null;
 }) {
+  // Keep track of whether handlers have been registered
+  const handlersRegistered = useRef(false);
+  
   // Handle call initiation with debouncing
   useEffect(() => {
     let callInitTimeout: number | null = null;
@@ -92,84 +94,54 @@ export function useCallProviderEffects({
     }
   }, [twilioCallStatus, remoteParticipant, showIncomingCall]);
 
-  // Handle call actions - THIS IS THE PROBLEMATIC PART
+  // Register call handlers once on component mount
   useEffect(() => {
-    // Get the original function references
-    const callStore = useCallStore.getState();
-    const originalAcceptCall = callStore.acceptCall;
-    const originalRejectCall = callStore.rejectCall;
-    const originalEndCall = callStore.endCall;
-    const originalToggleMute = callStore.toggleMute;
-    
-    // Create a local variable to track if we've already set the handlers
-    const handlers = {
-      acceptCall: () => {
-        try {
-          console.log('Accepting call');
-          twilioAnswerCall();
-        } catch (error) {
-          console.error('Error in acceptCall:', error);
-        }
-        originalAcceptCall();
-      },
-      rejectCall: () => {
-        try {
-          console.log('Rejecting call');
-          twilioRejectCall();
-        } catch (error) {
-          console.error('Error in rejectCall:', error);
-        }
-        originalRejectCall();
-      },
-      endCall: () => {
-        try {
-          console.log('Ending call');
-          twilioEndCall();
-        } catch (error) {
-          console.error('Error in endCall:', error);
-        }
-        originalEndCall();
-      },
-      toggleMute: () => {
-        try {
-          console.log('Toggling mute');
-          twilioToggleMute();
-        } catch (error) {
-          console.error('Error in toggleMute:', error);
-        }
-        originalToggleMute();
-      }
-    };
-    
-    // Update the store with our handlers
-    useCallStore.setState(handlers);
-    
-    // Cleanup function
-    return () => {
-      // Restore original functions only if the current ones match our handlers
-      // This prevents overwriting handlers set by other components
-      const currentState = useCallStore.getState();
-      if (currentState.acceptCall === handlers.acceptCall) {
+    // Only run this once to avoid infinite loops
+    if (!handlersRegistered.current) {
+      console.log('Registering call handlers');
+      
+      // Store original handlers for reference
+      const callStore = useCallStore.getState();
+      const origAcceptCall = callStore.acceptCall;
+      const origRejectCall = callStore.rejectCall;
+      const origEndCall = callStore.endCall;
+      const origToggleMute = callStore.toggleMute;
+      
+      // Create wrapper functions that call both Twilio and the original handlers
+      const wrapTwilioAction = (twilio: () => void, original: () => void) => {
+        return () => {
+          try {
+            twilio();
+          } catch (err) {
+            console.error('Twilio action error:', err);
+          }
+          // Always execute the original handler to maintain UI state
+          original();
+        };
+      };
+      
+      // Update the store with wrapped handlers
+      useCallStore.setState({
+        acceptCall: wrapTwilioAction(twilioAnswerCall, origAcceptCall),
+        rejectCall: wrapTwilioAction(twilioRejectCall, origRejectCall),
+        endCall: wrapTwilioAction(twilioEndCall, origEndCall),
+        toggleMute: wrapTwilioAction(twilioToggleMute, origToggleMute)
+      });
+      
+      // Mark handlers as registered
+      handlersRegistered.current = true;
+      
+      // Cleanup function to restore original handlers on unmount
+      return () => {
+        console.log('Restoring original call handlers');
         useCallStore.setState({
-          acceptCall: originalAcceptCall,
+          acceptCall: origAcceptCall,
+          rejectCall: origRejectCall,
+          endCall: origEndCall,
+          toggleMute: origToggleMute
         });
-      }
-      if (currentState.rejectCall === handlers.rejectCall) {
-        useCallStore.setState({
-          rejectCall: originalRejectCall,
-        });
-      }
-      if (currentState.endCall === handlers.endCall) {
-        useCallStore.setState({
-          endCall: originalEndCall,
-        });
-      }
-      if (currentState.toggleMute === handlers.toggleMute) {
-        useCallStore.setState({
-          toggleMute: originalToggleMute,
-        });
-      }
-    };
+      };
+    }
   }, [twilioAnswerCall, twilioRejectCall, twilioEndCall, twilioToggleMute]);
 
   // Handle Twilio errors
