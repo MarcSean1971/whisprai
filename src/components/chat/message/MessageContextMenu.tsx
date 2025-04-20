@@ -34,19 +34,26 @@ export function MessageContextMenu({
   isOwn,
   messageId
 }: MessageContextMenuProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
+    setIsDropdownOpen(false);
+  };
+
+  const handleAddReactionClick = (e: Event) => {
+    e.preventDefault();
+    setIsEmojiPickerOpen(true);
   };
 
   return (
     <div className="group flex items-start gap-2">
       {isOwn && (
         <div className="pt-2">
-          <DropdownMenu>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -73,16 +80,24 @@ export function MessageContextMenu({
               )}
               <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
                 <PopoverTrigger asChild>
-                  <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                  <DropdownMenuItem 
+                    className="cursor-pointer" 
+                    onSelect={handleAddReactionClick}
+                  >
                     <Smile className="mr-2 h-4 w-4" />
                     <span>Add Reaction</span>
                   </DropdownMenuItem>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align={isOwn ? "start" : "end"}>
+                <PopoverContent 
+                  className="w-full p-0" 
+                  align={isOwn ? "start" : "end"}
+                  sideOffset={5}
+                >
                   <EmojiPicker
                     width={300}
                     height={350}
                     onEmojiClick={handleEmojiSelect}
+                    lazyLoadEmojis={true}
                   />
                 </PopoverContent>
               </Popover>
@@ -97,7 +112,7 @@ export function MessageContextMenu({
 
       {!isOwn && (
         <div className="pt-2">
-          <DropdownMenu>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -124,16 +139,24 @@ export function MessageContextMenu({
               )}
               <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
                 <PopoverTrigger asChild>
-                  <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
+                  <DropdownMenuItem 
+                    className="cursor-pointer" 
+                    onSelect={handleAddReactionClick}
+                  >
                     <Smile className="mr-2 h-4 w-4" />
                     <span>Add Reaction</span>
                   </DropdownMenuItem>
                 </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align={isOwn ? "start" : "end"}>
+                <PopoverContent 
+                  className="w-full p-0" 
+                  align={isOwn ? "start" : "end"}
+                  sideOffset={5}
+                >
                   <EmojiPicker
                     width={300}
                     height={350}
                     onEmojiClick={handleEmojiSelect}
+                    lazyLoadEmojis={true}
                   />
                 </PopoverContent>
               </Popover>
