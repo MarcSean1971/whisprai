@@ -317,6 +317,10 @@ export type Database = {
         Args: { user1_id: string; user2_id: string }
         Returns: string[]
       }
+      get_participant_conversations: {
+        Args: { user_uuid: string }
+        Returns: string[]
+      }
       get_user_conversation_ids: {
         Args: { user_uuid: string }
         Returns: string[]
