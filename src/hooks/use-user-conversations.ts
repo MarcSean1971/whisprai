@@ -15,6 +15,7 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
+        // Get all conversations the user participates in
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
@@ -45,27 +46,50 @@ export function useUserConversations() {
 
         console.log('Raw conversations data:', conversations);
 
-        // Process conversations to get other participants' info
-        const processedConversations = conversations.map(conversation => {
-          // Get all participants except current user
-          const otherParticipants = conversation.conversation_participants
-            .filter(p => p.user_id !== user.id)
-            .map(p => ({
-              user_id: p.user_id,
-              profile: p.profiles
-            }));
+        // Process conversations to get participants' info
+        const processedConversations = await Promise.all(conversations.map(async (conversation) => {
+          // Get ALL participants for this conversation
+          const { data: allParticipants, error: participantsError } = await supabase
+            .from('conversation_participants')
+            .select(`
+              user_id,
+              profiles (
+                id,
+                first_name,
+                last_name,
+                avatar_url,
+                language
+              )
+            `)
+            .eq('conversation_id', conversation.id);
 
-          const primaryParticipant = otherParticipants[0]?.profile;
+          if (participantsError) {
+            console.error('Error fetching all participants:', participantsError);
+            throw participantsError;
+          }
+
+          // Filter out current user from participants list for display purposes
+          const otherParticipants = allParticipants.filter(p => p.user_id !== user.id);
+          console.log(`Conversation ${conversation.id} - other participants:`, otherParticipants);
+
+          // For group chats, we might want to show all participants
+          // For direct chats, we usually show just the other person
+          const primaryParticipant = otherParticipants[0]?.profiles;
           
           return {
             ...conversation,
-            participants: otherParticipants,
-            name: primaryParticipant 
-              ? `${primaryParticipant.first_name || ''} ${primaryParticipant.last_name || ''}`.trim() || `User ${primaryParticipant.id.slice(0, 8)}`
-              : 'Unknown User',
+            participants: otherParticipants.map(p => ({
+              user_id: p.user_id,
+              profile: p.profiles
+            })),
+            name: conversation.is_group 
+              ? conversation.name || 'Group Chat' 
+              : primaryParticipant 
+                ? `${primaryParticipant.first_name || ''} ${primaryParticipant.last_name || ''}`.trim() || `User ${primaryParticipant.id.slice(0, 8)}`
+                : 'Unknown User',
             avatar: primaryParticipant?.avatar_url || null
           };
-        });
+        }));
 
         console.log('Processed conversations:', processedConversations);
         return processedConversations;
