@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,12 +14,12 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // RLS will automatically filter conversations to only those the user is a participant in
+        // Since RLS is disabled, we need to explicitly filter conversations by user participation
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants (
+            conversation_participants!inner (
               user_id,
               profiles:profiles (
                 id,
@@ -31,6 +30,7 @@ export function useUserConversations() {
               )
             )
           `)
+          .eq('conversation_participants.user_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
