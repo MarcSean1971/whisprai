@@ -83,31 +83,10 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
-      // Using more direct approach for joins since we're having type issues
+      // Switch to a simpler approach without explicit joins
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:sender_id(
-            id:id,
-            first_name:first_name,
-            last_name:last_name,
-            avatar_url:avatar_url,
-            language:language
-          ),
-          parent:parent_id(
-            id,
-            content,
-            created_at,
-            sender:sender_id(
-              id:id,
-              first_name:first_name,
-              last_name:last_name,
-              avatar_url:avatar_url,
-              language:language
-            )
-          )
-        `)
+        .select('*, parent_id')
         .eq('conversation_id', conversationId)
         .or(`private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`)
         .order('created_at', { ascending: true });
@@ -121,6 +100,75 @@ export function useMessages(conversationId: string) {
       if (!messages) {
         console.warn('No messages returned from query');
         return [];
+      }
+
+      // Fetch user profiles for sender_ids
+      const senderIds = messages
+        .map(m => m.sender_id)
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+
+      let profiles: Record<string, any> = {};
+      if (senderIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name, avatar_url, language')
+          .in('id', senderIds);
+          
+        if (profilesData) {
+          profiles = profilesData.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, any>);
+        }
+      }
+
+      // Fetch parent messages if needed
+      const parentIds = messages
+        .map(m => m.parent_id)
+        .filter(Boolean)
+        .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
+
+      let parentMessages: Record<string, any> = {};
+      if (parentIds.length > 0) {
+        const { data: parentsData } = await supabase
+          .from('messages')
+          .select('id, content, created_at, sender_id')
+          .in('id', parentIds);
+          
+        if (parentsData) {
+          // Get sender profiles for parent messages
+          const parentSenderIds = parentsData
+            .map(m => m.sender_id)
+            .filter(Boolean)
+            .filter((v, i, a) => a.indexOf(v) === i);
+            
+          let parentProfiles: Record<string, any> = {};
+          if (parentSenderIds.length > 0) {
+            const { data: parentProfilesData } = await supabase
+              .from('profiles')
+              .select('id, first_name, last_name, avatar_url, language')
+              .in('id', parentSenderIds);
+              
+            if (parentProfilesData) {
+              parentProfiles = parentProfilesData.reduce((acc, profile) => {
+                acc[profile.id] = profile;
+                return acc;
+              }, {} as Record<string, any>);
+            }
+          }
+          
+          parentMessages = parentsData.reduce((acc, parent) => {
+            acc[parent.id] = {
+              ...parent,
+              sender: parent.sender_id ? {
+                id: parent.sender_id,
+                profiles: parentProfiles[parent.sender_id] || null
+              } : null
+            };
+            return acc;
+          }, {} as Record<string, any>);
+        }
       }
 
       return messages.map(message => {
@@ -140,28 +188,15 @@ export function useMessages(conversationId: string) {
           metadata: message.metadata,
           private_room: message.private_room,
           private_recipient: message.private_recipient,
-          sender: message.sender ? {
-            id: message.sender.id,
-            profiles: {
-              first_name: message.sender.first_name,
-              last_name: message.sender.last_name,
-              avatar_url: message.sender.avatar_url,
-              language: message.sender.language
-            }
+          sender: message.sender_id ? {
+            id: message.sender_id,
+            profiles: profiles[message.sender_id] || {}
           } : undefined,
-          parent: message.parent ? {
-            id: message.parent.id,
-            content: message.parent.content,
-            created_at: message.parent.created_at,
-            sender: message.parent.sender ? {
-              id: message.parent.sender.id,
-              profiles: {
-                first_name: message.parent.sender.first_name,
-                last_name: message.parent.sender.last_name,
-                avatar_url: message.parent.sender.avatar_url,
-                language: message.parent.sender.language
-              }
-            } : null
+          parent: message.parent_id && parentMessages[message.parent_id] ? {
+            id: parentMessages[message.parent_id].id,
+            content: parentMessages[message.parent_id].content,
+            created_at: parentMessages[message.parent_id].created_at,
+            sender: parentMessages[message.parent_id].sender
           } : null
         };
       }).filter(Boolean);
