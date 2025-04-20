@@ -7,6 +7,7 @@ interface Participant {
   first_name?: string | null;
   last_name?: string | null;
   avatar_url?: string | null;
+  tagline?: string | null;
 }
 
 interface Conversation {
@@ -39,7 +40,6 @@ export function useConversation(conversationId: string) {
         return null;
       }
 
-      // Get participants with their profile information - modified query structure
       const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
         .select(`
@@ -58,7 +58,7 @@ export function useConversation(conversationId: string) {
       // Fetch profile data for these users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url')
+        .select('id, first_name, last_name, avatar_url, tagline')
         .in('id', userIds);
         
       if (profilesError) {

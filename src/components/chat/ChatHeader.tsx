@@ -23,11 +23,10 @@ export function ChatHeader({
 
   // Find the other participant in the conversation
   const participant = conversation?.participants?.find(p => {
-    // Make sure we're checking the right property
     if (profile && 'id' in profile) {
       return p.id !== profile.id;
     }
-    return true; // Default to showing first participant if we can't determine
+    return true;
   });
 
   return (
@@ -41,6 +40,9 @@ export function ChatHeader({
           </Avatar>
           <div className="flex flex-col">
             <span className="font-bold">{participant?.first_name} {participant?.last_name}</span>
+            {participant?.tagline && (
+              <span className="text-sm text-muted-foreground">{participant.tagline}</span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2">
