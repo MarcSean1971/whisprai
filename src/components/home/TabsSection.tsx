@@ -60,7 +60,7 @@ export function TabsSection({
             filteredConversations.map((conversation) => {
               const timestamp = conversation.lastMessage?.created_at 
                 ? format(new Date(conversation.lastMessage.created_at), 'MMM d')
-                : undefined;
+                : format(new Date(conversation.created_at), 'MMM d');
               
               return (
                 <ConversationItem

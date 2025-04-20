@@ -13,71 +13,76 @@ export function useUserConversations() {
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
-        console.log('Fetching conversations for user:', user.id);
-
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants (
+            conversation_participants!inner (
               user_id,
-              profiles (
+              profiles!inner (
                 id,
                 first_name,
                 last_name,
                 avatar_url
               )
+            ),
+            messages (
+              id,
+              content,
+              created_at,
+              sender_id
             )
           `)
-          .eq('conversation_participants.user_id', user.id);
+          .eq('conversation_participants.user_id', user.id)
+          .order('updated_at', { ascending: false });
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
         }
 
-        if (!conversations || conversations.length === 0) {
-          console.log('No conversations found');
-          return [];
-        }
+        return conversations.map(conversation => {
+          // Get all participants except current user
+          const otherParticipants = conversation.conversation_participants
+            .filter(p => p.user_id !== user.id)
+            .map(p => ({
+              id: p.profiles.id,
+              name: `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User',
+              avatar: p.profiles.avatar_url
+            }));
 
-        console.log('Raw conversations data:', conversations);
-
-        const processedConversations = conversations.map(conversation => {
-          // Get all participants including the current user
-          const allParticipants = conversation.conversation_participants || [];
-          
-          // Filter out current user from participants list for display
-          const otherParticipants = allParticipants.filter(p => 
-            p.user_id !== user.id && p.profiles
+          // Get the most recent message
+          const sortedMessages = conversation.messages.sort(
+            (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
+          const lastMessage = sortedMessages[0];
 
-          // For group chats or direct chats, show appropriate name
-          const displayName = conversation.is_group 
-            ? `Group Chat (${otherParticipants.length + 1} participants)` 
-            : otherParticipants[0]?.profiles
-              ? `${otherParticipants[0].profiles.first_name || ''} ${otherParticipants[0].profiles.last_name || ''}`.trim()
-              : 'Unknown User';
+          // For direct chats, use the other participant's name
+          // For group chats, show number of participants
+          const displayName = conversation.is_group
+            ? `Group Chat (${conversation.conversation_participants.length} participants)`
+            : otherParticipants[0]?.name || 'Unknown User';
 
           return {
-            ...conversation,
-            participants: otherParticipants.map(p => ({
-              name: p.profiles ? `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() : 'Unknown User',
-              avatar: p.profiles?.avatar_url || null
-            })),
+            id: conversation.id,
             name: displayName,
-            avatar: !conversation.is_group ? otherParticipants[0]?.profiles?.avatar_url : null
+            is_group: conversation.is_group,
+            participants: otherParticipants,
+            avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
+            lastMessage: lastMessage ? {
+              content: lastMessage.content,
+              created_at: lastMessage.created_at,
+              sender_id: lastMessage.sender_id
+            } : null,
+            created_at: conversation.created_at,
+            updated_at: conversation.updated_at
           };
         });
-
-        console.log('Processed conversations:', processedConversations);
-        return processedConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
         toast.error(error instanceof Error ? error.message : "Failed to load conversations");
         throw error;
       }
-    },
-    staleTime: 30000 // 30 seconds
+    }
   });
 }
