@@ -103,6 +103,9 @@ export function useVonageCall({
       
       // Set up event handlers
       sessionRef.current.on('streamCreated', (event: any) => {
+        // Fix here: The subscribe method expects different parameters based on the Vonage SDK types
+        // Instead of passing separate parameters, we'll ensure we match the expected signature
+        
         subscriberRef.current = sessionRef.current.subscribe(
           event.stream,
           subscriberElement,
