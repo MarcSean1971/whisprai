@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -28,15 +27,48 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
   );
 
   const handleYearSelect = (year: string) => {
-    const newDate = selectedDate ? new Date(selectedDate) : new Date();
+    if (!selectedDate) {
+      const newDate = new Date();
+      newDate.setFullYear(parseInt(year));
+      newDate.setDate(1);
+      setSelectedDate(newDate);
+      form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
+      return;
+    }
+
+    const newDate = new Date(selectedDate);
     newDate.setFullYear(parseInt(year));
+    
+    // Check if the day exists in the new month/year
+    const daysInMonth = new Date(parseInt(year), selectedDate.getMonth() + 1, 0).getDate();
+    if (selectedDate.getDate() > daysInMonth) {
+      newDate.setDate(daysInMonth);
+    }
+    
     setSelectedDate(newDate);
     form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
   };
 
   const handleMonthSelect = (monthName: string) => {
-    const newDate = selectedDate ? new Date(selectedDate) : new Date();
-    newDate.setMonth(months.indexOf(monthName));
+    if (!selectedDate) {
+      const newDate = new Date();
+      newDate.setMonth(months.indexOf(monthName));
+      newDate.setDate(1);
+      setSelectedDate(newDate);
+      form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
+      return;
+    }
+
+    const newDate = new Date(selectedDate);
+    const newMonth = months.indexOf(monthName);
+    
+    // Check if the day exists in the new month
+    const daysInMonth = new Date(selectedDate.getFullYear(), newMonth + 1, 0).getDate();
+    if (selectedDate.getDate() > daysInMonth) {
+      newDate.setDate(daysInMonth);
+    }
+    
+    newDate.setMonth(newMonth);
     setSelectedDate(newDate);
     form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
   };
