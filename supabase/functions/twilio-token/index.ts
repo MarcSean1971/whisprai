@@ -79,6 +79,12 @@ serve(async (req) => {
       const currentTime = Date.now();
       const expiresAt = currentTime + (ttl * 1000);
 
+      // Verify the token is in valid JWT format
+      const jwtParts = tokenString.split('.');
+      if (jwtParts.length !== 3) {
+        throw new Error('Generated token has invalid JWT format');
+      }
+
       return new Response(
         JSON.stringify({ 
           token: tokenString,

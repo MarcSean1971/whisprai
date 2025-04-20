@@ -11,7 +11,7 @@ const MIN_TOKEN_REQUEST_INTERVAL = 5000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
 const TOKEN_ERROR_COOLDOWN_MS = 10000; // 10 second cooldown after token errors
-const TOKEN_VALIDATION_TIMEOUT = 30000; // 30 seconds timeout for token validation
+const TOKEN_VALIDATION_TIMEOUT = 10000; // 10 seconds timeout for token validation (reduced from 30s)
 
 export function useDeviceSetup() {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
@@ -23,10 +23,38 @@ export function useDeviceSetup() {
   const tokenValidationTimer = useRef<number | null>(null);
   const currentToken = useRef<string | null>(null);
 
+  // Lightweight token validation - just check basic JWT structure
+  const isTokenFormatValid = (token: string): boolean => {
+    if (!token) return false;
+    
+    // Basic JWT format check (header.payload.signature)
+    const jwtParts = token.split('.');
+    if (jwtParts.length !== 3) {
+      console.warn('Token has invalid JWT format');
+      return false;
+    }
+    
+    try {
+      // Try to decode the payload
+      atob(jwtParts[1]);
+      return true;
+    } catch (e) {
+      console.warn('Token payload is not valid base64');
+      return false;
+    }
+  };
+
   const validateToken = async (token: string): Promise<boolean> => {
     if (!token) return false;
     
+    // First do a simple format check
+    if (!isTokenFormatValid(token)) {
+      console.warn('Token failed basic format validation');
+      return false;
+    }
+    
     try {
+      console.log('Starting token validation');
       // Create a temporary device just to validate the token
       const tempDevice = new Device();
       
@@ -34,47 +62,38 @@ export function useDeviceSetup() {
       const validationPromise = new Promise<boolean>((resolve) => {
         // Set timeout to handle case where token is invalid but error isn't thrown
         tokenValidationTimer.current = window.setTimeout(() => {
-          resolve(false);
           console.warn('Token validation timed out');
-          try {
-            tempDevice.destroy();
-          } catch (e) {
-            // Ignore errors during cleanup
-          }
+          resolve(false);
+          cleanupTempDevice(tempDevice);
         }, TOKEN_VALIDATION_TIMEOUT);
         
         // Listen for ready event which indicates token is valid
         tempDevice.on('ready', () => {
+          console.log('Token validation successful - device ready');
           if (tokenValidationTimer.current) {
             clearTimeout(tokenValidationTimer.current);
+            tokenValidationTimer.current = null;
           }
           resolve(true);
-          try {
-            tempDevice.destroy();
-          } catch (e) {
-            // Ignore errors during cleanup
-          }
+          cleanupTempDevice(tempDevice);
         });
         
         // Listen for error event which may indicate token is invalid
         tempDevice.on('error', (err) => {
           if (tokenValidationTimer.current) {
             clearTimeout(tokenValidationTimer.current);
+            tokenValidationTimer.current = null;
           }
           
           // Check if error is related to JWT
           const isJwtError = err.message?.includes('JWT') || 
+                           err.message?.includes('token') ||
                            err.code === 31204 || 
                            err.code === 31205;
           
-          console.warn('Token validation error:', err);
+          console.warn(`Token validation error (JWT error: ${isJwtError}):`, err);
           resolve(false);
-          
-          try {
-            tempDevice.destroy();
-          } catch (e) {
-            // Ignore errors during cleanup
-          }
+          cleanupTempDevice(tempDevice);
         });
       });
       
@@ -91,6 +110,15 @@ export function useDeviceSetup() {
         clearTimeout(tokenValidationTimer.current);
         tokenValidationTimer.current = null;
       }
+    }
+  };
+  
+  // Helper function to safely clean up temporary validation device
+  const cleanupTempDevice = (device: Device) => {
+    try {
+      device.destroy();
+    } catch (e) {
+      console.warn('Error cleaning up temporary validation device:', e);
     }
   };
 
@@ -130,7 +158,13 @@ export function useDeviceSetup() {
 
       console.log('Token received, expires:', tokenData.expiresAt);
       
-      // Validate the token before using it
+      // Immediately validate the token format before deeper validation
+      if (!isTokenFormatValid(tokenData.token)) {
+        console.error('Received malformed token from server');
+        throw new Error('Invalid Twilio token format');
+      }
+      
+      // Full validation using a temporary device
       const isValid = await validateToken(tokenData.token);
       
       if (!isValid) {
@@ -203,13 +237,18 @@ export function useDeviceSetup() {
       // Set up device ready promise with timeout
       const deviceReady = new Promise<Device>((resolve, reject) => {
         deviceInitTimeout.current = window.setTimeout(() => {
-          device.destroy();
+          try {
+            device.destroy();
+          } catch (e) {
+            console.warn('Error destroying device during timeout cleanup:', e);
+          }
           reject(new Error('Device initialization timed out'));
         }, DEVICE_INIT_TIMEOUT);
 
         device.on('ready', () => {
           if (deviceInitTimeout.current) {
             clearTimeout(deviceInitTimeout.current);
+            deviceInitTimeout.current = null;
           }
           setDeviceRegistered(true);
           console.log('Device registered successfully');
@@ -219,11 +258,15 @@ export function useDeviceSetup() {
         device.on('error', (err) => {
           if (deviceInitTimeout.current) {
             clearTimeout(deviceInitTimeout.current);
+            deviceInitTimeout.current = null;
           }
           console.error('Device error:', err);
           
           // Check if error is related to JWT
-          if (err.message?.includes('JWT') || err.code === 31204 || err.code === 31205) {
+          if (err.message?.includes('JWT') || 
+              err.message?.includes('token') ||
+              err.code === 31204 || 
+              err.code === 31205) {
             // Invalidate current token
             currentToken.current = null;
           }
@@ -291,6 +334,8 @@ export function useDeviceSetup() {
     refreshToken,
     shouldRefreshToken,
     tokenExpiryTime,
-    isDeviceRegistered: deviceRegistered
+    isDeviceRegistered: deviceRegistered,
+    validateToken, // Expose token validation function
+    currentToken  // Expose current token for recovery scenarios
   };
 }

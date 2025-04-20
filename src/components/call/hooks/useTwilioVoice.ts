@@ -27,7 +27,9 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     refreshToken, 
     shouldRefreshToken,
     tokenExpiryTime,
-    isDeviceRegistered 
+    isDeviceRegistered,
+    validateToken,
+    currentToken
   } = useDeviceSetup();
   
   const { state, updateState, updateDevice, updateCallStatus, resetState } = useDeviceState();
@@ -35,7 +37,9 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     userId, 
     updateCallStatus, 
     updateState,
-    isDeviceRegistered
+    isDeviceRegistered,
+    validateToken,
+    currentToken
   });
   const callActions = useCallActions({ state, updateState });
 
@@ -161,26 +165,38 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       } catch (err: any) {
         console.error('Error setting up Twilio device:', err);
         
+        // Check if error is JWT/token related
+        const isTokenError = err.message?.includes('JWT') || 
+                            err.message?.includes('token') || 
+                            err.message?.includes('Invalid');
+        
+        let waitTime = Math.min(
+          INIT_RETRY_DELAY_BASE_MS * Math.pow(2, initAttempts.current - 1),
+          MAX_RETRY_DELAY_MS
+        );
+        
+        // For token errors, use a longer backoff
+        if (isTokenError) {
+          waitTime = Math.min(waitTime * 2, 30000);
+          console.warn(`Token error detected, using extended retry delay of ${waitTime}ms`);
+        }
+        
         updateState({ 
           error: err.message || 'Failed to initialize call system',
           isReady: false
         });
         
-        const retryDelay = Math.min(
-          INIT_RETRY_DELAY_BASE_MS * Math.pow(2, initAttempts.current - 1),
-          MAX_RETRY_DELAY_MS
-        );
-        
-        console.log(`Will retry device setup in ${retryDelay}ms`);
+        console.log(`Will retry device setup in ${waitTime}ms`);
         
         setTimeout(() => {
           initInProgress.current = false;
-          if (initAttempts.current <= 2) {
+          if (initAttempts.current <= MAX_INIT_ATTEMPTS) {
+            console.log('Retry timer fired, will attempt setup again');
             setupDevice();
           } else {
             deviceRegistrationFailed.current = true;
           }
-        }, retryDelay);
+        }, waitTime);
         return;
       }
       
