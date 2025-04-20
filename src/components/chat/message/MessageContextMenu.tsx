@@ -29,7 +29,7 @@ export function MessageContextMenu({
   return (
     <div className="group relative w-full">
       {children}
-      <div className="absolute right-2 top-2">
+      <div className={`absolute top-2 ${isOwn ? "left-2" : "right-2"}`}>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button 
@@ -41,7 +41,8 @@ export function MessageContextMenu({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            align="end"
+            align={isOwn ? "start" : "end"}
+            side="bottom"
             className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
           >
             <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
@@ -64,3 +65,4 @@ export function MessageContextMenu({
     </div>
   );
 }
+
