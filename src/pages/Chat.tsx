@@ -66,13 +66,13 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background">
+    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
       <ChatHeader 
         conversationId={id} 
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative">
         <Suspense fallback={
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
             <MessageSkeleton />
@@ -90,7 +90,7 @@ export default function Chat() {
           />
         </Suspense>
       </div>
-      <div className="sticky bottom-0 w-full bg-background border-t z-10">
+      <div className="w-full bg-background border-t">
         <ChatInput
           conversationId={id}
           onSendMessage={handleSendMessage}

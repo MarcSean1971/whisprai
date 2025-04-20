@@ -44,7 +44,7 @@ export function ChatMessages({
 
   if (messages.length === 0) {
     return (
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
+      <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
         <MessageSkeleton />
         <MessageSkeleton />
         <MessageSkeleton />
@@ -54,7 +54,7 @@ export function ChatMessages({
 
   return (
     <TranslationProvider>
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar h-full">
+      <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
         <MessageList
           messages={messages}
           currentUserId={currentUserId}
