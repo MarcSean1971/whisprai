@@ -148,7 +148,7 @@ export function MessageBubble({
   };
 
   return (
-    <>
+    <div className="space-y-2">
       <div className={cn(
         "rounded-lg py-2 px-3 max-w-[400px]",
         isOwn
@@ -167,12 +167,6 @@ export function MessageBubble({
           </span>
         </div>
       </div>
-      {isReplying && onReply && (
-        <MessageReplyInput
-          onSubmit={handleSubmitReply}
-          onCancel={() => setIsReplying(false)}
-        />
-      )}
-    </>
+    </div>
   );
 }
