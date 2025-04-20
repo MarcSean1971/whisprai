@@ -3,11 +3,12 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { CallStatus } from '../types';
 import { supabase } from '@/integrations/supabase/client';
+import { TwilioVoiceState } from '../types';
 
-interface UseCallInitializationProps {
+export interface UseCallInitializationProps {
   userId: string;
   updateCallStatus: (status: CallStatus) => void;
-  updateState: (updates: any) => void;
+  updateState: (updates: Partial<TwilioVoiceState>) => void;
   isDeviceRegistered: boolean;
 }
 

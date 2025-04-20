@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDeviceSetup } from './useDeviceSetup';
 import { useDeviceState } from './useDeviceState';
@@ -164,4 +163,3 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     ...callActions,
   };
 }
-

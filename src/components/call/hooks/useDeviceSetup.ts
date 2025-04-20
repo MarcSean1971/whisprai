@@ -1,16 +1,24 @@
-
+import { useState, useCallback } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 import { toast } from 'sonner';
-import { useState, useCallback } from 'react';
 
 // Token expiration buffer (5 minutes before actual expiry)
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
 const MAX_TOKEN_RETRIES = 3;
 
-export function useDeviceSetup() {
+interface UseDeviceSetupResult {
+  setupBrowserEnvironment: () => void;
+  initializeDevice: (userId: string) => Promise<Device>;
+  refreshToken: (device: Device, userId: string) => Promise<void>;
+  shouldRefreshToken: () => boolean;
+  tokenExpiryTime: number | null;
+  isDeviceRegistered: boolean;
+}
+
+export function useDeviceSetup(): UseDeviceSetupResult {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
   const [deviceRegistered, setDeviceRegistered] = useState(false);
   
@@ -171,8 +179,8 @@ export function useDeviceSetup() {
   }, [tokenExpiryTime]);
 
   return {
-    initializeDevice,
     setupBrowserEnvironment,
+    initializeDevice,
     refreshToken,
     shouldRefreshToken,
     tokenExpiryTime,
