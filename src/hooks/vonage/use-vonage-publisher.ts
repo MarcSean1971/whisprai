@@ -23,8 +23,8 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
 
     try {
       publisher.current = window.OT.initPublisher(
-        publisherRef.current,
-        publisherOptions,
+        publisherRef.current, 
+        publisherOptions, 
         (error: any) => {
           if (error) {
             console.error('[Vonage Publisher] Initialization error:', error);
