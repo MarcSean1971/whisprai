@@ -35,12 +35,17 @@ export function EmojiPicker({
     setIsOpen(false);
   };
 
+  const handleOpen = () => {
+    setIsOpen(true);
+  };
+
   const defaultTrigger = (
     <Button
       type="button"
       size="icon"
       variant="ghost"
       className="text-muted-foreground hover:text-foreground"
+      onClick={handleOpen}
     >
       <Smile className="h-5 w-5" />
       <span className="sr-only">Add emoji</span>
@@ -48,7 +53,7 @@ export function EmojiPicker({
   );
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen}>
       <PopoverTrigger asChild>
         {triggerButton || defaultTrigger}
       </PopoverTrigger>
