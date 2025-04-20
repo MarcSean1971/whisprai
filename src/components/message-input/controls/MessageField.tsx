@@ -1,11 +1,7 @@
 
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Smile, X } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import EmojiPicker from "emoji-picker-react";
-import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { EmojiPicker } from "@/components/shared/EmojiPicker";
 
 interface MessageFieldProps {
   message: string;
@@ -22,11 +18,8 @@ export function MessageField({
   isAnalyzing,
   inputRef
 }: MessageFieldProps) {
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
-    setIsEmojiPickerOpen(false);
   };
 
   return (
@@ -48,45 +41,14 @@ export function MessageField({
         </div>
       )}
       
-      <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            disabled={disabled}
-          >
-            <Smile className="h-5 w-5" />
-            <span className="sr-only">Add emoji</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-full p-4 z-[100]" 
-          align="end"
+      <div className="absolute right-2 top-1/2 -translate-y-1/2">
+        <EmojiPicker
+          onEmojiSelect={handleEmojiSelect}
           side="top"
+          align="end"
           sideOffset={5}
-        >
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">Choose an emoji</span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsEmojiPickerOpen(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </div>
-          <EmojiPicker
-            width={300}
-            height={350}
-            onEmojiClick={handleEmojiSelect}
-            lazyLoadEmojis={true}
-          />
-        </PopoverContent>
-      </Popover>
+        />
+      </div>
     </div>
   );
 }
