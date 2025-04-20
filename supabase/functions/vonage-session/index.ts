@@ -54,12 +54,15 @@ serve(async (req) => {
 
     console.log('Creating Vonage Video API session...');
     
-    // Create a session directly with the REST API
+    // Create Basic Auth token
+    const basicAuth = btoa(`${apiKey}:${apiSecret}`);
+    
+    // Create a session using Basic Auth
     const createSessionResponse = await fetch(API_BASE, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-OPENTOK-AUTH': await generateAuthHeader(apiKey, apiSecret)
+        'Authorization': `Basic ${basicAuth}`
       },
       body: JSON.stringify({
         mediaMode: 'relayed',
@@ -73,7 +76,7 @@ serve(async (req) => {
     }
     
     const sessionData = await createSessionResponse.json();
-    const sessionId = sessionData.sessions.session[0].session_id;
+    const sessionId = sessionData.sessions?.[0]?.session_id;
     
     if (!sessionId) {
       throw new Error('No session ID in response');
@@ -81,12 +84,12 @@ serve(async (req) => {
     
     console.log('Session created successfully:', { sessionId });
 
-    // Generate token with REST API
+    // Generate token with Basic Auth
     const tokenResponse = await fetch(`${TOKEN_ENDPOINT}${apiKey}/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-OPENTOK-AUTH': await generateAuthHeader(apiKey, apiSecret)
+        'Authorization': `Basic ${basicAuth}`
       },
       body: JSON.stringify({
         session_id: sessionId,
@@ -156,43 +159,3 @@ serve(async (req) => {
     );
   }
 });
-
-/**
- * Generate the X-OPENTOK-AUTH header for API authentication
- */
-async function generateAuthHeader(apiKey: string, apiSecret: string): Promise<string> {
-  // Use a simple payload with required fields to avoid JWT library issues
-  const now = Math.floor(Date.now() / 1000);
-  const payload = {
-    iss: apiKey,           // API Key as issuer
-    ist: "project",        // Token type
-    iat: now,              // Issued at time
-    exp: now + 300,        // 5 minute expiry for API call
-    jti: crypto.randomUUID(), // Unique token ID
-  };
-  
-  // Base64 encode the payload
-  const payloadBase64 = btoa(JSON.stringify(payload));
-  
-  // Create the signature using HMAC-SHA256
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    "raw",
-    encoder.encode(apiSecret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  
-  const signature = await crypto.subtle.sign(
-    "HMAC",
-    key,
-    encoder.encode(payloadBase64)
-  );
-  
-  // Convert signature to Base64
-  const signatureBase64 = btoa(String.fromCharCode(...new Uint8Array(signature)));
-  
-  // Construct the final JWT-like token
-  return `${apiKey}:${payloadBase64}:${signatureBase64}`;
-}
