@@ -1,7 +1,7 @@
 import { Logo } from "@/components/Logo";
 import { SearchBar } from "./SearchBar";
 import { useLocation } from "react-router-dom";
-import { UploadButton } from "@/components/shared/UploadButton";
+import { ShareButton } from "@/components/shared/ShareButton";
 
 interface HeaderProps {
   isSearching: boolean;
@@ -42,7 +42,7 @@ export function Header({
     <header className="flex flex-col border-b">
       <div className="flex items-center justify-between gap-4 px-4 py-3 border-b">
         <Logo variant="full" />
-        <UploadButton />
+        <ShareButton />
       </div>
       
       <div className="flex items-center justify-between gap-2 px-4 py-2">
