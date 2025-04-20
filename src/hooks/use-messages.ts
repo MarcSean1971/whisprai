@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -82,22 +83,23 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
+      // Using simpler join syntax without relying on foreign key constraint names
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:profiles!messages_sender_id_fkey(
+          sender:profiles(
             id,
             first_name,
             last_name,
             avatar_url,
             language
           ),
-          parent:messages!messages_parent_id_fkey(
+          parent:parent_id(
             id,
             content,
             created_at,
-            sender:profiles!messages_sender_id_fkey(
+            sender:profiles(
               id,
               first_name,
               last_name,
@@ -138,26 +140,26 @@ export function useMessages(conversationId: string) {
           metadata: message.metadata,
           private_room: message.private_room,
           private_recipient: message.private_recipient,
-          sender: message.sender ? {
-            id: message.sender.id,
+          sender: message.sender && message.sender[0] ? {
+            id: message.sender[0].id,
             profiles: {
-              first_name: message.sender.first_name,
-              last_name: message.sender.last_name,
-              avatar_url: message.sender.avatar_url,
-              language: message.sender.language
+              first_name: message.sender[0].first_name,
+              last_name: message.sender[0].last_name,
+              avatar_url: message.sender[0].avatar_url,
+              language: message.sender[0].language
             }
           } : null,
           parent: message.parent ? {
             id: message.parent.id,
             content: message.parent.content,
             created_at: message.parent.created_at,
-            sender: message.parent.sender ? {
-              id: message.parent.sender.id,
+            sender: message.parent.sender && message.parent.sender[0] ? {
+              id: message.parent.sender[0].id,
               profiles: {
-                first_name: message.parent.sender.first_name,
-                last_name: message.parent.sender.last_name,
-                avatar_url: message.parent.sender.avatar_url,
-                language: message.parent.sender.language
+                first_name: message.parent.sender[0].first_name,
+                last_name: message.parent.sender[0].last_name,
+                avatar_url: message.parent.sender[0].avatar_url,
+                language: message.parent.sender[0].language
               }
             } : null
           } : null
