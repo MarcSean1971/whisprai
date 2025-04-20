@@ -63,6 +63,36 @@ export type Database = {
         }
         Relationships: []
       }
+      call_history: {
+        Row: {
+          call_sid: string
+          created_at: string | null
+          from_user: string
+          id: string
+          status: string
+          to_user: string
+          updated_at: string | null
+        }
+        Insert: {
+          call_sid: string
+          created_at?: string | null
+          from_user: string
+          id?: string
+          status: string
+          to_user: string
+          updated_at?: string | null
+        }
+        Update: {
+          call_sid?: string
+          created_at?: string | null
+          from_user?: string
+          id?: string
+          status?: string
+          to_user?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       calls: {
         Row: {
           caller_id: string
