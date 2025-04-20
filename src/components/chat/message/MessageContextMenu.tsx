@@ -1,6 +1,5 @@
-
 import { MoreVertical } from "lucide-react";
-import { Reply, Languages, Smile, X } from "lucide-react";
+import { Reply, Languages, Smile, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,6 +23,9 @@ interface MessageContextMenuProps {
   showTranslationToggle: boolean;
   isOwn: boolean;
   messageId: string;
+  canDelete?: boolean;
+  onDelete?: () => void;
+  isDeleting?: boolean;
 }
 
 export function MessageContextMenu({
@@ -32,7 +34,10 @@ export function MessageContextMenu({
   onToggleTranslation,
   showTranslationToggle,
   isOwn,
-  messageId
+  messageId,
+  canDelete,
+  onDelete,
+  isDeleting
 }: MessageContextMenuProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { addReaction } = useMessageReactions(messageId);
@@ -72,6 +77,16 @@ export function MessageContextMenu({
                   <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
                     <Languages className="mr-2 h-4 w-4" />
                     <span>Toggle Translation</span>
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-destructive hover:text-destructive" 
+                    onClick={onDelete}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                   </DropdownMenuItem>
                 )}
                 <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
@@ -148,6 +163,16 @@ export function MessageContextMenu({
                   <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
                     <Languages className="mr-2 h-4 w-4" />
                     <span>Toggle Translation</span>
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (
+                  <DropdownMenuItem 
+                    className="cursor-pointer text-destructive hover:text-destructive" 
+                    onClick={onDelete}
+                    disabled={isDeleting}
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
                   </DropdownMenuItem>
                 )}
                 <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>

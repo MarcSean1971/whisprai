@@ -57,6 +57,9 @@ export function MessageContent({
           showTranslationToggle={showTranslationToggle}
           isOwn={isOwn}
           messageId={id}
+          canDelete={canDelete}
+          onDelete={onDelete}
+          isDeleting={isDeleting}
         >
           <MessageBubble
             id={id}
