@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ export function ChatHeader({
     <div className="sticky top-0 z-10 bg-background border-b">
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
-          <BackButton />
+          <BackButton to="/chats" />
           <Avatar>
             <AvatarImage src={participant?.avatar_url || ''} />
             <AvatarFallback>{participant?.first_name?.charAt(0)}{participant?.last_name?.charAt(0)}</AvatarFallback>
