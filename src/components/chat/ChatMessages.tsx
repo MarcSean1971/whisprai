@@ -27,6 +27,14 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
 
+  const { translatedContents, translationsInProgress } = useMessageProcessor(
+    messages,
+    currentUserId,
+    userLanguage,
+    onNewReceivedMessage,
+    onTranslation
+  );
+
   useEffect(() => {
     const fetchUserId = async () => {
       const { data } = await supabase.auth.getUser();
@@ -59,7 +67,7 @@ export function ChatMessages({
           messages={messages}
           currentUserId={currentUserId}
           profile={{ language: userLanguage }}
-          translatedContents={{}}
+          translatedContents={translatedContents}
           onReply={onReply}
           replyToMessageId={replyToMessageId}
         />

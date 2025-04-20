@@ -19,11 +19,6 @@ interface MessageContentProps {
   onDelete: () => void;
   isDeleting: boolean;
   onReply: () => void;
-  attachment?: {
-    url: string;
-    name: string;
-    type: string;
-  };
   attachments?: {
     url: string;
     name: string;
@@ -46,7 +41,6 @@ export function MessageContent({
   onDelete,
   isDeleting,
   onReply,
-  attachment,
   attachments
 }: MessageContentProps) {
   return (
@@ -57,7 +51,6 @@ export function MessageContent({
         timestamp={timestamp}
         isOwn={isOwn}
         isAIMessage={isAIMessage}
-        attachment={attachment}
         attachments={attachments}
       />
 
