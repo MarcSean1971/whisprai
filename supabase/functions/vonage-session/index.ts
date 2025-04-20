@@ -7,9 +7,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Vonage Video API endpoints
-const API_BASE = "https://api.opentok.com/v2/project";
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -42,7 +39,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Get Vonage API credentials from environment variables
+    // Get Vonage API credentials
     const apiKey = Deno.env.get('VONAGE_API_KEY');
     const apiSecret = Deno.env.get('VONAGE_API_SECRET');
     
@@ -53,80 +50,73 @@ serve(async (req) => {
 
     console.log('Creating Vonage Video API session...');
 
-    // Create Basic Auth token (base64 encoded API key:secret)
-    const encoder = new TextEncoder();
-    const credentials = encoder.encode(`${apiKey}:${apiSecret}`);
-    const basicAuth = btoa(String.fromCharCode(...credentials));
+    // Create Authorization header using API key and secret
+    const authString = `${apiKey}:${apiSecret}`;
+    const base64Auth = btoa(authString);
 
-    // Create session with Basic Auth
-    const sessionEndpoint = `${API_BASE}/${apiKey}/session`;
-    console.log('Calling session endpoint:', sessionEndpoint);
-    
-    const createSessionResponse = await fetch(sessionEndpoint, {
+    // Create session
+    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${basicAuth}`
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-OPENTOK-AUTH': `Basic ${base64Auth}`,
+        'Accept': 'application/json'
       }
     });
-    
-    if (!createSessionResponse.ok) {
-      const errorDetails = await createSessionResponse.text();
+
+    if (!sessionResponse.ok) {
+      const errorText = await sessionResponse.text();
       console.error('Session creation failed:', {
-        status: createSessionResponse.status,
-        details: errorDetails,
-        headers: Object.fromEntries(createSessionResponse.headers.entries())
+        status: sessionResponse.status,
+        error: errorText,
+        headers: Object.fromEntries(sessionResponse.headers)
       });
-      throw new Error(`Failed to create session: HTTP ${createSessionResponse.status}`);
+      throw new Error(`Failed to create session: ${sessionResponse.status} - ${errorText}`);
     }
-    
-    const sessionData = await createSessionResponse.json();
+
+    const sessionData = await sessionResponse.json();
     console.log('Session response:', sessionData);
-    
-    const sessionId = sessionData.sessions?.[0]?.session_id;
-    if (!sessionId) {
-      console.error('Invalid session response:', sessionData);
+
+    if (!sessionData.session_id) {
+      console.error('Invalid session data:', sessionData);
       throw new Error('No session ID in response');
     }
-    
-    console.log('Session created successfully:', { sessionId });
 
-    // Generate token with Basic Auth
-    const tokenEndpoint = `${API_BASE}/${apiKey}/token`;
-    console.log('Generating token at:', tokenEndpoint);
-    
-    const tokenResponse = await fetch(tokenEndpoint, {
+    const sessionId = sessionData.session_id;
+    console.log('Session created:', { sessionId });
+
+    // Generate token
+    const tokenResponse = await fetch('https://api.opentok.com/v2/token', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${basicAuth}`
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'X-OPENTOK-AUTH': `Basic ${base64Auth}`,
+        'Accept': 'application/json'
       },
-      body: JSON.stringify({
+      body: new URLSearchParams({
         session_id: sessionId,
-        data: JSON.stringify({ userId: user.id }),
         role: 'publisher',
-        expire_time: Math.floor(Date.now() / 1000) + 3600 // 1 hour
-      }),
+        data: JSON.stringify({ userId: user.id }),
+        expire_time: (Math.floor(Date.now() / 1000) + 3600).toString() // 1 hour
+      }).toString()
     });
-    
+
     if (!tokenResponse.ok) {
-      const errorDetails = await tokenResponse.text();
+      const errorText = await tokenResponse.text();
       console.error('Token generation failed:', {
         status: tokenResponse.status,
-        details: errorDetails
+        error: errorText
       });
-      throw new Error(`Failed to generate token: HTTP ${tokenResponse.status}`);
+      throw new Error(`Failed to generate token: ${tokenResponse.status} - ${errorText}`);
     }
-    
+
     const tokenData = await tokenResponse.json();
-    const token = tokenData.token;
-    
-    if (!token) {
-      console.error('Invalid token response:', tokenData);
+    console.log('Token response:', tokenData);
+
+    if (!tokenData.token) {
+      console.error('Invalid token data:', tokenData);
       throw new Error('No token in response');
     }
-    
-    console.log('Token generated successfully');
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
@@ -144,12 +134,10 @@ serve(async (req) => {
       throw new Error(`Failed to store session: ${insertError.message}`);
     }
 
-    console.log('Session stored successfully');
-
     return new Response(
       JSON.stringify({
         sessionId,
-        token,
+        token: tokenData.token,
         apiKey
       }),
       { 
