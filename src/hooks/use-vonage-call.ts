@@ -169,7 +169,7 @@ export function useVonageCall({
         });
       });
       
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error setting up call:", err);
       setError(err.message || "Failed to set up call");
       setIsConnecting(false);
