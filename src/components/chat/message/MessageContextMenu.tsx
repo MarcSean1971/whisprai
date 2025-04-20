@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 
@@ -36,11 +36,13 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
+    setIsDropdownOpen(false);
   };
 
   const handleAddReactionClick = (e: React.MouseEvent) => {
@@ -143,19 +145,23 @@ export function MessageContextMenu({
         )}
       </div>
 
-      {/* Fixed Popover implementation - ensuring single child for PopoverTrigger */}
       <Popover 
         open={isEmojiPickerOpen} 
         onOpenChange={setIsEmojiPickerOpen}
       >
         <PopoverTrigger asChild>
-          <span className="hidden" />
+          <div ref={dropdownRef} className="hidden" />
         </PopoverTrigger>
         <PopoverContent 
           className="w-full p-4 z-[100]"
           side="bottom"
           align={isOwn ? "start" : "end"}
           sideOffset={5}
+          onInteractOutside={(e) => {
+            if (!dropdownRef.current?.contains(e.target as Node)) {
+              setIsEmojiPickerOpen(false);
+            }
+          }}
         >
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Choose an emoji</span>
