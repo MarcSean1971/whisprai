@@ -5,6 +5,7 @@ import { AudioControls } from "./voice-player/AudioControls";
 import { ErrorDisplay } from "./voice-player/ErrorDisplay";
 import { DeleteButton } from "./voice-player/DeleteButton";
 import { useAudioPlayer } from "./voice-player/use-audio-player";
+import { Mic } from "lucide-react"; // Import Mic icon
 
 interface VoiceMessagePlayerProps {
   voiceMessagePath: string;
@@ -47,26 +48,35 @@ export function VoiceMessagePlayer({
         <ErrorDisplay />
       ) : (
         <>
-          <div className="flex-1 flex items-center space-x-2">
-            <AudioControls
-              isPlaying={isPlaying}
-              isLoading={isLoading}
-              isMuted={isMuted}
-              onPlayPause={handlePlayPause}
-              onToggleMute={toggleMute}
-              disabled={isLoading || !!error || isDeleting}
+          <div className="flex items-center space-x-2">
+            <Mic 
+              className={cn(
+                "h-5 w-5 text-white/70 mr-2", 
+                "animate-pulse opacity-70",
+                isPlaying && "animate-none opacity-100"
+              )} 
             />
-            
-            <div className={cn(
-              "h-0.5 flex-1 rounded-full bg-white/30",
-              "overflow-hidden transition-all duration-300",
-              isPlaying && "animate-pulse"
-            )}>
+            <div className="flex-1 flex items-center space-x-2">
+              <AudioControls
+                isPlaying={isPlaying}
+                isLoading={isLoading}
+                isMuted={isMuted}
+                onPlayPause={handlePlayPause}
+                onToggleMute={toggleMute}
+                disabled={isLoading || !!error || isDeleting}
+              />
+              
               <div className={cn(
-                "h-full w-full bg-white/70",
-                "transform origin-left scale-x-0",
-                isPlaying && "animate-[progress_2.5s_ease-in-out_infinite]"
-              )} />
+                "h-0.5 flex-1 rounded-full bg-white/30",
+                "overflow-hidden transition-all duration-300",
+                isPlaying && "animate-pulse"
+              )}>
+                <div className={cn(
+                  "h-full w-full bg-white/70",
+                  "transform origin-left scale-x-0",
+                  isPlaying && "animate-[progress_2.5s_ease-in-out_infinite]"
+                )} />
+              </div>
             </div>
           </div>
 
@@ -90,4 +100,3 @@ export function VoiceMessagePlayer({
     </div>
   );
 }
-
