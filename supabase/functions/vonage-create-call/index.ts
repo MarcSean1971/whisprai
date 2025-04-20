@@ -24,26 +24,17 @@ serve(async (req) => {
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
 
-    // In a real implementation, we'd look up the phone number from the user profile
-    // For now we'll use a test number from Vonage
-    const fromNumber = Deno.env.get('VONAGE_VIRTUAL_NUMBER')
-    const toNumber = Deno.env.get('VONAGE_TO_NUMBER') // This should be the recipient's number
-
-    if (!fromNumber || !toNumber) {
-      throw new Error('Phone numbers not configured')
-    }
-
-    console.log('Creating call from', fromNumber, 'to', toNumber)
+    console.log('Creating app-to-app call to recipient:', recipientId)
     console.log('NCCO:', JSON.stringify(ncco, null, 2))
 
     const result = await vonage.voice.createCall({
       to: [{ 
-        type: 'phone', 
-        number: toNumber 
+        type: 'app',
+        user: recipientId 
       }],
       from: { 
-        type: 'phone', 
-        number: fromNumber 
+        type: 'app',
+        user: sessionId 
       },
       ncco: ncco
     })

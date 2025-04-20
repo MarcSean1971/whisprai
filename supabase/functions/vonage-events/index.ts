@@ -15,16 +15,16 @@ serve(async (req) => {
     const event = await req.json()
     console.log('Received Vonage event:', JSON.stringify(event, null, 2))
     
-    // Detailed event logging
+    // Detailed event logging with user information
     switch (event.status) {
       case 'started':
-        console.log(`Call ${event.uuid} started`);
+        console.log(`Call ${event.uuid} started - From user: ${event.from}, To user: ${event.to}`);
         break;
       case 'ringing':
-        console.log(`Call ${event.uuid} is ringing`);
+        console.log(`Call ${event.uuid} is ringing - To user: ${event.to}`);
         break;
       case 'answered':
-        console.log(`Call ${event.uuid} was answered`);
+        console.log(`Call ${event.uuid} was answered by user: ${event.to}`);
         break;
       case 'completed':
         console.log(`Call ${event.uuid} has ended`);

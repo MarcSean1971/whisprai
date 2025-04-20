@@ -24,27 +24,21 @@ serve(async (req) => {
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
 
-    // Create an NCCO that plays a ringtone and connects to the conversation
+    const sessionId = crypto.randomUUID()
+
+    // Create an NCCO that connects to the conversation
     const ncco = [
       {
-        action: 'stream',
-        streamUrl: ['https://cdn.jsdelivr.net/gh/nexmo-community/ncco-examples@main/assets/ringtone.mp3'],
-        loop: 0
-      },
-      {
         action: 'conversation',
-        name: `conversation-${Date.now()}`,
+        name: `conversation-${sessionId}`,
         startOnEnter: true,
         endOnExit: true,
         record: false,
         canSpeak: ['*'],
         canHear: ['*'],
-        eventWebhook: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/vonage-events?sessionId=${crypto.randomUUID()}`
+        eventWebhook: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/vonage-events?sessionId=${sessionId}`
       }
     ]
-
-    // Generate a unique session ID for this call
-    const sessionId = crypto.randomUUID()
 
     return new Response(
       JSON.stringify({ 
