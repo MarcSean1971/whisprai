@@ -4,9 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
-import { cn } from "@/lib/utils";
-import { MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
 
 interface ChatHeaderProps {
   conversationId: string;
@@ -22,8 +21,14 @@ export function ChatHeader({
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
 
-  // Fix type error by using optional chaining for profile.id
-  const participant = conversation?.participants?.find(p => p.id !== profile?.id);
+  // Find the other participant in the conversation
+  const participant = conversation?.participants?.find(p => {
+    // Make sure we're checking the right property
+    if (profile && 'id' in profile) {
+      return p.id !== profile.id;
+    }
+    return true; // Default to showing first participant if we can't determine
+  });
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">

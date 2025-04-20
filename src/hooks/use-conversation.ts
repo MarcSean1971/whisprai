@@ -12,8 +12,8 @@ interface Participant {
 
 interface Conversation {
   id: string;
-  title: string | null;
   created_at: string;
+  updated_at: string;
   participants?: Participant[];
 }
 
@@ -27,7 +27,7 @@ export function useConversation(conversationId: string) {
       
       const { data: conversationData, error: conversationError } = await supabase
         .from('conversations')
-        .select('id, title, created_at')
+        .select('id, created_at, updated_at')
         .eq('id', conversationId)
         .single();
 
@@ -40,10 +40,12 @@ export function useConversation(conversationId: string) {
         return null;
       }
 
-      const { data: participants, error: participantsError } = await supabase
+      // Get participants with their profile information
+      const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
         .select(`
-          profiles:profile_id (
+          user_id,
+          profiles:user_id (
             id,
             first_name,
             last_name,
@@ -58,7 +60,8 @@ export function useConversation(conversationId: string) {
         throw participantsError;
       }
 
-      const formattedParticipants = participants?.map(p => ({
+      // Format participants data
+      const formattedParticipants = participantsData?.map(p => ({
         id: p.profiles.id,
         first_name: p.profiles.first_name,
         last_name: p.profiles.last_name,
@@ -67,7 +70,9 @@ export function useConversation(conversationId: string) {
       })) || [];
 
       return {
-        ...conversationData,
+        id: conversationData.id,
+        created_at: conversationData.created_at,
+        updated_at: conversationData.updated_at,
         participants: formattedParticipants
       };
     }
