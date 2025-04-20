@@ -99,7 +99,15 @@ export function useMessages(conversationId: string) {
             id,
             content,
             created_at,
-            sender_id
+            sender:sender_id (
+              id,
+              profiles (
+                first_name,
+                last_name,
+                avatar_url,
+                language
+              )
+            )
           )
         `)
         .eq('conversation_id', conversationId)
@@ -112,47 +120,12 @@ export function useMessages(conversationId: string) {
         throw messagesError;
       }
 
-      const parentSenderIds = messages
-        .filter(msg => msg.parent?.sender_id)
-        .map(msg => msg.parent.sender_id);
-
-      let parentProfilesMap: Record<string, any> = {};
-      if (parentSenderIds.length > 0) {
-        const { data: parentProfiles, error: parentProfilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, language')
-          .in('id', parentSenderIds);
-
-        if (parentProfilesError) {
-          console.error('Error fetching parent sender profiles:', parentProfilesError);
-        } else if (parentProfiles) {
-          parentProfilesMap = parentProfiles.reduce((acc, profile) => {
-            acc[profile.id] = profile;
-            return acc;
-          }, {} as Record<string, any>);
-        }
-      }
-
       return messages.map(message => ({
-        id: message.id,
-        content: message.content,
-        created_at: message.created_at,
-        conversation_id: message.conversation_id,
-        sender_id: message.sender_id,
-        status: message.status,
-        original_language: message.original_language,
-        metadata: message.metadata,
-        private_room: message.private_room,
-        private_recipient: message.private_recipient,
+        ...message,
         sender: message.sender,
         parent: message.parent ? {
-          id: message.parent.id,
-          content: message.parent.content,
-          created_at: message.parent.created_at,
-          sender: message.parent.sender_id ? {
-            id: message.parent.sender_id,
-            profiles: parentProfilesMap[message.parent.sender_id]
-          } : null
+          ...message.parent,
+          sender: message.parent.sender
         } : null
       }));
     }
