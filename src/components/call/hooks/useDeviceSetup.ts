@@ -1,14 +1,14 @@
+
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 import { toast } from 'sonner';
 import { useState, useCallback } from 'react';
 
-// Import the Codec type from twilio-client if available, otherwise use any
-type Codec = any;
-
 // Token expiration buffer (5 minutes before actual expiry)
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
+const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
+const MAX_TOKEN_RETRIES = 3;
 
 export function useDeviceSetup() {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
@@ -21,44 +21,49 @@ export function useDeviceSetup() {
       
       // Verify that our polyfills are properly set up
       if (!window.util || typeof window.util.inherits !== 'function') {
-        console.error('util.inherits polyfill not found');
         throw new Error('Browser environment setup failed: missing util.inherits');
       }
       
       if (!window.events || typeof window.events.EventEmitter !== 'function') {
-        console.error('EventEmitter polyfill not found');
         throw new Error('Browser environment setup failed: missing EventEmitter');
       }
       
       console.log('Browser environment initialized successfully with all required polyfills');
     } catch (err) {
       console.error('Failed to initialize browser environment:', err);
-      toast.error('Failed to initialize call system');
       throw err;
     }
   };
 
-  const fetchTwilioToken = async (userId: string): Promise<{ token: string, ttl: number }> => {
-    console.log(`Fetching Twilio token for user: ${userId}`);
+  const fetchTwilioToken = async (userId: string, retryCount = 0): Promise<{ token: string, ttl: number }> => {
+    console.log(`Fetching Twilio token for user: ${userId} (attempt ${retryCount + 1}/${MAX_TOKEN_RETRIES})`);
     
-    const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
-      body: { identity: userId }
-    });
+    try {
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
+        body: { identity: userId }
+      });
 
-    if (tokenError || !tokenData?.token) {
-      console.error('Failed to get Twilio token:', tokenError);
-      throw new Error(tokenError?.message || 'Failed to get access token');
+      if (tokenError || !tokenData?.token) {
+        throw new Error(tokenError?.message || 'Failed to get access token');
+      }
+
+      const expiryTimeMs = Date.now() + ((tokenData.ttl || 3600) * 1000);
+      setTokenExpiryTime(expiryTimeMs);
+      
+      console.log(`Token received with TTL: ${tokenData.ttl}s, expires at: ${new Date(expiryTimeMs).toISOString()}`);
+      
+      return {
+        token: tokenData.token,
+        ttl: tokenData.ttl || 3600
+      };
+    } catch (err) {
+      if (retryCount < MAX_TOKEN_RETRIES - 1) {
+        console.log(`Token fetch failed, retrying in ${(retryCount + 1) * 1000}ms...`);
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
+        return fetchTwilioToken(userId, retryCount + 1);
+      }
+      throw err;
     }
-
-    const expiryTimeMs = Date.now() + ((tokenData.ttl || 3600) * 1000);
-    setTokenExpiryTime(expiryTimeMs);
-    
-    console.log(`Token received with TTL: ${tokenData.ttl}s, expires at: ${new Date(expiryTimeMs).toISOString()}`);
-    
-    return {
-      token: tokenData.token,
-      ttl: tokenData.ttl || 3600
-    };
   };
 
   const initializeDevice = async (userId: string, retryCount = 0): Promise<Device> => {
@@ -74,11 +79,12 @@ export function useDeviceSetup() {
       
       const device = new Device();
       
-      // Set up device ready event promise
+      // Set up device ready event promise with timeout
       const deviceReadyPromise = new Promise<boolean>((resolve, reject) => {
         const timeoutId = setTimeout(() => {
+          device.destroy();
           reject(new Error('Device initialization timed out'));
-        }, 15000); // 15 second timeout
+        }, DEVICE_INIT_TIMEOUT);
         
         device.on('ready', () => {
           clearTimeout(timeoutId);
@@ -95,6 +101,12 @@ export function useDeviceSetup() {
             setDeviceRegistered(false);
           }
           reject(err);
+        });
+
+        // Listen for offline events
+        device.on('offline', () => {
+          console.log('Device went offline');
+          setDeviceRegistered(false);
         });
       });
       
@@ -122,7 +134,6 @@ export function useDeviceSetup() {
         return initializeDevice(userId, retryCount + 1);
       }
       
-      toast.error('Could not initialize call system');
       throw err;
     }
   };
@@ -131,9 +142,15 @@ export function useDeviceSetup() {
     try {
       console.log('Refreshing Twilio token');
       const { token } = await fetchTwilioToken(userId);
-      device.updateToken(token);
-      setDeviceRegistered(true);
-      console.log('Device token refreshed successfully');
+      
+      // Verify device exists and is not destroyed
+      if (device && typeof device.updateToken === 'function') {
+        device.updateToken(token);
+        setDeviceRegistered(true);
+        console.log('Device token refreshed successfully');
+      } else {
+        throw new Error('Invalid device state during token refresh');
+      }
     } catch (err) {
       console.error('Failed to refresh token:', err);
       setDeviceRegistered(false);
@@ -141,7 +158,7 @@ export function useDeviceSetup() {
     }
   };
 
-  const shouldRefreshToken = (): boolean => {
+  const shouldRefreshToken = useCallback((): boolean => {
     if (!tokenExpiryTime) return false;
     
     // Refresh if we're within the buffer period before expiration
@@ -151,7 +168,7 @@ export function useDeviceSetup() {
     }
     
     return shouldRefresh;
-  };
+  }, [tokenExpiryTime]);
 
   return {
     initializeDevice,

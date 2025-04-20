@@ -20,6 +20,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { setupBrowserEnvironment } = useDeviceSetup();
   const setupAttemptRef = useRef(false);
+  const maxRetries = 3;
 
   // Handle online/offline status
   useEffect(() => {
@@ -49,7 +50,6 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   }, [hasError]);
 
   useEffect(() => {
-    // Only set up the browser environment if we have a userId and we're online
     if (!userId || !isOnline) {
       return;
     }
@@ -57,26 +57,30 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     if (!setupAttemptRef.current) {
       setupAttemptRef.current = true;
       
-      try {
-        console.log('Setting up Twilio browser environment');
-        setupBrowserEnvironment();
-        setPolyfillsSetup(true);
-        console.log('Browser environment successfully initialized');
-      } catch (error) {
-        console.error('Failed to setup browser environment:', error);
-        setHasError(true);
-        toast.error('Failed to initialize call system');
-      }
+      const initializeEnvironment = async () => {
+        try {
+          console.log('Setting up Twilio browser environment');
+          setupBrowserEnvironment();
+          setPolyfillsSetup(true);
+          console.log('Browser environment successfully initialized');
+        } catch (error) {
+          console.error('Failed to setup browser environment:', error);
+          setHasError(true);
+          toast.error('Failed to initialize call system');
+        }
+      };
+
+      initializeEnvironment();
     }
   }, [userId, isOnline, setupBrowserEnvironment]);
 
   useEffect(() => {
-    if (hasError && retryCounter < 3 && isOnline) {
-      const retryDelay = 2000 + (retryCounter * 1000); // Incremental backoff
-      console.log(`Scheduling retry attempt ${retryCounter + 1}/3 in ${retryDelay}ms`);
+    if (hasError && retryCounter < maxRetries && isOnline) {
+      const retryDelay = (2000 + (retryCounter * 1000)); // Incremental backoff
+      console.log(`Scheduling retry attempt ${retryCounter + 1}/${maxRetries} in ${retryDelay}ms`);
       
       const timer = setTimeout(() => {
-        console.log(`Attempting recovery (attempt ${retryCounter + 1}/3)...`);
+        console.log(`Attempting recovery (attempt ${retryCounter + 1}/${maxRetries})...`);
         
         try {
           setupBrowserEnvironment();
@@ -86,20 +90,23 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         } catch (error) {
           console.error(`Recovery attempt ${retryCounter + 1} failed:`, error);
           setRetryCounter(prev => prev + 1);
+          if (retryCounter + 1 >= maxRetries) {
+            toast.error('Could not initialize call system. Please try again later.');
+          }
         }
       }, retryDelay);
       
       return () => clearTimeout(timer);
-    } else if (hasError && retryCounter >= 3) {
-      console.error('Max retry attempts reached');
     }
-  }, [hasError, retryCounter, isOnline, setupBrowserEnvironment]);
+  }, [hasError, retryCounter, isOnline, setupBrowserEnvironment, maxRetries]);
 
   const handleManualRetry = () => {
-    setRetryCounter(0);
-    setHasError(false);
-    setupAttemptRef.current = false;
-    toast.info('Retrying connection...');
+    if (retryCounter >= maxRetries) {
+      setRetryCounter(0);
+      setHasError(false);
+      setupAttemptRef.current = false;
+      toast.info('Retrying connection...');
+    }
   };
 
   // If no userId is provided or we're offline, don't render anything
@@ -113,14 +120,16 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         <AlertCircle className="h-4 w-4" />
         <AlertDescription className="flex flex-col gap-2">
           <span>Failed to initialize call system.</span>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleManualRetry}
-            className="self-start"
-          >
-            Retry Connection
-          </Button>
+          {retryCounter >= maxRetries && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleManualRetry}
+              className="self-start"
+            >
+              Retry Connection
+            </Button>
+          )}
         </AlertDescription>
       </Alert>
     );

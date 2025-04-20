@@ -8,16 +8,27 @@ interface UseCallInitializationProps {
   userId: string;
   updateCallStatus: (status: CallStatus) => void;
   updateState: (updates: any) => void;
+  isDeviceRegistered: boolean;
 }
 
 export function useCallInitialization({ 
   userId, 
   updateCallStatus, 
-  updateState 
+  updateState,
+  isDeviceRegistered 
 }: UseCallInitializationProps) {
   const startCall = useCallback(async (recipientId: string) => {
     if (!userId) {
       toast.error('You must be logged in to make calls');
+      return;
+    }
+
+    if (!isDeviceRegistered) {
+      toast.error('Call system not ready. Please try again in a moment.');
+      updateState({ 
+        error: 'Device not registered',
+        callStatus: CallStatus.FAILED 
+      });
       return;
     }
 
@@ -30,7 +41,7 @@ export function useCallInitialization({
         body: { 
           from: userId, 
           to: recipientId,
-          retryCount: 0 // Add retry count for the edge function
+          retryCount: 0
         }
       });
 
@@ -51,7 +62,7 @@ export function useCallInitialization({
       });
       toast.error(`Call failed: ${err.message}`);
     }
-  }, [userId, updateCallStatus, updateState]);
+  }, [userId, updateCallStatus, updateState, isDeviceRegistered]);
 
   return { startCall };
 }
