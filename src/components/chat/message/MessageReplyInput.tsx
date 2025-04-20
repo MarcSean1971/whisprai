@@ -1,8 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, X } from "lucide-react";
+import { Reply, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface MessageReplyInputProps {
   onSubmit: (content: string) => void;
@@ -11,43 +12,67 @@ interface MessageReplyInputProps {
 
 export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps) {
   const [content, setContent] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      // Auto-resize logic
+      textareaRef.current.style.height = '0px';
+      const scrollHeight = textareaRef.current.scrollHeight;
+      textareaRef.current.style.height = scrollHeight + 'px';
+    }
+  }, [content]);
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (content.trim()) {
       onSubmit(content);
       setContent('');
     }
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="mt-2 ml-6 space-y-2">
+    <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
       <Textarea
+        ref={textareaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
+        onKeyPress={handleKeyPress}
         placeholder="Type your reply..."
-        className="min-h-[60px] w-[calc(100%-2rem)]"
+        className={cn(
+          "min-h-[36px] max-h-[150px] flex-1 py-2 px-3 text-sm resize-none overflow-hidden",
+          "focus:ring-1 focus:ring-primary"
+        )}
       />
-      <div className="flex gap-2">
+      <div className="flex gap-1 shrink-0">
         <Button 
           type="submit" 
-          size="sm"
-          className="bg-primary hover:bg-primary/90"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
           disabled={!content.trim()}
         >
-          <Send className="h-4 w-4 mr-1" />
-          Reply
+          <Reply className="h-4 w-4" />
         </Button>
         <Button 
-          type="button" 
-          variant="ghost" 
-          size="sm"
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8"
           onClick={onCancel}
         >
-          <X className="h-4 w-4 mr-1" />
-          Cancel
+          <X className="h-4 w-4" />
         </Button>
       </div>
     </form>
   );
 }
+

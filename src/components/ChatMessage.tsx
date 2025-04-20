@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -98,10 +97,12 @@ export function ChatMessage({
     }
   };
 
-  // Wrapper function to handle reply string coming from MessageContent
-  const handleReply = (content?: string) => {
-    // Just call onReply without arguments since that's what the parent expects
-    onReply();
+  const handleReply = (replyContent?: string) => {
+    if (replyContent) {
+      onReply(replyContent);
+    } else {
+      onReply();
+    }
   };
 
   return (
