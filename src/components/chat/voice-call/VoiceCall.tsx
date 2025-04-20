@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PhoneCall, PhoneOff } from "lucide-react"
@@ -8,16 +7,6 @@ import { supabase } from "@/integrations/supabase/client"
 interface VoiceCallProps {
   recipientId: string;
   onError: (error: Error) => void;
-}
-
-declare global {
-  interface Window {
-    Vonage: any;
-    OT: {
-      initSession: (apiKey: string, sessionId: string) => any;
-      initPublisher: (targetElement: string, options: any) => any;
-    };
-  }
 }
 
 export function VoiceCall({ 
