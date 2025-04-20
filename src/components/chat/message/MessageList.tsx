@@ -54,7 +54,7 @@ export function MessageList({
         timestamp={formattedTimestamp}
         isOwn={isOwn}
         isAI={isAI}
-        status={message.status}
+        status={message.status as any}
         sender={message.sender && {
           name: `${message.sender.profiles?.first_name || ''} ${message.sender.profiles?.last_name || ''}`.trim(),
           avatar: message.sender.profiles?.avatar_url,

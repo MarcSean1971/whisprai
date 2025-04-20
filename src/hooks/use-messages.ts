@@ -71,7 +71,7 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId, queryClient]);
 
-  return useQuery<Message[]>({
+  return useQuery({
     queryKey: ['messages', conversationId],
     queryFn: async () => {
       if (!conversationId) {
@@ -154,13 +154,15 @@ export function useMessages(conversationId: string) {
 
         // Ensure parent message has the right structure if it exists
         if (message.parent && typeof message.parent === 'object') {
+          const parentMessage = message.parent as any;
+          
           processedMessage.parent = {
-            id: message.parent.id,
-            content: message.parent.content,
-            created_at: message.parent.created_at,
-            sender: message.parent.sender ? {
-              id: message.parent.sender.id,
-              profiles: message.parent.sender.profiles || null
+            id: parentMessage.id,
+            content: parentMessage.content,
+            created_at: parentMessage.created_at,
+            sender: parentMessage.sender ? {
+              id: parentMessage.sender.id,
+              profiles: parentMessage.sender.profiles || null
             } : null
           };
         }
