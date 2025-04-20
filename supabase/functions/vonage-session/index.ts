@@ -37,8 +37,10 @@ serve(async (req) => {
       privateKey
     })
 
-    // Generate JWT token with RTC-specific ACL paths
-    const jwt = vonage.generateJwt({
+    console.log('Generating JWT token')
+
+    // Use the correct jwt.generate() method
+    const jwt = vonage.jwt.generate({
       exp: Math.round(new Date().getTime() / 1000) + 3600,
       sub: recipientId,
       acl: {
