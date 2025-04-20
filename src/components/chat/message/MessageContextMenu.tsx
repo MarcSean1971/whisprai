@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 
@@ -36,13 +36,11 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
-    // We no longer close the dropdown menu here
   };
 
   const handleAddReactionClick = (e: React.MouseEvent) => {
@@ -62,7 +60,6 @@ export function MessageContextMenu({
             >
               <DropdownMenuTrigger asChild>
                 <Button
-                  ref={dropdownTriggerRef}
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -73,7 +70,7 @@ export function MessageContextMenu({
               <DropdownMenuContent
                 align="start"
                 side="bottom"
-                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
               >
                 <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
                   <Reply className="mr-2 h-4 w-4" />
@@ -110,7 +107,6 @@ export function MessageContextMenu({
             >
               <DropdownMenuTrigger asChild>
                 <Button
-                  ref={dropdownTriggerRef}
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -121,7 +117,7 @@ export function MessageContextMenu({
               <DropdownMenuContent
                 align="end"
                 side="bottom"
-                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
               >
                 <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
                   <Reply className="mr-2 h-4 w-4" />
@@ -153,11 +149,7 @@ export function MessageContextMenu({
         modal={true}
       >
         <PopoverTrigger asChild>
-          <Button 
-            ref={dropdownTriggerRef} 
-            className="hidden"
-            tabIndex={-1}
-          />
+          <div className="hidden" /> {/* Empty div as trigger */}
         </PopoverTrigger>
         <PopoverContent 
           className="w-full p-4 z-[100]"
@@ -188,3 +180,4 @@ export function MessageContextMenu({
     </div>
   );
 }
+
