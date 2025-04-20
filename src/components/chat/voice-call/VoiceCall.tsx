@@ -46,8 +46,9 @@ export function VoiceCall({ sessionId, recipientId, onError }: VoiceCallProps) {
 
       if (tokenError) throw new Error(tokenError.message)
 
-      // Initialize Vonage session
-      vonageSession.current = VonageVideo.initSession(sessionId)
+      // Initialize Vonage session - using the global OT object provided by the Vonage script
+      // @ts-ignore - OT is a global object from the Vonage script
+      vonageSession.current = OT.initSession(sessionId)
       
       vonageSession.current.connect(tokenResponse.token, (error: Error) => {
         if (error) {
@@ -56,7 +57,8 @@ export function VoiceCall({ sessionId, recipientId, onError }: VoiceCallProps) {
         }
 
         // Create publisher
-        publisher.current = VonageVideo.initPublisher('publisher', {
+        // @ts-ignore - OT is a global object from the Vonage script
+        publisher.current = OT.initPublisher('publisher', {
           insertMode: 'append',
           width: '100%',
           height: '100%'

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useEffect, useState } from "react"
 import { VoiceCall } from "./VoiceCall"
 import { toast } from "sonner"
+import { supabase } from "@/integrations/supabase/client"
 
 interface VoiceCallDialogProps {
   isOpen: boolean
