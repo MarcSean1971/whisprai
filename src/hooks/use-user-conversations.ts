@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,7 +22,7 @@ export function useUserConversations() {
             *,
             conversation_participants!inner (
               user_id,
-              profiles:profiles (
+              profiles!inner (
                 id,
                 first_name,
                 last_name,
@@ -56,7 +57,7 @@ export function useUserConversations() {
 
           const primaryParticipant = otherParticipants[0]?.profile;
           
-          const result = {
+          return {
             ...conversation,
             participants: otherParticipants,
             name: primaryParticipant 
@@ -64,11 +65,9 @@ export function useUserConversations() {
               : 'Unknown User',
             avatar: primaryParticipant?.avatar_url || null
           };
-
-          console.log('Processed conversation:', result);
-          return result;
         });
 
+        console.log('Processed conversations:', processedConversations);
         return processedConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
