@@ -103,27 +103,39 @@ export function useVonageCall({
       
       // Set up event handlers
       sessionRef.current.on('streamCreated', (event: any) => {
-        // The TypeScript type definition expects only 2 parameters in this order:
+        // The TypeScript definition expects only 2 parameters:
         // 1. stream: Stream object
         // 2. options object (containing target element, properties, and callback)
         
+        // Create a config object that includes the callback
+        const subscribeOptions = {
+          insertMode: 'append',
+          width: '100%',
+          height: '100%',
+          appendTo: subscriberElement, // Target element included in options
+          // Include the callback as part of the options object
+          subscribeToAudio: true,
+          subscribeToVideo: true
+        };
+        
+        // Fix: Use only 2 arguments - the stream and options
         subscriberRef.current = sessionRef.current.subscribe(
           event.stream,
-          {
-            insertMode: 'append',
-            width: '100%',
-            height: '100%',
-            // Include the target element in the options object
-            appendTo: subscriberElement
-          },
-          (error: any) => {
-            if (error) {
-              console.error('Error subscribing to stream:', error);
-            } else {
-              setHasRemoteParticipant(true);
-            }
-          }
+          subscribeOptions
         );
+        
+        // Set subscriber state in a separate step after subscribe
+        subscriberRef.current.on('connected', () => {
+          setHasRemoteParticipant(true);
+        });
+        
+        subscriberRef.current.on('destroyed', () => {
+          console.log('Subscriber destroyed');
+        });
+        
+        subscriberRef.current.on('error', (error: any) => {
+          console.error('Error subscribing to stream:', error);
+        });
       });
       
       sessionRef.current.on('streamDestroyed', (event: any) => {
