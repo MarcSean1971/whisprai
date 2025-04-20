@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Reply, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface MessageReplyInputProps {
@@ -12,6 +12,7 @@ interface MessageReplyInputProps {
 
 export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps) {
   const [content, setContent] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -24,12 +25,22 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
     }
   }, [content]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (content.trim()) {
-      onSubmit(content);
-      setContent('');
+    if (content.trim() && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        await onSubmit(content);
+        setContent('');
+      } finally {
+        setIsSubmitting(false);
+      }
     }
+  };
+
+  const handleCancel = () => {
+    setContent('');
+    onCancel();
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -52,27 +63,29 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
           "focus:ring-1 focus:ring-primary"
         )}
       />
-      <div className="flex gap-1 shrink-0">
-        <Button 
-          type="submit" 
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          disabled={!content.trim()}
-        >
-          <Reply className="h-4 w-4" />
-        </Button>
-        <Button 
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="h-8 w-8"
-          onClick={onCancel}
-        >
-          <X className="h-4 w-4" />
-        </Button>
-      </div>
+      {content.trim() && (
+        <div className="flex gap-1 shrink-0">
+          <Button 
+            type="submit" 
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            disabled={isSubmitting}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+          <Button 
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            onClick={handleCancel}
+            disabled={isSubmitting}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </form>
   );
 }
-
