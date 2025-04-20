@@ -24,7 +24,7 @@ export function VoiceCall({
   const [isConnecting, setIsConnecting] = useState(false)
   const ringtoneRef = useRef<HTMLAudioElement>(null)
   const clientRef = useRef<any>(null)
-  const conversationRef = useRef<any>(null)
+  const sessionRef = useRef<any>(null)
 
   useEffect(() => {
     // Load Vonage Client SDK script
@@ -47,7 +47,8 @@ export function VoiceCall({
   const initializeCall = async () => {
     try {
       setIsConnecting(true)
-      
+      console.log('Initializing call...')
+
       const { data: sessionResponse, error: sessionError } = await supabase.functions.invoke(
         'vonage-session',
         {
@@ -63,10 +64,10 @@ export function VoiceCall({
         throw new Error('Failed to get Vonage credentials')
       }
 
+      console.log('Got Vonage credentials, initializing client...')
+
       // Initialize Vonage client
-      clientRef.current = new window.Vonage.Client({
-        debug: true
-      })
+      clientRef.current = new window.Vonage.Client()
 
       // Set up event handlers
       clientRef.current.on('error', (error: any) => {
@@ -80,21 +81,24 @@ export function VoiceCall({
 
       // Login with JWT
       await clientRef.current.createSession(token)
+      console.log('Session created successfully')
 
-      // Join conversation
-      conversationRef.current = await clientRef.current.conversation.create({
+      // Create a session and join
+      sessionRef.current = await clientRef.current.session.create({
         name: `call-${Date.now()}`,
         display_name: `Call with ${recipientId}`
       })
 
       // Enable audio
-      await conversationRef.current.media.enable({
+      await sessionRef.current.media.enable({
         audio: true,
         video: false
       })
 
+      console.log('Audio enabled, inviting recipient...')
+
       // Invite the recipient
-      await conversationRef.current.invite(recipientId)
+      await sessionRef.current.invite(recipientId)
 
       // Start playing ringtone
       if (ringtoneRef.current) {
@@ -121,9 +125,9 @@ export function VoiceCall({
         ringtoneRef.current.pause()
       }
 
-      if (conversationRef.current) {
-        await conversationRef.current.leave()
-        conversationRef.current = null
+      if (sessionRef.current) {
+        await sessionRef.current.leave()
+        sessionRef.current = null
       }
 
       if (clientRef.current) {

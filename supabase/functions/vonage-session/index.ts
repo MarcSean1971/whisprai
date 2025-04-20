@@ -1,5 +1,5 @@
 
-import { createClient } from 'npm:@vonage/server-sdk'
+import { Vonage } from 'npm:@vonage/server-sdk'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -32,20 +32,21 @@ serve(async (req) => {
 
     console.log('Initializing Vonage client')
     
-    const vonage = new createClient({
+    const vonage = new Vonage({
       applicationId,
       privateKey
     })
 
-    // Generate JWT for RTC
+    // Generate JWT token with RTC-specific ACL paths
     const jwt = vonage.generateJwt({
       exp: Math.round(new Date().getTime() / 1000) + 3600,
       sub: recipientId,
       acl: {
         paths: {
-          "/*/rtc/**": {},
+          "/*/sessions/**": {},
           "/*/users/**": {},
           "/*/conversations/**": {},
+          "/*/rtc/**": {}
         }
       }
     })
