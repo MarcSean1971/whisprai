@@ -78,7 +78,7 @@ export function VoiceCallDialog({
 
   useEffect(() => {
     if (error) {
-      toast.error(error.message);
+      toast.error(error.message || "An error occurred during the call");
       onClose();
     }
   }, [error, onClose]);
