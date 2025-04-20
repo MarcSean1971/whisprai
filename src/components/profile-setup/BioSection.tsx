@@ -1,4 +1,3 @@
-
 import {
   FormField,
   FormItem,
@@ -33,7 +32,7 @@ export function BioSection({ form, onEnhanceBio }: BioSectionProps) {
           <FormControl>
             <Textarea
               placeholder="Tell us about yourself..."
-              className="min-h-[100px] max-h-[200px] overflow-y-auto no-scrollbar pr-10 mb-16"
+              className="min-h-[100px] max-h-[200px] overflow-y-auto no-scrollbar pr-10"
               {...field}
             />
           </FormControl>
@@ -43,4 +42,3 @@ export function BioSection({ form, onEnhanceBio }: BioSectionProps) {
     />
   );
 }
-
