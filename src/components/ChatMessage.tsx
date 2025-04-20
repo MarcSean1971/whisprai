@@ -124,6 +124,8 @@ export function ChatMessage({
         isDeleting={isDeleting}
         attachments={attachments}
         onReply={onReply}
+        isReplying={isReplying}
+        onCancelReply={() => onReply("")}
       />
 
       {voiceMessagePath && (

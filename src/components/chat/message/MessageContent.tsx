@@ -2,7 +2,6 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
-import { useState } from "react";
 import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageContentProps {
@@ -20,6 +19,8 @@ interface MessageContentProps {
   onDelete: () => void;
   isDeleting: boolean;
   onReply: (replyContent: string) => void;
+  isReplying?: boolean;
+  onCancelReply?: () => void;
   attachments?: {
     url: string;
     name: string;
@@ -42,27 +43,14 @@ export function MessageContent({
   onDelete,
   isDeleting,
   onReply,
+  isReplying = false,
+  onCancelReply,
   attachments
 }: MessageContentProps) {
-  const [isReplying, setIsReplying] = useState(false);
-
-  const handleReply = () => {
-    setIsReplying(true);
-  };
-
-  const handleCancelReply = () => {
-    setIsReplying(false);
-  };
-
-  const handleSubmitReply = (replyContent: string) => {
-    onReply(replyContent);
-    setIsReplying(false);
-  };
-
   return (
     <div className="space-y-2">
       <MessageContextMenu
-        onReply={handleReply}
+        onReply={() => onReply("")}
         onToggleTranslation={onToggleTranslation}
         showTranslationToggle={showTranslationToggle}
         isOwn={isOwn}
@@ -75,14 +63,14 @@ export function MessageContent({
           isOwn={isOwn}
           isAIMessage={isAIMessage}
           attachments={attachments}
-          onReply={handleReply}
+          onReply={() => onReply("")}
         />
       </MessageContextMenu>
       {isReplying && (
-        <div className="ml-4">
+        <div className="ml-4 mt-2">
           <MessageReplyInput
-            onSubmit={handleSubmitReply}
-            onCancel={handleCancelReply}
+            onSubmit={onReply}
+            onCancel={onCancelReply}
           />
         </div>
       )}
