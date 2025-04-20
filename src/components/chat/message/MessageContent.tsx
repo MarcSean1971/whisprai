@@ -1,9 +1,8 @@
-
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
 import { MessageReplyButton } from "./MessageReplyButton";
-import { MessageReactionButton } from "./reactions/MessageReactionButton";
+import { MessageReactions } from "./reactions/MessageReactions";
 
 interface MessageContentProps {
   id: string;
@@ -47,14 +46,20 @@ export function MessageContent({
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start gap-2">
-        <MessageBubble
-          id={id}
-          content={content}
-          timestamp={timestamp}
-          isOwn={isOwn}
-          isAIMessage={isAIMessage}
-          attachments={attachments}
-        />
+        <div className="flex-1">
+          <MessageBubble
+            id={id}
+            content={content}
+            timestamp={timestamp}
+            isOwn={isOwn}
+            isAIMessage={isAIMessage}
+            attachments={attachments}
+          />
+          <div className="flex items-center gap-2 mt-1 ml-1">
+            <MessageReactions messageId={id} isOwn={isOwn} />
+            <span className="text-xs text-muted-foreground">{timestamp}</span>
+          </div>
+        </div>
         <MessageControls
           showTranslationToggle={showTranslationToggle}
           originalLanguage={originalLanguage}
@@ -67,11 +72,10 @@ export function MessageContent({
         />
       </div>
       <div className={cn("flex flex-col gap-1", isOwn ? "items-end mr-8" : "items-start ml-1")}>
-        <MessageReactionButton messageId={id} isOwn={isOwn} />
-        <MessageReplyButton 
-          onReply={onReply}
-          isOwn={isOwn}
-        />
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+          <MessageReplyButton onReply={onReply} isOwn={isOwn} />
+          <MessageReactionButton messageId={id} isOwn={isOwn} />
+        </div>
       </div>
     </div>
   );

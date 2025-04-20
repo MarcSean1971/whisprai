@@ -20,7 +20,7 @@ export function MessageReactionButton({ messageId, isOwn }: MessageReactionButto
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 rounded-full hover:bg-accent opacity-0 group-hover:opacity-100 transition-opacity"
+          className="h-6 w-6 rounded-full hover:bg-accent"
         >
           <Smile className="h-4 w-4" />
           <span className="sr-only">Add reaction</span>
