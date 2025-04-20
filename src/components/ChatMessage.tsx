@@ -84,7 +84,9 @@ export function ChatMessage({
   const hasTranslation = !!translatedContent && content !== translatedContent;
   const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
   const isAIMessage = isAI || metadata?.isAIPrompt;
-  const canDelete = isAIMessage;
+  
+  // Update canDelete logic to include AI messages
+  const canDelete = isAIMessage || content.toLowerCase().startsWith('ai:') || content.toLowerCase().startsWith('a:');
   const isAIPrompt = metadata?.isAIPrompt;
   const voiceMessagePath = metadata?.voiceMessage;
   const attachments = metadata?.attachments;

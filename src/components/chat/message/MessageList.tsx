@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Message } from "@/hooks/use-messages";
@@ -26,8 +25,8 @@ export function MessageList({
 
   return messages.map((message, index) => {
     const isOwn = message.sender_id === currentUserId;
-    const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
-    const isAIPrompt = message.metadata?.isAIPrompt || message.private_room === 'AI';
+    const isAI = message.private_room === 'AI';
+    const isAIPrompt = message.content.toLowerCase().startsWith('ai:') || message.content.toLowerCase().startsWith('a:');
     
     const showSender = !isOwn && !isAI && !isAIPrompt && 
                       (index === 0 || messages[index - 1].sender_id !== message.sender_id);
