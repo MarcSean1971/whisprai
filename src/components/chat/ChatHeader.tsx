@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -11,7 +10,6 @@ import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 
-// Define the Participant interface
 interface Participant {
   id: string;
   first_name: string | null;
@@ -51,7 +49,6 @@ export function ChatHeader({
     onClick: () => handleParticipantClick(p)
   }));
 
-  // Format participant names and taglines for display
   const participantDetails = otherParticipants.map(p => ({
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
     tagline: p.tagline || ''
@@ -116,15 +113,6 @@ export function ChatHeader({
               onClick={() => setIsSearching(true)}
             >
               <Search className="h-4 w-4" />
-            </Button>
-          )}
-          {replyToMessageId && onCancelReply && (
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={onCancelReply}
-            >
-              Cancel Reply
             </Button>
           )}
           <DropdownMenu>
