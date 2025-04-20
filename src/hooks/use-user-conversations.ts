@@ -19,7 +19,7 @@ export function useUserConversations() {
             *,
             conversation_participants!inner (
               user_id,
-              profiles (
+              profiles!inner (
                 id,
                 first_name,
                 last_name,
@@ -46,8 +46,8 @@ export function useUserConversations() {
             .filter(p => p.user_id !== user.id)
             .map(p => ({
               id: p.user_id,
-              name: p.profiles ? `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User' : 'Unknown User',
-              avatar: p.profiles?.avatar_url
+              name: `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User',
+              avatar: p.profiles.avatar_url
             }));
 
           const sortedMessages = conversation.messages.sort(
