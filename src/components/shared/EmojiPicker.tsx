@@ -6,7 +6,9 @@ import {
   Dialog,
   DialogContent,
   DialogTrigger,
+  DialogTitle,
 } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -25,6 +27,7 @@ export function EmojiPicker({
   onOpenChange
 }: EmojiPickerProps) {
   const handleEmojiSelect = (emojiData: any) => {
+    console.log('Emoji selected in picker:', emojiData);
     onEmojiSelect(emojiData);
     onOpenChange(false);
   };
@@ -52,6 +55,9 @@ export function EmojiPicker({
         {triggerButton || defaultTrigger}
       </DialogTrigger>
       <DialogContent className="p-0 w-auto border shadow-lg max-w-[350px]">
+        <DialogTitle>
+          <VisuallyHidden>Choose an emoji</VisuallyHidden>
+        </DialogTitle>
         <div className="bg-popover rounded-md p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Choose an emoji</span>

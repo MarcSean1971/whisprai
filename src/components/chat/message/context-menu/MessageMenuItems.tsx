@@ -1,7 +1,9 @@
+
 import { Reply, Languages, Trash2 } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
+import { toast } from "sonner";
 
 interface MessageMenuItemsProps {
   onReply: () => void;
@@ -25,7 +27,13 @@ export function MessageMenuItems({
   const { addReaction } = useMessageReactions(messageId);
   
   const handleEmojiSelect = (emojiData: any) => {
-    addReaction({ emoji: emojiData.emoji });
+    console.log('Emoji selected:', emojiData);
+    try {
+      addReaction({ emoji: emojiData.emoji });
+    } catch (error) {
+      console.error('Error adding reaction:', error);
+      toast.error('Failed to add reaction');
+    }
   };
 
   return (
