@@ -25,15 +25,15 @@ export interface VonageSessionData {
 }
 
 export interface VonagePublisherOptions {
-  publisherElement: string;
+  publisherRef: React.RefObject<HTMLDivElement>;
   onError: (error: VonageError) => void;
 }
 
 export interface VonageSubscriberOptions {
-  subscriberElement: string;
+  subscriberRef: React.RefObject<HTMLDivElement>;
 }
 
 export interface VonageCallOptions extends VonageSessionOptions {
-  publisherElement: string;
-  subscriberElement: string;
+  publisherRef: React.RefObject<HTMLDivElement>;
+  subscriberRef: React.RefObject<HTMLDivElement>;
 }

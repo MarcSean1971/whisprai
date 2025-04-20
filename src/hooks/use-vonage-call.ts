@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef } from "react";
 import { loadVonageScript } from "@/lib/vonage-loader";
 import { useVonageSession } from "./vonage/use-vonage-session";
@@ -7,8 +6,8 @@ import { useVonageSubscriber } from "./vonage/use-vonage-subscriber";
 import { VonageCallOptions, VonageError } from "./vonage/types";
 
 export function useVonageCall({
-  publisherElement,
-  subscriberElement,
+  publisherRef,
+  subscriberRef,
   recipientId,
   conversationId = 'default'
 }: VonageCallOptions) {
@@ -33,7 +32,7 @@ export function useVonageCall({
     toggleAudio,
     toggleVideo
   } = useVonagePublisher({ 
-    publisherElement,
+    publisherRef,
     onError: setError
   });
 
@@ -41,7 +40,7 @@ export function useVonageCall({
     hasRemoteParticipant,
     handleStreamCreated,
     destroySubscriber
-  } = useVonageSubscriber({ subscriberElement });
+  } = useVonageSubscriber({ subscriberRef });
 
   useEffect(() => {
     if (!scriptLoaded.current) {

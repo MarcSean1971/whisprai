@@ -1,4 +1,3 @@
-
 import { useRef, useCallback, useState } from "react";
 import { VonageSubscriberOptions } from "./types";
 

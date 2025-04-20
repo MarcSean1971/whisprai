@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { Session, OpenTok } from "https://esm.sh/opentok@2.16.0/dist/js/opentok.js";
+import OpenTok from "https://esm.sh/opentok@2.16.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,15 +40,14 @@ serve(async (req) => {
 
     // Initialize OpenTok with API key and private key
     const apiKey = Deno.env.get('VONAGE_API_KEY');
-    if (!apiKey) {
-      throw new Error('Vonage API key not configured');
+    const privateKey = Deno.env.get('VONAGE_PRIVATE_KEY');
+    
+    if (!apiKey || !privateKey) {
+      throw new Error('Vonage API credentials not configured');
     }
 
     // Create a new session
-    const opentok = new OpenTok(
-      apiKey,
-      Deno.env.get('VONAGE_PRIVATE_KEY') ?? ''
-    );
+    const opentok = new OpenTok(apiKey, privateKey);
 
     const sessionOptions = {
       mediaMode: 'routed',
@@ -56,7 +55,7 @@ serve(async (req) => {
     };
 
     const session = await new Promise((resolve, reject) => {
-      opentok.createSession(sessionOptions, (error: Error, session: Session) => {
+      opentok.createSession(sessionOptions, (error, session) => {
         if (error) {
           console.error('Error creating session:', error);
           reject(error);
@@ -67,7 +66,7 @@ serve(async (req) => {
     });
 
     // Generate token for the user
-    const token = opentok.generateToken((session as Session).sessionId, {
+    const token = opentok.generateToken(session.sessionId, {
       role: 'publisher',
       data: JSON.stringify({ userId: user.id }),
       expireTime: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
@@ -78,21 +77,21 @@ serve(async (req) => {
       .from('call_sessions')
       .upsert({
         session_key: `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`,
-        session_id: (session as Session).sessionId,
+        session_id: session.sessionId,
         created_by: user.id,
         conversation_id: conversationId,
         created_at: new Date().toISOString()
       });
 
     console.log('Session created successfully:', {
-      sessionId: (session as Session).sessionId,
+      sessionId: session.sessionId,
       token: token,
       apiKey: apiKey
     });
 
     return new Response(
       JSON.stringify({
-        sessionId: (session as Session).sessionId,
+        sessionId: session.sessionId,
         token: token,
         apiKey: apiKey
       }),
