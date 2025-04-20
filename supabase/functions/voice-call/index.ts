@@ -26,22 +26,26 @@ serve(async (req) => {
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
     const twilioApiSecret = Deno.env.get('TWILIO_API_SECRET');
+    const twimlAppSid = Deno.env.get('TWILIO_TWIML_APP_SID');
 
     if (!accountSid || (!authToken && (!twilioApiKey || !twilioApiSecret))) {
       throw new Error('Missing required Twilio credentials');
     }
 
+    if (!twimlAppSid) {
+      throw new Error('Missing Twilio TwiML App SID');
+    }
+
     const client = twilio(twilioApiKey || accountSid, twilioApiSecret || authToken);
     
-    // Create a TwiML response
-    const twiml = new twilio.twiml.VoiceResponse();
-    twiml.say('Hello, this is a test call from your chat application.');
-    twiml.dial().client(to);
-
+    // Use the TwiML App SID instead of generating TwiML directly
     const callData = await client.calls.create({
-      twiml: twiml.toString(),
+      applicationSid: twimlAppSid,
       to: `client:${to}`,
       from: `client:${from}`,
+      statusCallback: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/call-status`,
+      statusCallbackMethod: 'POST',
+      statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed']
     });
 
     console.log('Call initiated successfully:', callData.sid);
