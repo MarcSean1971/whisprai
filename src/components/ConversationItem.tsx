@@ -1,8 +1,7 @@
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AvatarStack } from "@/components/ui/avatar-stack";
-import { PinIcon } from "lucide-react";
+import { PinIcon, Image as ImageIcon, Paperclip, MapPin, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/hooks/use-messages";
 
@@ -19,6 +18,28 @@ interface ConversationItemProps {
   participants?: Array<{ id: string; name: string; avatar?: string }>;
   onClick?: () => void;
 }
+
+const getMessagePreview = (message: Message | undefined): string => {
+  if (!message) return '';
+  
+  if (message.metadata?.voiceMessage) {
+    return '🎤 Voice message';
+  }
+  
+  if (message.metadata?.location) {
+    return '📍 Shared location';
+  }
+  
+  if (message.metadata?.attachments?.length) {
+    const attachment = message.metadata.attachments[0];
+    if (attachment.type.startsWith('image/')) {
+      return '📸 Photo';
+    }
+    return `📎 ${attachment.name}`;
+  }
+  
+  return message.content;
+};
 
 export function ConversationItem({
   id,
@@ -72,13 +93,13 @@ export function ConversationItem({
           )}
         </div>
         
-        {lastMessage?.content && (
+        {lastMessage && (
           <div className="flex items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground truncate">
+            <p className="text-sm text-muted-foreground truncate max-w-[200px]">
               {lastMessage.sender?.profiles?.first_name 
                 ? `${lastMessage.sender.profiles.first_name}: ` 
                 : ""}
-              {lastMessage.content}
+              {getMessagePreview(lastMessage)}
             </p>
             {unreadCount > 0 && (
               <Badge 
