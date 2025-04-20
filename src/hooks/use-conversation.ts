@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -52,13 +51,11 @@ export function useConversation(conversationId: string) {
         throw participantsError;
       }
 
-      // Get all user IDs from participants
       const userIds = participantsData.map(p => p.user_id);
       
-      // Fetch profile data for these users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, avatar_url, tagline')
+        .select('id, first_name, last_name, avatar_url, tagline, bio, birthdate')
         .in('id', userIds);
         
       if (profilesError) {
@@ -66,7 +63,6 @@ export function useConversation(conversationId: string) {
         throw profilesError;
       }
 
-      // Format participants data
       const formattedParticipants = profilesData || [];
 
       return {
