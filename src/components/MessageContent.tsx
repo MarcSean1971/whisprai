@@ -2,9 +2,10 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageControls } from "@/components/chat/message/MessageControls";
+import { MessageReplyButton } from "@/components/chat/message/MessageReplyButton";
 
 interface MessageContentProps {
-  id: string; // Added this prop
+  id: string;
   content: string;
   timestamp: string;
   isOwn: boolean;
@@ -17,6 +18,7 @@ interface MessageContentProps {
   canDelete: boolean;
   onDelete: () => void;
   isDeleting: boolean;
+  onReply: () => void;
   attachment?: {
     url: string;
     name: string;
@@ -30,7 +32,7 @@ interface MessageContentProps {
 }
 
 export function MessageContent({
-  id, // Added this prop
+  id,
   content,
   timestamp,
   isOwn,
@@ -43,13 +45,14 @@ export function MessageContent({
   canDelete,
   onDelete,
   isDeleting,
+  onReply,
   attachment,
   attachments
 }: MessageContentProps) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2 group">
       <MessageBubble
-        id={id} // Pass the id prop
+        id={id}
         content={content}
         timestamp={timestamp}
         isOwn={isOwn}
@@ -58,16 +61,22 @@ export function MessageContent({
         attachments={attachments}
       />
 
-      <MessageControls
-        showTranslationToggle={showTranslationToggle}
-        originalLanguage={originalLanguage}
-        onToggleTranslation={onToggleTranslation}
-        location={location}
-        onLocationClick={onLocationClick}
-        canDelete={canDelete}
-        onDelete={onDelete}
-        isDeleting={isDeleting}
-      />
+      <div className="flex items-center gap-1">
+        <MessageReplyButton 
+          onReply={onReply}
+          isOwn={isOwn}
+        />
+        <MessageControls
+          showTranslationToggle={showTranslationToggle}
+          originalLanguage={originalLanguage}
+          onToggleTranslation={onToggleTranslation}
+          location={location}
+          onLocationClick={onLocationClick}
+          canDelete={canDelete}
+          onDelete={onDelete}
+          isDeleting={isDeleting}
+        />
+      </div>
     </div>
   );
 }

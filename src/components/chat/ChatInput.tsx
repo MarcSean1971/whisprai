@@ -18,13 +18,15 @@ interface ChatInputProps {
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
+  replyMode?: boolean;
 }
 
 export function ChatInput({ 
   conversationId,
   onSendMessage, 
   suggestions = [],
-  isLoadingSuggestions = false 
+  isLoadingSuggestions = false,
+  replyMode = false
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
