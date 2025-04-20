@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import OpenTok from "https://esm.sh/opentok@2.16.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -42,7 +41,6 @@ serve(async (req) => {
 
     console.log('Creating Vonage session for:', { conversationId, recipientId });
 
-    // Initialize OpenTok with API key and private key
     const apiKey = Deno.env.get('VONAGE_API_KEY');
     const privateKey = Deno.env.get('VONAGE_PRIVATE_KEY');
     
@@ -51,35 +49,51 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create OpenTok instance with proper error handling
-    const opentok = new OpenTok(apiKey, privateKey);
-    if (!opentok) {
-      console.error('Failed to initialize OpenTok');
-      throw new Error('Failed to initialize OpenTok SDK');
+    // Create session using Vonage Video API
+    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
+      method: 'POST',
+      headers: {
+        'X-OPENTOK-AUTH': apiKey,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: 'medium=routed&archiveMode=manual'
+    });
+
+    if (!sessionResponse.ok) {
+      console.error('Failed to create session:', await sessionResponse.text());
+      throw new Error('Failed to create Vonage session');
     }
 
-    console.log('OpenTok initialized successfully');
+    const sessionData = await sessionResponse.text();
+    const sessionId = sessionData.match(/<session_id>(.*?)<\/session_id>/)?.[1];
 
-    // Create a new session with specific options
-    const session = await new Promise((resolve, reject) => {
-      opentok.createSession({ mediaMode: 'routed' }, (error: any, session: any) => {
-        if (error) {
-          console.error('Error creating session:', error);
-          reject(error);
-        } else {
-          resolve(session);
-        }
-      });
+    if (!sessionId) {
+      throw new Error('Invalid session response from Vonage');
+    }
+
+    console.log('Session created:', { sessionId });
+
+    // Generate token using REST API
+    const tokenResponse = await fetch(`https://api.opentok.com/v2/project/${apiKey}/token`, {
+      method: 'POST',
+      headers: {
+        'X-OPENTOK-AUTH': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        role: 'publisher',
+        data: JSON.stringify({ userId: user.id }),
+        expire_time: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
+      })
     });
 
-    console.log('Session created:', { sessionId: session.sessionId });
+    if (!tokenResponse.ok) {
+      console.error('Failed to generate token:', await tokenResponse.text());
+      throw new Error('Failed to generate Vonage token');
+    }
 
-    // Generate token for the user
-    const token = opentok.generateToken(session.sessionId, {
-      role: 'publisher',
-      data: JSON.stringify({ userId: user.id }),
-      expireTime: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
-    });
+    const { token } = await tokenResponse.json();
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
@@ -87,7 +101,7 @@ serve(async (req) => {
       .from('call_sessions')
       .insert({
         session_key: sessionKey,
-        session_id: session.sessionId,
+        session_id: sessionId,
         created_by: user.id,
         conversation_id: conversationId
       });
@@ -101,7 +115,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        sessionId: session.sessionId,
+        sessionId: sessionId,
         token: token,
         apiKey: apiKey
       }),

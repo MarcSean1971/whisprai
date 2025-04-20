@@ -21,31 +21,29 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
     try {
       console.log('[Vonage Session] Initializing session...', { conversationId, recipientId });
       
-      const { data, error: sessionError } = await supabase.functions.invoke('vonage-session', {
+      const { data: sessionData, error: sessionError } = await supabase.functions.invoke('vonage-session', {
         body: { conversationId, recipientId }
       });
 
-      if (sessionError) {
-        console.error('[Vonage Session] Failed to create session:', sessionError);
-        throw new Error(sessionError.message || "Failed to create session");
+      if (sessionError || !sessionData) {
+        console.error('[Vonage Session] Failed to create session:', sessionError || 'No session data received');
+        throw new Error(sessionError?.message || "Failed to create session");
       }
 
-      if (!data || !data.sessionId || !data.token || !data.apiKey) {
-        console.error('[Vonage Session] Invalid session data received:', data);
+      const { sessionId, token, apiKey } = sessionData;
+
+      if (!sessionId || !token || !apiKey) {
+        console.error('[Vonage Session] Invalid session data received:', sessionData);
         throw new Error("Invalid session data received");
       }
 
       console.log('[Vonage Session] Session created successfully:', { 
-        sessionId: data.sessionId,
-        hasToken: !!data.token,
-        hasApiKey: !!data.apiKey 
+        sessionId,
+        hasToken: !!token,
+        hasApiKey: !!apiKey 
       });
 
-      return { 
-        sessionId: data.sessionId, 
-        token: data.token, 
-        apiKey: data.apiKey 
-      };
+      return { sessionId, token, apiKey };
 
     } catch (err: any) {
       const vonageError: VonageError = {
