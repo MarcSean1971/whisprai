@@ -70,7 +70,7 @@ export function MessageContent({
         <div className="ml-4 mt-2">
           <MessageReplyInput
             onSubmit={onReply}
-            onCancel={onCancelReply}
+            onCancel={onCancelReply || (() => {})}
           />
         </div>
       )}

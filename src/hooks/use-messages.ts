@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -29,11 +30,11 @@ export interface Message {
     created_at: string;
     sender: {
       id: string;
-      profiles: {
-        first_name: string | null;
-        last_name: string | null;
-        avatar_url: string | null;
-        language: string;
+      profiles?: {
+        first_name?: string | null;
+        last_name?: string | null;
+        avatar_url?: string | null;
+        language?: string;
       } | null;
     } | null;
   } | null;

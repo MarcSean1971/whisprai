@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -14,7 +15,7 @@ import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
-  const { data: messages, isLoading, error, refetch } = useMessages(id!);
+  const { data: messages = [], isLoading, error, refetch } = useMessages(id!);
   const { profile } = useProfile();
   const { sendMessage, userId } = useChat(id!);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(id!);
@@ -80,7 +81,7 @@ export default function Chat() {
           </div>
         }>
           <ChatMessages 
-            messages={messages || []} 
+            messages={messages} 
             userLanguage={profile?.language}
             onNewReceivedMessage={handleNewReceivedMessage}
             onTranslation={handleTranslation}
