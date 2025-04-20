@@ -1,16 +1,15 @@
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2 } from "lucide-react";
+import { Send, X } from "lucide-react";
 
 interface MessageReplyInputProps {
   onSubmit: (content: string) => void;
   onCancel: () => void;
-  isSubmitting?: boolean;
 }
 
-export function MessageReplyInput({ onSubmit, onCancel, isSubmitting = false }: MessageReplyInputProps) {
+export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps) {
   const [content, setContent] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,7 +21,7 @@ export function MessageReplyInput({ onSubmit, onCancel, isSubmitting = false }: 
   };
 
   return (
-    <form onSubmit={handleSubmit} className="mt-2 ml-4 space-y-2">
+    <form onSubmit={handleSubmit} className="mt-2 ml-6 space-y-2">
       <Textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
@@ -33,16 +32,11 @@ export function MessageReplyInput({ onSubmit, onCancel, isSubmitting = false }: 
         <Button 
           type="submit" 
           size="sm"
-          disabled={!content.trim() || isSubmitting}
+          className="bg-primary hover:bg-primary/90"
+          disabled={!content.trim()}
         >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Sending
-            </>
-          ) : (
-            'Reply'
-          )}
+          <Send className="h-4 w-4 mr-1" />
+          Reply
         </Button>
         <Button 
           type="button" 
@@ -50,6 +44,7 @@ export function MessageReplyInput({ onSubmit, onCancel, isSubmitting = false }: 
           size="sm"
           onClick={onCancel}
         >
+          <X className="h-4 w-4 mr-1" />
           Cancel
         </Button>
       </div>

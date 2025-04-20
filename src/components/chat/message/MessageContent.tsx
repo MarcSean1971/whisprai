@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
+import { useState } from "react";
 
 interface MessageContentProps {
   id: string;
@@ -42,9 +43,19 @@ export function MessageContent({
   onReply,
   attachments
 }: MessageContentProps) {
+  const [isReplying, setIsReplying] = useState(false);
+
+  const handleReply = () => {
+    setIsReplying(true);
+  };
+
+  const handleSubmitReply = (replyContent: string) => {
+    onReply();
+  };
+
   return (
     <MessageContextMenu
-      onReply={onReply}
+      onReply={handleReply}
       onToggleTranslation={onToggleTranslation}
       showTranslationToggle={showTranslationToggle}
       isOwn={isOwn}
@@ -57,6 +68,7 @@ export function MessageContent({
         isOwn={isOwn}
         isAIMessage={isAIMessage}
         attachments={attachments}
+        onReply={handleSubmitReply}
       />
     </MessageContextMenu>
   );

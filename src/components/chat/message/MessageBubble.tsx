@@ -4,6 +4,7 @@ import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download 
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageReactions } from "./reactions/MessageReactions";
+import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageBubbleProps {
   id: string;
@@ -22,6 +23,7 @@ interface MessageBubbleProps {
     name: string;
     type: string;
   }[];
+  onReply?: (content: string) => void;
 }
 
 export function MessageBubble({ 
@@ -32,8 +34,10 @@ export function MessageBubble({
   isAIMessage, 
   children, 
   attachment,
-  attachments 
+  attachments,
+  onReply
 }: MessageBubbleProps) {
+  const [isReplying, setIsReplying] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
 
   const getAttachmentIcon = (file: { type: string }) => {
@@ -136,24 +140,39 @@ export function MessageBubble({
     return null;
   };
 
+  const handleSubmitReply = (replyContent: string) => {
+    if (onReply) {
+      onReply(replyContent);
+      setIsReplying(false);
+    }
+  };
+
   return (
-    <div className={cn(
-      "rounded-lg py-2 px-3 max-w-[400px]",
-      isOwn
-        ? "bg-primary text-primary-foreground"
-        : isAIMessage
-        ? "bg-violet-500/20 border border-violet-500/20"
-        : "bg-secondary"
-    )}>
-      <div className="text-sm break-words">{content}</div>
-      {renderAttachments()}
-      {children}
-      <div className="flex justify-between items-center mt-1">
-        <MessageReactions messageId={id} isOwn={isOwn} />
-        <span className="text-[10px] opacity-70">
-          {timestamp}
-        </span>
+    <>
+      <div className={cn(
+        "rounded-lg py-2 px-3 max-w-[400px]",
+        isOwn
+          ? "bg-primary text-primary-foreground"
+          : isAIMessage
+          ? "bg-violet-500/20 border border-violet-500/20"
+          : "bg-secondary"
+      )}>
+        <div className="text-sm break-words">{content}</div>
+        {renderAttachments()}
+        {children}
+        <div className="flex justify-between items-center mt-1">
+          <MessageReactions messageId={id} isOwn={isOwn} />
+          <span className="text-[10px] opacity-70">
+            {timestamp}
+          </span>
+        </div>
       </div>
-    </div>
+      {isReplying && onReply && (
+        <MessageReplyInput
+          onSubmit={handleSubmitReply}
+          onCancel={() => setIsReplying(false)}
+        />
+      )}
+    </>
   );
 }
