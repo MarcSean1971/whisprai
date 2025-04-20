@@ -15,7 +15,7 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // Since RLS is disabled, we need to explicitly filter conversations by user participation
+        // First get all conversations where the user is a participant
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
@@ -44,10 +44,9 @@ export function useUserConversations() {
           return [];
         }
 
-        console.log('Raw conversations data:', conversations);
-
         // Process conversations to get other participants' info
         const processedConversations = conversations.map(conversation => {
+          // Filter out the current user to get other participants
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id)
             .map(p => ({
