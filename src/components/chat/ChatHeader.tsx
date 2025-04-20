@@ -41,7 +41,6 @@ export function ChatHeader({
           </Avatar>
           <div className="flex flex-col">
             <span className="font-bold">{participant?.first_name} {participant?.last_name}</span>
-            <span className="text-sm text-muted-foreground">{participant?.email}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">

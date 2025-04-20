@@ -6,7 +6,6 @@ interface Participant {
   id: string;
   first_name?: string | null;
   last_name?: string | null;
-  email?: string | null;
   avatar_url?: string | null;
 }
 
@@ -59,7 +58,7 @@ export function useConversation(conversationId: string) {
       // Fetch profile data for these users
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name, email, avatar_url')
+        .select('id, first_name, last_name, avatar_url')
         .in('id', userIds);
         
       if (profilesError) {
