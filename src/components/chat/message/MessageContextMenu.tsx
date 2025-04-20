@@ -1,6 +1,13 @@
 
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MessageContextMenuProps {
   children: React.ReactNode;
@@ -20,28 +27,40 @@ export function MessageContextMenu({
   messageId
 }: MessageContextMenuProps) {
   return (
-    <ContextMenu>
-      <ContextMenuTrigger className="inline-block w-full touch-none" asChild>
-        {children}
-      </ContextMenuTrigger>
-      <ContextMenuContent
-        className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md animate-in fade-in-0 zoom-in-95"
-      >
-        <ContextMenuItem className="cursor-pointer" onClick={onReply}>
-          <Reply className="mr-2 h-4 w-4" />
-          <span>Reply</span>
-        </ContextMenuItem>
-        {showTranslationToggle && (
-          <ContextMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
-            <Languages className="mr-2 h-4 w-4" />
-            <span>Toggle Translation</span>
-          </ContextMenuItem>
-        )}
-        <ContextMenuItem className="cursor-pointer">
-          <Smile className="mr-2 h-4 w-4" />
-          <span>Add Reaction</span>
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <div className="group relative w-full">
+      {children}
+      <div className="absolute right-2 top-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            align="end"
+            className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+          >
+            <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
+              <Reply className="mr-2 h-4 w-4" />
+              <span>Reply</span>
+            </DropdownMenuItem>
+            {showTranslationToggle && (
+              <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
+                <Languages className="mr-2 h-4 w-4" />
+                <span>Toggle Translation</span>
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem className="cursor-pointer">
+              <Smile className="mr-2 h-4 w-4" />
+              <span>Add Reaction</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
   );
 }
