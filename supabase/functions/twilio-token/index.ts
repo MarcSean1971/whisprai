@@ -43,12 +43,15 @@ serve(async (req) => {
       const AccessToken = twilio.jwt.AccessToken;
       const VoiceGrant = AccessToken.VoiceGrant;
       
-      // Create an access token
+      // Create an access token with a 1 hour TTL
       const token = new AccessToken(
         twilioAccountSid,
         twilioApiKey,
         twilioApiSecret,
-        { identity }
+        { 
+          identity,
+          ttl: 3600 // 1 hour in seconds
+        }
       );
 
       // Create and add a voice grant
@@ -67,7 +70,8 @@ serve(async (req) => {
         JSON.stringify({ 
           token: tokenString,
           identity,
-          accountSid: twilioAccountSid 
+          accountSid: twilioAccountSid,
+          ttl: 3600
         }),
         { 
           headers: { 
