@@ -134,7 +134,7 @@ export function MessageContextMenu({
               <DropdownMenuItem
                 className="cursor-pointer"
                 onClick={handleAddReactionClick}
-                onSelect={(e) => e.preventDefault())
+                onSelect={(e) => e.preventDefault()}
               >
                 <Smile className="mr-2 h-4 w-4" />
                 <span>Add Reaction</span>
