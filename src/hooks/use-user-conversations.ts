@@ -15,14 +15,14 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // Get conversations the user is a participant in
+        // Get conversations with a left join to include all participants
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
             conversation_participants!inner (
               user_id,
-              profiles!inner (
+              profiles:profiles (
                 id,
                 first_name,
                 last_name,
@@ -39,11 +39,14 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        if (!conversations) {
+        if (!conversations || conversations.length === 0) {
+          console.log('No conversations found');
           return [];
         }
 
-        // Process conversations to include participant details
+        console.log('Raw conversations data:', conversations);
+
+        // Process conversations to get other participants' info
         const processedConversations = conversations.map(conversation => {
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id)
@@ -54,7 +57,7 @@ export function useUserConversations() {
 
           const primaryParticipant = otherParticipants[0]?.profile;
           
-          return {
+          const result = {
             ...conversation,
             participants: otherParticipants,
             name: primaryParticipant 
@@ -62,9 +65,11 @@ export function useUserConversations() {
               : 'Unknown User',
             avatar: primaryParticipant?.avatar_url || null
           };
+
+          console.log('Processed conversation:', result);
+          return result;
         });
 
-        console.log('Successfully processed conversations:', processedConversations.length);
         return processedConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
@@ -76,3 +81,4 @@ export function useUserConversations() {
     staleTime: 30000 // 30 seconds
   });
 }
+
