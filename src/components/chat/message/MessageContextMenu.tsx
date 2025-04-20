@@ -13,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 
@@ -34,21 +34,12 @@ export function MessageContextMenu({
   isOwn,
   messageId
 }: MessageContextMenuProps) {
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
-    setIsDropdownOpen(false);
-  };
-
-  const handleAddReactionClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsEmojiPickerOpen(true);
   };
 
   return (
@@ -58,15 +49,7 @@ export function MessageContextMenu({
         {/* Menu for own messages */}
         {isOwn && (
           <div className="pt-2">
-            <DropdownMenu 
-              open={isDropdownOpen} 
-              onOpenChange={(open) => {
-                setIsDropdownOpen(open);
-                if (!open) {
-                  setIsEmojiPickerOpen(false);
-                }
-              }}
-            >
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -77,7 +60,6 @@ export function MessageContextMenu({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                ref={dropdownRef}
                 align="start"
                 side="bottom"
                 className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
@@ -92,14 +74,45 @@ export function MessageContextMenu({
                     <span>Toggle Translation</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={handleAddReactionClick}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <Smile className="mr-2 h-4 w-4" />
-                  <span>Add Reaction</span>
-                </DropdownMenuItem>
+                <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start p-2 text-sm cursor-pointer"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <Smile className="mr-2 h-4 w-4" />
+                      <span>Add Reaction</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="p-0 w-auto border-none shadow-lg"
+                    align="start"
+                    sideOffset={5}
+                    side="right"
+                  >
+                    <div className="bg-popover border rounded-md shadow-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Choose an emoji</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setIsEmojiPickerOpen(false)}
+                          className="h-8 w-8"
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Close</span>
+                        </Button>
+                      </div>
+                      <EmojiPicker
+                        width={300}
+                        height={350}
+                        onEmojiClick={handleEmojiSelect}
+                        lazyLoadEmojis={true}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -112,15 +125,7 @@ export function MessageContextMenu({
         {/* Menu for other users' messages */}
         {!isOwn && (
           <div className="pt-2">
-            <DropdownMenu 
-              open={isDropdownOpen} 
-              onOpenChange={(open) => {
-                setIsDropdownOpen(open);
-                if (!open) {
-                  setIsEmojiPickerOpen(false);
-                }
-              }}
-            >
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
@@ -131,7 +136,6 @@ export function MessageContextMenu({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                ref={dropdownRef}
                 align="end"
                 side="bottom"
                 className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
@@ -146,65 +150,50 @@ export function MessageContextMenu({
                     <span>Toggle Translation</span>
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={handleAddReactionClick}
-                  onSelect={(e) => e.preventDefault()}
-                >
-                  <Smile className="mr-2 h-4 w-4" />
-                  <span>Add Reaction</span>
-                </DropdownMenuItem>
+                <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start p-2 text-sm cursor-pointer"
+                      onClick={(e) => e.preventDefault()}
+                    >
+                      <Smile className="mr-2 h-4 w-4" />
+                      <span>Add Reaction</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    className="p-0 w-auto border-none shadow-lg"
+                    align="end"
+                    sideOffset={5}
+                    side="left"
+                  >
+                    <div className="bg-popover border rounded-md shadow-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm font-medium">Choose an emoji</span>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => setIsEmojiPickerOpen(false)}
+                          className="h-8 w-8"
+                        >
+                          <X className="h-4 w-4" />
+                          <span className="sr-only">Close</span>
+                        </Button>
+                      </div>
+                      <EmojiPicker
+                        width={300}
+                        height={350}
+                        onEmojiClick={handleEmojiSelect}
+                        lazyLoadEmojis={true}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         )}
       </div>
-
-      {/* Emoji Picker Popover */}
-      {isEmojiPickerOpen && (
-        <div 
-          className="fixed inset-0 z-50"
-          onClick={() => {
-            setIsEmojiPickerOpen(false);
-            setIsDropdownOpen(false);
-          }}
-        >
-          <div 
-            className="absolute"
-            style={{
-              top: dropdownRef.current?.getBoundingClientRect().bottom ?? 0,
-              left: isOwn 
-                ? dropdownRef.current?.getBoundingClientRect().left ?? 0
-                : (dropdownRef.current?.getBoundingClientRect().right ?? 0) - 300,
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="bg-popover border rounded-md shadow-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm font-medium">Choose an emoji</span>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => {
-                    setIsEmojiPickerOpen(false);
-                    setIsDropdownOpen(false);
-                  }}
-                  className="h-8 w-8"
-                >
-                  <X className="h-4 w-4" />
-                  <span className="sr-only">Close</span>
-                </Button>
-              </div>
-              <EmojiPicker
-                width={300}
-                height={350}
-                onEmojiClick={handleEmojiSelect}
-                lazyLoadEmojis={true}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
