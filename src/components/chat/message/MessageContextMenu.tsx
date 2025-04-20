@@ -53,12 +53,19 @@ export function MessageContextMenu({
 
   return (
     <div className="group flex flex-col gap-1">
+      {/* Main content layout */}
       <div className="flex items-start gap-2">
+        {/* Menu for own messages */}
         {isOwn && (
           <div className="pt-2">
             <DropdownMenu 
               open={isDropdownOpen} 
-              onOpenChange={setIsDropdownOpen}
+              onOpenChange={(open) => {
+                setIsDropdownOpen(open);
+                if (!open) {
+                  setIsEmojiPickerOpen(false);
+                }
+              }}
             >
               <DropdownMenuTrigger asChild>
                 <Button
@@ -70,6 +77,7 @@ export function MessageContextMenu({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
+                ref={dropdownRef}
                 align="start"
                 side="bottom"
                 className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
@@ -101,11 +109,17 @@ export function MessageContextMenu({
           {children}
         </div>
 
+        {/* Menu for other users' messages */}
         {!isOwn && (
           <div className="pt-2">
             <DropdownMenu 
               open={isDropdownOpen} 
-              onOpenChange={setIsDropdownOpen}
+              onOpenChange={(open) => {
+                setIsDropdownOpen(open);
+                if (!open) {
+                  setIsEmojiPickerOpen(false);
+                }
+              }}
             >
               <DropdownMenuTrigger asChild>
                 <Button
@@ -117,6 +131,7 @@ export function MessageContextMenu({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
+                ref={dropdownRef}
                 align="end"
                 side="bottom"
                 className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md z-50"
@@ -145,44 +160,51 @@ export function MessageContextMenu({
         )}
       </div>
 
-      <Popover 
-        open={isEmojiPickerOpen} 
-        onOpenChange={setIsEmojiPickerOpen}
-      >
-        <PopoverTrigger asChild>
-          <div ref={dropdownRef} className="hidden" />
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-full p-4 z-[100]"
-          side="bottom"
-          align={isOwn ? "start" : "end"}
-          sideOffset={5}
-          onInteractOutside={(e) => {
-            if (!dropdownRef.current?.contains(e.target as Node)) {
-              setIsEmojiPickerOpen(false);
-            }
+      {/* Emoji Picker Popover */}
+      {isEmojiPickerOpen && (
+        <div 
+          className="fixed inset-0 z-50"
+          onClick={() => {
+            setIsEmojiPickerOpen(false);
+            setIsDropdownOpen(false);
           }}
         >
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-medium">Choose an emoji</span>
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={() => setIsEmojiPickerOpen(false)}
-              className="h-8 w-8"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </Button>
+          <div 
+            className="absolute"
+            style={{
+              top: dropdownRef.current?.getBoundingClientRect().bottom ?? 0,
+              left: isOwn 
+                ? dropdownRef.current?.getBoundingClientRect().left ?? 0
+                : (dropdownRef.current?.getBoundingClientRect().right ?? 0) - 300,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="bg-popover border rounded-md shadow-lg p-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-sm font-medium">Choose an emoji</span>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsEmojiPickerOpen(false);
+                    setIsDropdownOpen(false);
+                  }}
+                  className="h-8 w-8"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </div>
+              <EmojiPicker
+                width={300}
+                height={350}
+                onEmojiClick={handleEmojiSelect}
+                lazyLoadEmojis={true}
+              />
+            </div>
           </div>
-          <EmojiPicker
-            width={300}
-            height={350}
-            onEmojiClick={handleEmojiSelect}
-            lazyLoadEmojis={true}
-          />
-        </PopoverContent>
-      </Popover>
+        </div>
+      )}
     </div>
   );
 }
