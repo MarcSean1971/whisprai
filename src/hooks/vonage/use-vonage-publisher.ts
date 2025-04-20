@@ -1,4 +1,3 @@
-
 import { useRef, useCallback } from "react";
 import { VonagePublisherOptions, VonageError } from "./types";
 
@@ -24,20 +23,7 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
     try {
       publisher.current = window.OT.initPublisher(
         publisherRef.current, 
-        publisherOptions, 
-        (error: any) => {
-          if (error) {
-            console.error('[Vonage Publisher] Initialization error:', error);
-            const vonageError: VonageError = {
-              type: 'PUBLISH_ERROR',
-              message: "Failed to initialize publisher: " + error.message,
-              originalError: error
-            };
-            onError(vonageError);
-          } else {
-            console.log('[Vonage Publisher] Publisher initialized successfully');
-          }
-        }
+        publisherOptions
       );
 
       publisher.current.on('streamCreated', (event: any) => {
@@ -46,6 +32,17 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
 
       publisher.current.on('streamDestroyed', (event: any) => {
         console.log('[Vonage Publisher] Local stream destroyed:', event);
+      });
+
+      // Separate error handling
+      publisher.current.on('error', (error: any) => {
+        console.error('[Vonage Publisher] Initialization error:', error);
+        const vonageError: VonageError = {
+          type: 'PUBLISH_ERROR',
+          message: "Failed to initialize publisher: " + error.message,
+          originalError: error
+        };
+        onError(vonageError);
       });
 
       return publisher.current;
