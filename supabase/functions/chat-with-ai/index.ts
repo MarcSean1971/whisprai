@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts"
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
@@ -77,7 +76,7 @@ ${chatHistory ? formatChatHistory(chatHistory) : 'No previous messages.'}
     const aiData = await openAIResponse.json()
     const aiResponse = aiData.choices[0].message.content
 
-    // Store the AI's response as a private message
+    // Store the AI's response with correct private_room and private_recipient
     const { error: insertError } = await supabase
       .from('messages')
       .insert({

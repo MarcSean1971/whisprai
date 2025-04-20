@@ -42,8 +42,7 @@ export function useChat(conversationId: string) {
           content: aiPrompt,
           sender_id: userId,
           status: 'sent',
-          private_room: 'AI',
-          metadata: { isAIPrompt: true }
+          private_room: 'AI'
         })
         .select()
         .single();
@@ -86,7 +85,7 @@ export function useChat(conversationId: string) {
   };
 
   const sendMessage = async (
-    content: string,
+    content: string, 
     voiceMessageData?: { 
       base64Audio: string; 
       audioPath?: string 
