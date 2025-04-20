@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -46,8 +45,8 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create Basic Auth token
-    const authToken = btoa(`${apiKey}:${apiSecret}`);
+    // Create Basic Auth token with proper format
+    const basicAuthToken = `Basic ${btoa(`${apiKey}:${apiSecret}`)}`;
     
     console.log('Creating OpenTok session with Basic Auth');
 
@@ -55,33 +54,37 @@ serve(async (req) => {
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': authToken,
+        'Authorization': basicAuthToken,
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
       body: 'p2p.preference=enabled'
     });
 
-    const sessionResponseText = await sessionResponse.text();
     console.log('Session response status:', sessionResponse.status);
     console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
-    console.log('Session response body:', sessionResponseText);
-
-    // Extract session ID from XML response
-    const sessionIdMatch = sessionResponseText.match(/<session_id>(.*?)<\/session_id>/);
-    if (!sessionIdMatch) {
-      console.error('Failed to extract session ID from response:', sessionResponseText);
-      throw new Error('Invalid response format from OpenTok API');
+    
+    if (!sessionResponse.ok) {
+      const errorText = await sessionResponse.text();
+      console.error('Session creation failed:', errorText);
+      throw new Error(`OpenTok API error (${sessionResponse.status}): ${errorText}`);
     }
 
-    const sessionId = sessionIdMatch[1];
+    const sessionData = await sessionResponse.json();
+    
+    if (!sessionData.session_id) {
+      console.error('Invalid session data:', sessionData);
+      throw new Error('Missing session_id in OpenTok API response');
+    }
+
+    const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
     // Generate token with Basic Auth
     const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': authToken,
+        'Authorization': basicAuthToken,
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
@@ -94,19 +97,21 @@ serve(async (req) => {
       }).toString()
     });
 
-    const tokenResponseText = await tokenResponse.text();
     console.log('Token response status:', tokenResponse.status);
     console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
-    console.log('Token response body:', tokenResponseText);
-
-    // Extract token from XML response
-    const tokenMatch = tokenResponseText.match(/<token>(.*?)<\/token>/);
-    if (!tokenMatch) {
-      console.error('Failed to extract token from response:', tokenResponseText);
-      throw new Error('Invalid token response from OpenTok API');
+    
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text();
+      console.error('Token generation failed:', errorText);
+      throw new Error(`OpenTok API error (${tokenResponse.status}): ${errorText}`);
     }
 
-    const token = tokenMatch[1];
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenData.token) {
+      console.error('Invalid token data:', tokenData);
+      throw new Error('Missing token in OpenTok API response');
+    }
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
@@ -129,7 +134,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         sessionId,
-        token,
+        token: tokenData.token,
         apiKey
       }),
       { 
