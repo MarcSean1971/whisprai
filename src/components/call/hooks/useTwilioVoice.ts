@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDeviceSetup } from './useDeviceSetup';
 import { useDeviceState } from './useDeviceState';
@@ -39,8 +38,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     updateState,
     isDeviceRegistered,
     validateToken,
-    // Fix: Instead of passing the MutableRefObject directly, we pass its current value
-    currentToken: currentToken
+    currentToken: currentToken.current
   });
   const callActions = useCallActions({ state, updateState });
 
@@ -99,7 +97,6 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     }
   }, [state.device, userId, refreshToken, updateState, reinitializeDevice]);
 
-  // Setup token refresh interval
   useEffect(() => {
     if (state.device && userId && tokenExpiryTime) {
       console.log('Setting up token refresh interval');
@@ -127,7 +124,6 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     }
   }, [state.device, userId, tokenExpiryTime, shouldRefreshToken, handleTokenRefresh]);
 
-  // Initialize device effect
   useEffect(() => {
     if (!userId || setupCompleted.current || initInProgress.current) return;
 
@@ -208,7 +204,6 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     
   }, [userId, setupBrowserEnvironment, initializeDevice, updateState, updateDevice, updateCallStatus]);
 
-  // Recovery effect
   useEffect(() => {
     if (userId && deviceRegistrationFailed.current && !initInProgress.current) {
       const retryTimer = setTimeout(() => {
@@ -223,7 +218,6 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     }
   }, [userId, reinitializeDevice]);
 
-  // Cleanup effect
   useEffect(() => {
     return () => {
       if (tokenRefreshIntervalRef.current) {
