@@ -30,7 +30,12 @@ export function useUserConversations() {
               id,
               content,
               created_at,
-              sender_id
+              sender_id,
+              sender:profiles!sender_id (
+                id,
+                first_name,
+                last_name
+              )
             )
           `)
           .eq('conversation_participants.user_id', user.id)
@@ -70,9 +75,14 @@ export function useUserConversations() {
             participants: otherParticipants,
             avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
             lastMessage: lastMessage ? {
-              content: lastMessage.content,
+              content: lastMessage.content.length > 50 
+                ? `${lastMessage.content.substring(0, 50)}...` 
+                : lastMessage.content,
               created_at: lastMessage.created_at,
-              sender_id: lastMessage.sender_id
+              sender_id: lastMessage.sender_id,
+              senderName: lastMessage.sender 
+                ? `${lastMessage.sender.first_name || ''} ${lastMessage.sender.last_name || ''}`.trim()
+                : 'Unknown'
             } : null,
             created_at: conversation.created_at,
             updated_at: conversation.updated_at

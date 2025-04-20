@@ -1,3 +1,4 @@
+
 import { EmptyState } from "@/components/EmptyState";
 import { Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,13 +63,20 @@ export function TabsSection({
                 ? format(new Date(conversation.lastMessage.created_at), 'MMM d')
                 : format(new Date(conversation.created_at), 'MMM d');
               
+              const messageContent = conversation.lastMessage 
+                ? `${conversation.lastMessage.senderName}: ${conversation.lastMessage.content}`
+                : '';
+              
               return (
                 <ConversationItem
                   key={conversation.id}
                   id={conversation.id}
                   name={conversation.name}
                   avatar={conversation.avatar}
-                  lastMessage={conversation.lastMessage}
+                  lastMessage={messageContent ? {
+                    content: messageContent,
+                    created_at: conversation.lastMessage?.created_at
+                  } : undefined}
                   timestamp={timestamp}
                   isGroup={conversation.is_group}
                   participants={conversation.participants}
