@@ -1,7 +1,8 @@
+
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
-import { Menu, Search, Video } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -86,12 +87,6 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
             onClick={() => setIsSearching(true)}
           >
             <Search className="h-4 w-4" />
-          </Button>
-        )}
-
-        {participants && participants.length === 1 && (
-          <Button variant="ghost" size="icon">
-            <Video className="h-4 w-4" />
           </Button>
         )}
 
