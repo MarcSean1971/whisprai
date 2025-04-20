@@ -69,7 +69,10 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <div className="flex gap-2 border-b p-3">
-                <Select onValueChange={handleMonthSelect}>
+                <Select 
+                  onValueChange={handleMonthSelect}
+                  value={selectedDate ? months[selectedDate.getMonth()] : undefined}
+                >
                   <SelectTrigger className="w-[140px]">
                     <SelectValue placeholder="Month" />
                   </SelectTrigger>
@@ -81,7 +84,10 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select onValueChange={handleYearSelect}>
+                <Select 
+                  onValueChange={handleYearSelect}
+                  value={selectedDate ? selectedDate.getFullYear().toString() : undefined}
+                >
                   <SelectTrigger className="w-[100px]">
                     <SelectValue placeholder="Year" />
                   </SelectTrigger>
@@ -105,8 +111,8 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
                   date > new Date() || date < new Date("1900-01-01")
                 }
                 initialFocus
+                month={selectedDate}
                 className={cn("p-3")}
-                defaultMonth={selectedDate}
               />
             </PopoverContent>
           </Popover>
