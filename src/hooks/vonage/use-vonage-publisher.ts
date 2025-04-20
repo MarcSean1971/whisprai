@@ -1,3 +1,4 @@
+
 import { useRef, useCallback } from "react";
 import { VonagePublisherOptions, VonageError } from "./types";
 
@@ -21,6 +22,8 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
     };
 
     try {
+      // Fix: Using the element ID or passing the DOM element directly
+      // The Vonage SDK supports either a DOM element ID (string) or the DOM element itself
       publisher.current = window.OT.initPublisher(
         publisherRef.current, 
         publisherOptions
