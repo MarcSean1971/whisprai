@@ -42,7 +42,7 @@ export function MessageContextMenu({
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
-    setIsDropdownOpen(false);
+    // We no longer close the dropdown menu here
   };
 
   const handleAddReactionClick = (e: React.MouseEvent) => {
