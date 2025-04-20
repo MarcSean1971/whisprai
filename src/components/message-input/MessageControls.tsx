@@ -1,13 +1,7 @@
-
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile, Camera, Sparkles, X } from "lucide-react";
-import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
-import { useState, useEffect } from "react";
-import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import {
+import { 
   AlertDialog,
   AlertDialogContent,
   AlertDialogDescription,
@@ -22,6 +16,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Mic, Send, Paperclip, Smile, Camera, Sparkles, X } from "lucide-react";
+import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
+import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MessageControlsProps {
   message: string;
@@ -59,9 +58,8 @@ export function MessageControls({
     const baseStyle = "transition-all duration-300";
     if (!message.trim()) return baseStyle;
 
-    // Calculate gradient based on toxicity score
-    const green = `rgba(34, 197, 94, ${1 - toxicityScore / 100})`; // text-green-500
-    const red = `rgba(239, 68, 68, ${toxicityScore / 100})`; // text-red-500
+    const green = `rgba(34, 197, 94, ${1 - toxicityScore / 100})`;
+    const red = `rgba(239, 68, 68, ${toxicityScore / 100})`;
     
     return `${baseStyle} bg-gradient-to-r from-${green} to-${red}`;
   };
