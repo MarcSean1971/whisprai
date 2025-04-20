@@ -31,7 +31,7 @@ export function useUserConversations() {
               content,
               created_at,
               sender_id,
-              sender:profiles!sender_id (
+              profiles:profiles!sender_id (
                 id,
                 first_name,
                 last_name
@@ -75,14 +75,22 @@ export function useUserConversations() {
             participants: otherParticipants,
             avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
             lastMessage: lastMessage ? {
+              id: lastMessage.id,
+              conversation_id: conversation.id,
               content: lastMessage.content.length > 50 
                 ? `${lastMessage.content.substring(0, 50)}...` 
                 : lastMessage.content,
               created_at: lastMessage.created_at,
               sender_id: lastMessage.sender_id,
-              senderName: lastMessage.sender 
-                ? `${lastMessage.sender.first_name || ''} ${lastMessage.sender.last_name || ''}`.trim()
-                : 'Unknown'
+              status: 'sent',
+              sender: lastMessage.profiles 
+                ? {
+                    profiles: {
+                      first_name: lastMessage.profiles.first_name,
+                      last_name: lastMessage.profiles.last_name
+                    }
+                  }
+                : undefined
             } : null,
             created_at: conversation.created_at,
             updated_at: conversation.updated_at
