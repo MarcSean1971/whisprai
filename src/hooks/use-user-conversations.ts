@@ -15,14 +15,13 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // First get all conversations where the user is a participant
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants!inner (
+            conversation_participants (
               user_id,
-              profiles!inner (
+              profiles (
                 id,
                 first_name,
                 last_name,
@@ -31,8 +30,7 @@ export function useUserConversations() {
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id)
-          .order('updated_at', { ascending: false });
+          .eq('conversation_participants.user_id', user.id);
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
@@ -44,9 +42,11 @@ export function useUserConversations() {
           return [];
         }
 
+        console.log('Raw conversations data:', conversations);
+
         // Process conversations to get other participants' info
         const processedConversations = conversations.map(conversation => {
-          // Filter out the current user to get other participants
+          // Get all participants except current user
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id)
             .map(p => ({
