@@ -44,20 +44,15 @@ export function MessageContent({
   attachments
 }: MessageContentProps) {
   return (
-    <div className="flex items-start gap-2 group">
-      <MessageBubble
-        id={id}
-        content={content}
-        timestamp={timestamp}
-        isOwn={isOwn}
-        isAIMessage={isAIMessage}
-        attachments={attachments}
-      />
-
-      <div className="flex items-center gap-1">
-        <MessageReplyButton 
-          onReply={onReply}
+    <div className="flex flex-col gap-1">
+      <div className="flex items-start gap-2">
+        <MessageBubble
+          id={id}
+          content={content}
+          timestamp={timestamp}
           isOwn={isOwn}
+          isAIMessage={isAIMessage}
+          attachments={attachments}
         />
         <MessageControls
           showTranslationToggle={showTranslationToggle}
@@ -68,6 +63,12 @@ export function MessageContent({
           canDelete={canDelete}
           onDelete={onDelete}
           isDeleting={isDeleting}
+        />
+      </div>
+      <div className={cn("flex", isOwn ? "justify-end mr-8" : "justify-start ml-1")}>
+        <MessageReplyButton 
+          onReply={onReply}
+          isOwn={isOwn}
         />
       </div>
     </div>
