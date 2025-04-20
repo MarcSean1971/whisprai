@@ -26,12 +26,10 @@ export function ChatHeader({
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showProfile, setShowProfile] = useState(false);
-
-  const participant = conversation?.participants?.find(p => {
-    if (profile && 'id' in profile) {
-      return p.id !== profile.id;
-    }
-    return true;
+  
+  // Find the other participant (not the current user)
+  const otherParticipant = conversation?.participants?.find(p => {
+    return profile && p.id !== profile.id;
   });
 
   return (
@@ -39,21 +37,28 @@ export function ChatHeader({
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <BackButton to="/chats" />
-          <button 
-            className="flex items-center"
-            onClick={() => setShowProfile(true)}
-          >
-            <Avatar>
-              <AvatarImage src={participant?.avatar_url || ''} />
-              <AvatarFallback>{participant?.first_name?.charAt(0)}{participant?.last_name?.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col ml-2">
-              <span className="font-bold">{participant?.first_name} {participant?.last_name}</span>
-              {participant?.tagline && (
-                <span className="text-sm text-muted-foreground">{participant.tagline}</span>
-              )}
-            </div>
-          </button>
+          {otherParticipant && (
+            <button 
+              className="flex items-center"
+              onClick={() => setShowProfile(true)}
+            >
+              <Avatar>
+                <AvatarImage src={otherParticipant.avatar_url || ''} />
+                <AvatarFallback>
+                  {otherParticipant.first_name?.[0]}
+                  {otherParticipant.last_name?.[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col ml-2">
+                <span className="font-bold">
+                  {otherParticipant.first_name} {otherParticipant.last_name}
+                </span>
+                {otherParticipant.tagline && (
+                  <span className="text-sm text-muted-foreground">{otherParticipant.tagline}</span>
+                )}
+              </div>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isSearching ? (
@@ -117,11 +122,13 @@ export function ChatHeader({
           </DropdownMenu>
         </div>
       </div>
-      <ChatParticipantDialog 
-        open={showProfile}
-        onOpenChange={setShowProfile}
-        participant={participant}
-      />
+      {otherParticipant && (
+        <ChatParticipantDialog 
+          open={showProfile}
+          onOpenChange={setShowProfile}
+          participant={otherParticipant}
+        />
+      )}
     </div>
   );
 }
