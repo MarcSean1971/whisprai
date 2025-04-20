@@ -1,10 +1,8 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { AvatarStack } from "@/components/ui/avatar-stack";
-import { MoreVertical, PinIcon } from "lucide-react";
+import { PinIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Message } from "@/hooks/use-messages";
 
@@ -97,12 +95,6 @@ export function ConversationItem({
           </div>
         )}
       </div>
-      
-      {isHovered && (
-        <Button variant="ghost" size="icon" className="ml-2 text-muted-foreground">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 }
