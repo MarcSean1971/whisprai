@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -6,6 +7,7 @@ import { useMessages } from "@/hooks/use-messages";
 import { useProfile } from "@/hooks/use-profile";
 import { useChat } from "@/hooks/use-chat";
 import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
+import { useMessageReply } from "@/hooks/use-message-reply";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useCallback, Suspense } from "react";
@@ -16,6 +18,7 @@ export default function Chat() {
   const { data: messages, isLoading, error, refetch } = useMessages(id!);
   const { profile } = useProfile();
   const { sendMessage, userId } = useChat(id!);
+  const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(id!);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   
   const { 
@@ -31,7 +34,11 @@ export default function Chat() {
     location?: { latitude: number; longitude: number; accuracy: number },
     attachments?: { url: string; name: string; type: string }[]
   ) => {
-    await sendMessage(content, voiceMessageData, location, attachments);
+    if (replyToMessageId) {
+      await sendReply(content);
+    } else {
+      await sendMessage(content, voiceMessageData, location, attachments);
+    }
     clearSuggestions();
     refetch();
   };
@@ -60,7 +67,11 @@ export default function Chat() {
 
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      <ChatHeader conversationId={id} />
+      <ChatHeader 
+        conversationId={id} 
+        replyToMessageId={replyToMessageId}
+        onCancelReply={cancelReply}
+      />
       <Suspense fallback={
         <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
           <MessageSkeleton />
@@ -73,6 +84,8 @@ export default function Chat() {
           userLanguage={profile?.language}
           onNewReceivedMessage={handleNewReceivedMessage}
           onTranslation={handleTranslation}
+          onReply={startReply}
+          replyToMessageId={replyToMessageId}
         />
       </Suspense>
       <ChatInput
@@ -80,6 +93,7 @@ export default function Chat() {
         onSendMessage={handleSendMessage}
         suggestions={suggestions}
         isLoadingSuggestions={isLoadingSuggestions}
+        replyMode={!!replyToMessageId}
       />
     </div>
   );

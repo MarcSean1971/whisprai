@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
@@ -17,6 +18,7 @@ interface MessageContentProps {
   canDelete: boolean;
   onDelete: () => void;
   isDeleting: boolean;
+  onReply: () => void;
   attachments?: {
     url: string;
     name: string;
@@ -38,6 +40,7 @@ export function MessageContent({
   canDelete,
   onDelete,
   isDeleting,
+  onReply,
   attachments
 }: MessageContentProps) {
   return (
@@ -53,9 +56,7 @@ export function MessageContent({
 
       <div className="flex items-center gap-1">
         <MessageReplyButton 
-          onReply={() => {
-            console.log('Reply to message:', id);
-          }}
+          onReply={onReply}
           isOwn={isOwn}
         />
         <MessageControls

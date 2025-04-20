@@ -48,6 +48,8 @@ interface ChatMessageProps {
       type: string;
     }[];
   };
+  onReply: () => void;
+  isReplying?: boolean;
 }
 
 export function ChatMessage({
@@ -65,7 +67,9 @@ export function ChatMessage({
   onDelete,
   userId,
   conversationId,
-  userLanguage
+  userLanguage,
+  onReply,
+  isReplying = false
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const { isDeleting, handleDelete } = useVoiceMessageDeletion({
@@ -119,6 +123,7 @@ export function ChatMessage({
         onDelete={handleDelete}
         isDeleting={isDeleting}
         attachments={attachments}
+        onReply={onReply}
       />
 
       {voiceMessagePath && (

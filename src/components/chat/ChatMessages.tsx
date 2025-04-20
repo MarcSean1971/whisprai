@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, useCallback, memo } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { useTranslation } from "@/hooks/use-translation";
@@ -6,20 +7,22 @@ import { useProfile } from "@/hooks/use-profile";
 import { format } from "date-fns";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 
-const MemoizedChatMessage = memo(ChatMessage);
-
 interface ChatMessagesProps {
   messages: any[];
   userLanguage?: string;
   onNewReceivedMessage?: () => void;
   onTranslation?: (messageId: string, translatedContent: string) => void;
+  onReply: (messageId: string) => void;
+  replyToMessageId?: string | null;
 }
 
 export function ChatMessages({ 
   messages = [], 
   userLanguage = 'en',
   onNewReceivedMessage,
-  onTranslation
+  onTranslation,
+  onReply,
+  replyToMessageId
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { translateMessage } = useTranslation();
@@ -144,7 +147,7 @@ export function ChatMessages({
         
         const showSender = !isOwn && !isAI && !isAIPrompt && 
                           (index === 0 || messages[index - 1].sender_id !== message.sender_id);
-        
+
         const needsTranslation = !isOwn && 
           !isAI && 
           !isAIPrompt && 
@@ -160,7 +163,7 @@ export function ChatMessages({
         } : undefined;
 
         return (
-          <MemoizedChatMessage
+          <ChatMessage
             key={message.id}
             id={message.id}
             content={message.content}
@@ -182,6 +185,8 @@ export function ChatMessages({
             onDelete={handleMessageDelete}
             metadata={message.metadata}
             userLanguage={profile?.language}
+            onReply={() => onReply(message.id)}
+            isReplying={message.id === replyToMessageId}
           />
         );
       })}
