@@ -28,7 +28,9 @@ serve(async (req) => {
 
     // Validate and normalize TTL
     const ttl = Math.min(Math.max(requestedTtl || DEFAULT_TTL, MIN_TTL), MAX_TTL);
-    console.log(`Generating token for identity: ${identity} with TTL: ${ttl}s`);
+    
+    // Log the request parameters
+    console.log(`Token request - Identity: ${identity}, TTL: ${ttl}s`);
 
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
@@ -64,7 +66,7 @@ serve(async (req) => {
         }
       );
 
-      // Create and add a voice grant
+      // Create and add a voice grant with explicit permissions
       const grant = new VoiceGrant({
         outgoingApplicationSid: twilioTwimlAppSid,
         incomingAllow: true,
@@ -72,26 +74,32 @@ serve(async (req) => {
 
       token.addGrant(grant);
 
-      // Generate the token string
       const tokenString = token.toJwt();
       
-      // Basic validation check on the token format
+      // Validate token format
       const jwtParts = tokenString.split('.');
       if (jwtParts.length !== 3) {
         throw new Error('Generated token has invalid JWT format');
       }
       
+      // Add extra validation for JWT payload
       try {
-        // Try to decode the payload to make sure it's valid base64
-        atob(jwtParts[1]);
+        const payload = JSON.parse(atob(jwtParts[1]));
+        if (!payload.iss || !payload.exp || !payload.grants) {
+          throw new Error('Token payload missing required fields');
+        }
       } catch (e) {
-        throw new Error('Generated token has invalid base64 encoding');
+        throw new Error('Generated token has invalid JWT payload');
       }
-      
-      console.log('Token generated successfully');
 
       const currentTime = Date.now();
       const expiresAt = currentTime + (ttl * 1000);
+
+      console.log('Token generated successfully', {
+        identity,
+        expires: new Date(expiresAt).toISOString(),
+        validFrom: new Date(currentTime).toISOString()
+      });
 
       return new Response(
         JSON.stringify({ 
@@ -135,4 +143,4 @@ serve(async (req) => {
       }
     );
   }
-})
+});

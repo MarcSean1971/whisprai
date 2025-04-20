@@ -16,7 +16,7 @@ interface CallInterfaceProps {
 export function CallInterface({ userId }: CallInterfaceProps) {
   const [hasError, setHasError] = useState(false);
   const [retryCounter, setRetryCounter] = useState(0);
-  const [polyfillsSetup, setPolyfillsSetup] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { setupBrowserEnvironment } = useDeviceSetup();
   const setupAttemptRef = useRef(false);
@@ -52,21 +52,24 @@ export function CallInterface({ userId }: CallInterfaceProps) {
 
   useEffect(() => {
     if (!userId || !isOnline) {
+      setIsInitializing(false);
       return;
     }
     
     if (!setupAttemptRef.current) {
       setupAttemptRef.current = true;
+      setIsInitializing(true);
       
       const initializeEnvironment = async () => {
         try {
           console.log('Setting up Twilio browser environment');
           setupBrowserEnvironment();
-          setPolyfillsSetup(true);
+          setIsInitializing(false);
           console.log('Browser environment successfully initialized');
         } catch (error) {
           console.error('Failed to setup browser environment:', error);
           setHasError(true);
+          setIsInitializing(false);
           toast.error('Failed to initialize call system');
         }
       };
@@ -78,7 +81,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   // Automatic retry logic
   useEffect(() => {
     if (hasError && retryCounter < maxRetries && isOnline) {
-      const retryDelay = (2000 + (retryCounter * 1000)); // Incremental backoff
+      const retryDelay = Math.min(2000 + (retryCounter * 1000), 10000);
       console.log(`Scheduling retry attempt ${retryCounter + 1}/${maxRetries} in ${retryDelay}ms`);
       
       if (recoveryTimerRef.current) {
@@ -90,7 +93,6 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         
         try {
           setupBrowserEnvironment();
-          setPolyfillsSetup(true);
           setHasError(false);
           console.log('Successfully recovered on retry');
         } catch (error) {
@@ -130,8 +132,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     }
   };
 
-  // If no userId is provided or we're offline, don't render anything
-  if (!userId || !isOnline) {
+  if (!userId || !isOnline || isInitializing) {
     return null;
   }
 
@@ -154,10 +155,6 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         </AlertDescription>
       </Alert>
     );
-  }
-
-  if (!polyfillsSetup) {
-    return null;
   }
 
   return (
