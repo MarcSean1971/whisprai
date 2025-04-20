@@ -1,8 +1,10 @@
+
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
 import { MessageReplyButton } from "./MessageReplyButton";
 import { MessageReactions } from "./reactions/MessageReactions";
+import { MessageReactionButton } from "./reactions/MessageReactionButton";
 
 interface MessageContentProps {
   id: string;

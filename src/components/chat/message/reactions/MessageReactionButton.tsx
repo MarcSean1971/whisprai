@@ -7,6 +7,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import EmojiPicker from "emoji-picker-react";
+import { useMessageReactions } from "@/hooks/use-message-reactions";
 
 interface MessageReactionButtonProps {
   messageId: string;
@@ -14,6 +15,12 @@ interface MessageReactionButtonProps {
 }
 
 export function MessageReactionButton({ messageId, isOwn }: MessageReactionButtonProps) {
+  const { addReaction } = useMessageReactions(messageId);
+  
+  const handleEmojiClick = (emojiData: any) => {
+    addReaction({ emoji: emojiData.emoji });
+  };
+  
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -30,6 +37,7 @@ export function MessageReactionButton({ messageId, isOwn }: MessageReactionButto
         <EmojiPicker
           width={300}
           height={350}
+          onEmojiClick={handleEmojiClick}
         />
       </PopoverContent>
     </Popover>
