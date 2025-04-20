@@ -153,7 +153,11 @@ export function MessageContextMenu({
         }}
       >
         <PopoverTrigger asChild>
-          <div ref={dropdownTriggerRef} />
+          <Button 
+            ref={dropdownTriggerRef} 
+            className="hidden"
+            tabIndex={-1}
+          />
         </PopoverTrigger>
         <PopoverContent 
           className="w-full p-0 z-[100]"
