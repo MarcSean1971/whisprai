@@ -2,10 +2,12 @@
 import { useProfile } from "@/hooks/use-profile";
 import { Button } from "@/components/ui/button";
 import { Smile } from "lucide-react";
-import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
+import EmojiPicker, { EmojiClickData, Theme, SkinTones } from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
 
 interface MessageReactionsProps {
   messageId: string;
@@ -15,6 +17,17 @@ interface MessageReactionsProps {
 export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   const { reactions, addReaction, removeReaction } = useMessageReactions(messageId);
   const { profile } = useProfile();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  // Fetch the current user ID on component mount
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setCurrentUserId(data.user?.id || null);
+    };
+    
+    getCurrentUser();
+  }, []);
 
   // Group reactions by emoji
   const reactionCounts = reactions.reduce((acc, reaction) => {
@@ -27,7 +40,7 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
     
     // Check if the current user has already reacted with this emoji
     const hasReacted = reactions.some(r => 
-      r.emoji === emoji && r.user_id === profile?.id
+      r.emoji === emoji && r.user_id === currentUserId
     );
 
     if (hasReacted) {
@@ -61,7 +74,7 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
 
       {Object.entries(reactionCounts).map(([emoji, count]) => {
         const hasReacted = reactions.some(r => 
-          r.emoji === emoji && r.user_id === profile?.id
+          r.emoji === emoji && r.user_id === currentUserId
         );
 
         return (
@@ -72,7 +85,7 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
             onClick={() => handleEmojiClick({ 
               emoji, 
               names: [], 
-              activeSkinTone: "neutral",
+              activeSkinTone: SkinTones.NEUTRAL,
               unified: "",
               unifiedWithoutSkinTone: "",
               imageUrl: "",
