@@ -3,10 +3,10 @@ import { X, Smile } from "lucide-react";
 import EmojiPickerReact from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -21,9 +21,6 @@ interface EmojiPickerProps {
 export function EmojiPicker({
   onEmojiSelect,
   triggerButton,
-  side = "top",
-  align = "start",
-  sideOffset = 5,
   open,
   onOpenChange
 }: EmojiPickerProps) {
@@ -50,18 +47,12 @@ export function EmojiPicker({
   );
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogTrigger asChild>
         {triggerButton || defaultTrigger}
-      </PopoverTrigger>
-      <PopoverContent 
-        className="p-0 w-auto border-none shadow-lg" 
-        side={side}
-        align={align}
-        sideOffset={sideOffset}
-        hideWhenDetached={false}
-      >
-        <div className="bg-popover border rounded-md shadow-lg p-4">
+      </DialogTrigger>
+      <DialogContent className="p-0 w-auto border shadow-lg max-w-[350px]">
+        <div className="bg-popover rounded-md p-4">
           <div className="flex justify-between items-center mb-2">
             <span className="text-sm font-medium">Choose an emoji</span>
             <Button
@@ -81,7 +72,7 @@ export function EmojiPicker({
             lazyLoadEmojis={true}
           />
         </div>
-      </PopoverContent>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 }
