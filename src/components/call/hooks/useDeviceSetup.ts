@@ -57,23 +57,38 @@ export function useDeviceSetup() {
       console.log('Creating new Twilio device instance');
       const device = new Device();
       
+      // Set up device ready event promise to properly wait for initialization
+      const deviceReadyPromise = new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Device initialization timed out'));
+        }, 10000); // 10 second timeout
+        
+        device.on('ready', () => {
+          clearTimeout(timeoutId);
+          resolve(true);
+        });
+        
+        device.on('error', (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        });
+      });
+      
       console.log('Setting up device with token');
-      await device.setup(tokenData.token, {
+      device.setup(tokenData.token, {
         debug: true,
         allowIncomingWhileBusy: true,
         codecPreferences: ['opus', 'pcmu'] as unknown as Codec[],
         warnings: true
       });
 
-      // Wait briefly to ensure device is really ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for device to be ready
+      await deviceReadyPromise;
       
-      if (!device.isInitialized) {
-        throw new Error('Device failed to initialize properly');
-      }
-
+      // Double check connection state
       const connectionState = device.status();
       if (connectionState !== 'ready') {
+        console.error(`Device in unexpected state: ${connectionState}`);
         throw new Error(`Device in unexpected state: ${connectionState}`);
       }
 

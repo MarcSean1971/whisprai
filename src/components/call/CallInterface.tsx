@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useDeviceSetup } from '@/components/call/hooks/useDeviceSetup';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface CallInterfaceProps {
   userId: string | null;
@@ -67,7 +68,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         toast.error('Failed to initialize call system');
       }
     }
-  }, [userId, isOnline]);
+  }, [userId, isOnline, setupBrowserEnvironment]);
 
   useEffect(() => {
     if (hasError && retryCounter < 3 && isOnline) {
@@ -91,9 +92,15 @@ export function CallInterface({ userId }: CallInterfaceProps) {
       return () => clearTimeout(timer);
     } else if (hasError && retryCounter >= 3) {
       console.error('Max retry attempts reached');
-      toast.error('Unable to initialize call service. Please refresh the page.');
     }
   }, [hasError, retryCounter, isOnline, setupBrowserEnvironment]);
+
+  const handleManualRetry = () => {
+    setRetryCounter(0);
+    setHasError(false);
+    setupAttemptRef.current = false;
+    toast.info('Retrying connection...');
+  };
 
   // If no userId is provided or we're offline, don't render anything
   if (!userId || !isOnline) {
@@ -104,8 +111,16 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     return (
       <Alert variant="destructive" className="m-4">
         <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Failed to initialize call system. Please refresh the page and try again.
+        <AlertDescription className="flex flex-col gap-2">
+          <span>Failed to initialize call system.</span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleManualRetry}
+            className="self-start"
+          >
+            Retry Connection
+          </Button>
         </AlertDescription>
       </Alert>
     );

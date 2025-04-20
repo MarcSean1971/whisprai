@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Device } from 'twilio-client';
 import { toast } from 'sonner';
@@ -21,6 +20,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const setupCompleted = useRef(false);
   const initInProgress = useRef(false);
   const initAttempts = useRef(0);
+  const maxRetries = 3;
 
   const { setupBrowserEnvironment, initializeDevice } = useDeviceSetup();
   const { setupCallHandlers } = useCallHandlers({
@@ -61,18 +61,27 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       setupCallHandlers(newDevice);
       console.log('Call handlers set up successfully');
       
-      setState(prev => ({ ...prev, device: newDevice }));
+      setState(prev => ({ 
+        ...prev, 
+        device: newDevice,
+        isReady: true,
+        error: null
+      }));
       setupCompleted.current = true;
       
       console.log('Twilio device setup completed');
     } catch (err: any) {
       console.error('Error setting up Twilio device:', err);
-      setState(prev => ({ ...prev, error: err.message }));
+      setState(prev => ({ 
+        ...prev, 
+        error: err.message,
+        isReady: false
+      }));
       
-      if (initAttempts.current < 3) {
+      if (initAttempts.current < maxRetries) {
         // Schedule a retry with exponential backoff
         const delay = Math.pow(2, initAttempts.current) * 1000;
-        console.log(`Will retry device setup in ${delay}ms`);
+        console.log(`Will retry device setup in ${delay}ms (attempt ${initAttempts.current}/${maxRetries})`);
         
         setTimeout(() => {
           initInProgress.current = false;
@@ -103,6 +112,28 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       }
     };
   }, [userId, setupDevice, state.device]);
+
+  // If device exists but is not ready, add a watcher to check its status
+  useEffect(() => {
+    if (state.device && !state.isReady) {
+      const checkInterval = setInterval(() => {
+        const status = state.device?.status();
+        console.log(`Checking device status: ${status}`);
+        
+        if (status === 'ready') {
+          setState(prev => ({ ...prev, isReady: true }));
+          clearInterval(checkInterval);
+        } else if (status === 'offline' && !initInProgress.current) {
+          // If device is offline and no initialization is in progress, try to reconnect
+          console.log('Device is offline, attempting to reconnect');
+          setupDevice();
+          clearInterval(checkInterval);
+        }
+      }, 2000);
+      
+      return () => clearInterval(checkInterval);
+    }
+  }, [state.device, state.isReady, setupDevice]);
 
   const startCall = useCallback(async (recipientId: string) => {
     if (!userId) {
