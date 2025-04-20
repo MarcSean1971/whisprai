@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageControls } from "@/components/chat/message/MessageControls";
-import { MessageReplyButton } from "@/components/chat/message/MessageReplyButton";
+import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
 
 interface MessageContentProps {
   id: string;
@@ -45,20 +45,24 @@ export function MessageContent({
 }: MessageContentProps) {
   return (
     <div className="flex items-start gap-2 group">
-      <MessageBubble
-        id={id}
-        content={content}
-        timestamp={timestamp}
+      <MessageContextMenu
+        onReply={onReply}
+        onToggleTranslation={onToggleTranslation}
+        showTranslationToggle={showTranslationToggle}
         isOwn={isOwn}
-        isAIMessage={isAIMessage}
-        attachments={attachments}
-      />
+        messageId={id}
+      >
+        <MessageBubble
+          id={id}
+          content={content}
+          timestamp={timestamp}
+          isOwn={isOwn}
+          isAIMessage={isAIMessage}
+          attachments={attachments}
+        />
+      </MessageContextMenu>
 
       <div className="flex items-center gap-1">
-        <MessageReplyButton 
-          onReply={onReply}
-          isOwn={isOwn}
-        />
         <MessageControls
           showTranslationToggle={showTranslationToggle}
           originalLanguage={originalLanguage}
