@@ -20,7 +20,6 @@ export function useUserConversations() {
             conversation_participants!inner (
               user_id,
               profiles!inner (
-                id,
                 first_name,
                 last_name,
                 avatar_url
@@ -42,29 +41,25 @@ export function useUserConversations() {
         }
 
         return conversations.map(conversation => {
-          const otherParticipants = conversation.conversation_participants
-            .filter(p => p.user_id !== user.id)
-            .map(p => ({
-              id: p.user_id,
-              name: `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User',
-              avatar: p.profiles.avatar_url
-            }));
+          const otherParticipant = conversation.conversation_participants
+            .find(p => p.user_id !== user.id);
+
+          const otherProfile = otherParticipant?.profiles;
+          
+          const displayName = conversation.is_group 
+            ? `Group Chat (${conversation.conversation_participants.length} participants)`
+            : `${otherProfile?.first_name || ''} ${otherProfile?.last_name || ''}`.trim() || 'Unknown User';
 
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
           const lastMessage = sortedMessages[0];
 
-          const displayName = conversation.is_group 
-            ? `Group Chat (${conversation.conversation_participants.length} participants)`
-            : otherParticipants[0]?.name || 'Unknown User';
-
           return {
             id: conversation.id,
             name: displayName,
             is_group: conversation.is_group,
-            participants: otherParticipants,
-            avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
+            avatar: !conversation.is_group ? otherProfile?.avatar_url : null,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               conversation_id: conversation.id,
