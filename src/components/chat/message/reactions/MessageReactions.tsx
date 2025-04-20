@@ -1,6 +1,5 @@
 
 import { useProfile } from "@/hooks/use-profile";
-import { Button } from "@/components/ui/button";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { cn } from "@/lib/utils";
 
@@ -23,16 +22,16 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1">
+    <div className="relative flex items-center justify-end space-x-1">
       {Object.entries(reactionGroups).map(([emoji, count]) => (
         <span
           key={emoji}
           className={cn(
-            "text-xs px-1.5 py-0.5 rounded-full flex items-center gap-0.5",
+            "text-[10px] px-1 py-0.5 rounded-full flex items-center gap-0.5",
             isOwn ? "bg-primary/10 text-primary" : "bg-accent/30"
           )}
         >
-          {emoji} <span className="font-medium">{count}</span>
+          {emoji} {count > 1 && <span className="font-medium">{count}</span>}
         </span>
       ))}
     </div>
