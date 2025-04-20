@@ -17,33 +17,14 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // First, directly check if the user is participating in any conversations
-        const { data: participations, error: participationsError } = await supabase
-          .from('conversation_participants')
-          .select('conversation_id')
-          .eq('user_id', user.id);
-
-        if (participationsError) {
-          console.error('Error fetching participations:', participationsError);
-          throw participationsError;
-        }
-
-        // Extract conversation IDs
-        const conversationIds = participations?.map(p => p.conversation_id) || [];
-        
-        // Handle no conversations case
-        if (!conversationIds.length) {
-          console.log('No conversations found for user');
-          return [];
-        }
-        
-        console.log('Found conversation IDs:', conversationIds);
-        
-        // Fetch conversations using the IDs
+        // Directly query conversations the user is a participant in
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('*, created_at, updated_at, is_group')
-          .in('id', conversationIds)
+          .select(`
+            *,
+            conversation_participants!inner (user_id)
+          `)
+          .eq('conversation_participants.user_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
