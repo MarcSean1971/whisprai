@@ -1,9 +1,12 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, Send, Paperclip, Smile, Camera, Sparkles, X } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useState, useEffect } from "react";
 import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogContent,
