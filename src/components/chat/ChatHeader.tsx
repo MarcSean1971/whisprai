@@ -1,4 +1,3 @@
-
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
@@ -91,12 +90,9 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
         )}
 
         {participants && participants.length === 1 && (
-          <>
-            {/* CallButton has been removed with Twilio */}
-            <Button variant="ghost" size="icon">
-              <Video className="h-4 w-4" />
-            </Button>
-          </>
+          <Button variant="ghost" size="icon">
+            <Video className="h-4 w-4" />
+          </Button>
         )}
 
         <Sheet>
