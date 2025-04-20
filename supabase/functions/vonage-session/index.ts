@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -37,6 +38,7 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    // Get Vonage API credentials from environment variables
     const apiKey = Deno.env.get('VONAGE_API_KEY');
     const apiSecret = Deno.env.get('VONAGE_API_SECRET');
     
@@ -45,16 +47,20 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create Basic Auth token with proper format
-    const basicAuthToken = `Basic ${btoa(`${apiKey}:${apiSecret}`)}`;
+    console.log('Using Vonage credentials for session creation');
     
-    console.log('Creating OpenTok session with Basic Auth');
+    // Generate API URL with key and secret as query parameters
+    // This is one of the authentication methods supported by OpenTok REST API
+    const sessionUrl = new URL('https://api.opentok.com/session/create');
+    sessionUrl.searchParams.append('api_key', apiKey);
+    sessionUrl.searchParams.append('api_secret', apiSecret);
+    
+    console.log('Creating OpenTok session with URL params authentication');
 
-    // Create session with Basic Auth
-    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
+    // Create session
+    const sessionResponse = await fetch(sessionUrl.toString(), {
       method: 'POST',
       headers: {
-        'Authorization': basicAuthToken,
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
@@ -72,29 +78,32 @@ serve(async (req) => {
 
     const sessionData = await sessionResponse.json();
     
-    if (!sessionData.session_id) {
+    if (!sessionData.sessions || !sessionData.sessions[0].session_id) {
       console.error('Invalid session data:', sessionData);
       throw new Error('Missing session_id in OpenTok API response');
     }
 
-    const sessionId = sessionData.session_id;
+    const sessionId = sessionData.sessions[0].session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token with Basic Auth
-    const tokenResponse = await fetch('https://api.opentok.com/token/create', {
+    // Generate token URL with key and secret as query parameters
+    const tokenUrl = new URL('https://api.opentok.com/v2/project/' + apiKey + '/token');
+    tokenUrl.searchParams.append('api_key', apiKey);
+    tokenUrl.searchParams.append('api_secret', apiSecret);
+
+    // Generate token
+    const tokenResponse = await fetch(tokenUrl.toString(), {
       method: 'POST',
       headers: {
-        'Authorization': basicAuthToken,
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      body: new URLSearchParams({
+      body: JSON.stringify({
         session_id: sessionId,
-        create_time: Math.floor(Date.now() / 1000).toString(),
-        expire_time: (Math.floor(Date.now() / 1000) + 3600).toString(), // 1 hour
+        data: JSON.stringify({ userId: user.id }),
         role: 'publisher',
-        data: JSON.stringify({ userId: user.id })
-      }).toString()
+        expire_time: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+      })
     });
 
     console.log('Token response status:', tokenResponse.status);
