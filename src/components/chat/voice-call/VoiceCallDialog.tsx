@@ -1,6 +1,5 @@
 
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
 import {
@@ -10,7 +9,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CallStream } from "./CallStream";
 import { useVonageCall } from "@/hooks/use-vonage-call";
 
 interface VoiceCallDialogProps {
@@ -43,8 +41,8 @@ export function VoiceCallDialog({
     hasRemoteParticipant,
     error
   } = useVonageCall({
-    publisherElement: 'publisher',
-    subscriberElement: 'subscriber',
+    publisherRef,
+    subscriberRef,
     recipientId,
     conversationId
   });
@@ -101,13 +99,11 @@ export function VoiceCallDialog({
           ) : (
             <div className="relative h-full flex flex-col">
               <div 
-                id="subscriber" 
                 ref={subscriberRef}
                 className={`bg-muted rounded-md w-full h-full ${!hasRemoteParticipant ? 'hidden' : ''}`}
               />
               
               <div 
-                id="publisher" 
                 ref={publisherRef}
                 className={`bg-primary-foreground rounded-md ${hasRemoteParticipant ? 'absolute top-2 right-2 w-1/4 h-1/4' : 'w-full h-full'}`}
               />

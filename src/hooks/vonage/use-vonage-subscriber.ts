@@ -2,57 +2,62 @@
 import { useRef, useCallback, useState } from "react";
 import { VonageSubscriberOptions } from "./types";
 
-export function useVonageSubscriber({ subscriberElement }: VonageSubscriberOptions) {
-  const subscriberRef = useRef<any>(null);
+export function useVonageSubscriber({ subscriberRef }: VonageSubscriberOptions) {
+  const subscriber = useRef<any>(null);
   const [hasRemoteParticipant, setHasRemoteParticipant] = useState(false);
 
   const handleStreamCreated = useCallback((session: any, event: any) => {
     console.log('[Vonage Subscriber] New stream created:', { streamId: event.stream.id });
     
+    if (!subscriberRef.current) {
+      console.error('[Vonage Subscriber] Subscriber ref not ready');
+      return;
+    }
+
     const subscribeOptions = {
       insertMode: 'append',
       width: '100%',
       height: '100%',
-      appendTo: subscriberElement,
       subscribeToAudio: true,
       subscribeToVideo: true
     };
 
     try {
-      subscriberRef.current = session.subscribe(
+      subscriber.current = session.subscribe(
         event.stream,
-        subscribeOptions
+        subscriberRef.current,
+        subscribeOptions,
+        (error: any) => {
+          if (error) {
+            console.error('[Vonage Subscriber] Subscription error:', error);
+          } else {
+            console.log('[Vonage Subscriber] Successfully subscribed to stream');
+            setHasRemoteParticipant(true);
+          }
+        }
       );
 
-      console.log('[Vonage Subscriber] Successfully subscribed to stream');
-
-      subscriberRef.current.on('connected', () => {
-        console.log('[Vonage Subscriber] Connected to remote stream');
-        setHasRemoteParticipant(true);
-      });
-
-      subscriberRef.current.on('destroyed', () => {
+      subscriber.current.on('destroyed', () => {
         console.log('[Vonage Subscriber] Remote stream destroyed');
+        setHasRemoteParticipant(false);
       });
 
-      subscriberRef.current.on('error', (error: any) => {
-        console.error('[Vonage Subscriber] Subscription error:', error);
-      });
     } catch (error) {
       console.error('[Vonage Subscriber] Failed to subscribe to stream:', error);
     }
-  }, [subscriberElement]);
+  }, [subscriberRef]);
 
   const destroySubscriber = useCallback(() => {
-    if (subscriberRef.current) {
+    if (subscriber.current) {
       console.log('[Vonage Subscriber] Destroying subscriber');
-      subscriberRef.current = null;
+      subscriber.current.destroy();
+      subscriber.current = null;
       setHasRemoteParticipant(false);
     }
   }, []);
 
   return {
-    subscriber: subscriberRef.current,
+    subscriber: subscriber.current,
     hasRemoteParticipant,
     handleStreamCreated,
     destroySubscriber
