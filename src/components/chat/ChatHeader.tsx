@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
+import { ChatParticipantDialog } from "./ChatParticipantDialog";
 
 interface ChatHeaderProps {
   conversationId: string;
@@ -24,6 +25,7 @@ export function ChatHeader({
   const { profile } = useProfile();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
 
   const participant = conversation?.participants?.find(p => {
     if (profile && 'id' in profile) {
@@ -37,16 +39,21 @@ export function ChatHeader({
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <BackButton to="/chats" />
-          <Avatar>
-            <AvatarImage src={participant?.avatar_url || ''} />
-            <AvatarFallback>{participant?.first_name?.charAt(0)}{participant?.last_name?.charAt(0)}</AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col">
-            <span className="font-bold">{participant?.first_name} {participant?.last_name}</span>
-            {participant?.tagline && (
-              <span className="text-sm text-muted-foreground">{participant.tagline}</span>
-            )}
-          </div>
+          <button 
+            className="flex items-center"
+            onClick={() => setShowProfile(true)}
+          >
+            <Avatar>
+              <AvatarImage src={participant?.avatar_url || ''} />
+              <AvatarFallback>{participant?.first_name?.charAt(0)}{participant?.last_name?.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col ml-2">
+              <span className="font-bold">{participant?.first_name} {participant?.last_name}</span>
+              {participant?.tagline && (
+                <span className="text-sm text-muted-foreground">{participant.tagline}</span>
+              )}
+            </div>
+          </button>
         </div>
         <div className="flex items-center gap-2">
           {isSearching ? (
@@ -110,6 +117,11 @@ export function ChatHeader({
           </DropdownMenu>
         </div>
       </div>
+      <ChatParticipantDialog 
+        open={showProfile}
+        onOpenChange={setShowProfile}
+        participant={participant}
+      />
     </div>
   );
 }

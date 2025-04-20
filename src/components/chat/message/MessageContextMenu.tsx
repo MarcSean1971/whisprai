@@ -35,7 +35,7 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const dropdownTriggerRef = useRef<HTMLDivElement>(null);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
