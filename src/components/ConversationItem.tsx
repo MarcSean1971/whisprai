@@ -18,7 +18,7 @@ interface ConversationItemProps {
   isPinned?: boolean;
   isGroup?: boolean;
   isActive?: boolean;
-  participants?: Array<{ name: string; avatar?: string }>;
+  participants?: Array<{ id: string; name: string; avatar?: string }>;
   onClick?: () => void;
 }
 
@@ -41,9 +41,7 @@ export function ConversationItem({
     <div
       className={cn(
         "flex items-center p-3 rounded-lg cursor-pointer transition-colors",
-        isActive 
-          ? "bg-primary/10" 
-          : "hover:bg-secondary",
+        isActive ? "bg-primary/10" : "hover:bg-secondary",
         unreadCount > 0 && "font-medium"
       )}
       onClick={onClick}
@@ -52,7 +50,10 @@ export function ConversationItem({
     >
       {isGroup ? (
         <AvatarStack
-          avatars={participants}
+          avatars={participants.map(p => ({
+            name: p.name,
+            src: p.avatar
+          }))}
           limit={3}
           size="md"
           className="mr-3 flex-shrink-0"
@@ -82,8 +83,7 @@ export function ConversationItem({
             <p className="text-sm text-muted-foreground truncate">
               {lastMessage.sender?.profiles?.first_name 
                 ? `${lastMessage.sender.profiles.first_name}: ` 
-                : ""
-              }
+                : ""}
               {lastMessage.content}
             </p>
             {unreadCount > 0 && (

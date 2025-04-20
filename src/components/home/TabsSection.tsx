@@ -62,10 +62,6 @@ export function TabsSection({
                 ? format(new Date(conversation.lastMessage.created_at), 'MMM d')
                 : format(new Date(conversation.created_at), 'MMM d');
               
-              const messageContent = conversation.lastMessage 
-                ? `${conversation.lastMessage.sender?.profiles?.first_name || ''}: ${conversation.lastMessage.content}`
-                : '';
-              
               return (
                 <ConversationItem
                   key={conversation.id}
