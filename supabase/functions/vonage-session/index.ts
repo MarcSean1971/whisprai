@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -46,17 +45,18 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create auth header with proper base64 encoding
+    // Create proper OpenTok auth token
     const auth = btoa(`${apiKey}:${apiSecret}`);
-    const authHeader = `Basic ${auth}`;
-    console.log('Creating Vonage session with provided credentials');
+    console.log('Creating OpenTok session with credentials');
 
-    // Create session with detailed logging
+    // Create session with OpenTok-specific headers
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'X-TB-TOKEN-AUTH': auth,
+        'X-TB-VERSION': '1.0',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: 'medium=routed&archiveMode=manual'
     });
@@ -66,8 +66,11 @@ serve(async (req) => {
     console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
     console.log('Session response body:', sessionResponseText);
 
-    if (!sessionResponse.ok) {
-      throw new Error(`Failed to create Vonage session: ${sessionResponseText}`);
+    // Check for XML error response
+    if (sessionResponseText.includes('errorPayload')) {
+      const errorMatch = sessionResponseText.match(/<message>(.*?)<\/message>/);
+      const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error';
+      throw new Error(`OpenTok API error: ${errorMessage}`);
     }
 
     let sessionData;
@@ -75,23 +78,25 @@ serve(async (req) => {
       sessionData = JSON.parse(sessionResponseText);
     } catch (e) {
       console.error('Failed to parse session response:', e);
-      throw new Error('Invalid response format from Vonage');
+      throw new Error('Invalid response format from OpenTok API');
     }
 
     if (!sessionData.session_id) {
       console.error('Invalid session data:', sessionData);
-      throw new Error('Invalid session response from Vonage');
+      throw new Error('Invalid session response from OpenTok API');
     }
 
     const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token with same auth method
+    // Generate token with same OpenTok auth method
     const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': authHeader,
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'X-TB-TOKEN-AUTH': auth,
+        'X-TB-VERSION': '1.0',
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: new URLSearchParams({
         'session_id': sessionId,
@@ -106,8 +111,11 @@ serve(async (req) => {
     console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
     console.log('Token response body:', tokenResponseText);
 
-    if (!tokenResponse.ok) {
-      throw new Error(`Failed to generate Vonage token: ${tokenResponseText}`);
+    // Check for XML error response in token creation
+    if (tokenResponseText.includes('errorPayload')) {
+      const errorMatch = tokenResponseText.match(/<message>(.*?)<\/message>/);
+      const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error';
+      throw new Error(`OpenTok API error: ${errorMessage}`);
     }
 
     let tokenData;
@@ -115,12 +123,12 @@ serve(async (req) => {
       tokenData = JSON.parse(tokenResponseText);
     } catch (e) {
       console.error('Failed to parse token response:', e);
-      throw new Error('Invalid token response format from Vonage');
+      throw new Error('Invalid token response format from OpenTok API');
     }
 
     if (!tokenData.token) {
       console.error('Invalid token data:', tokenData);
-      throw new Error('Invalid token response from Vonage');
+      throw new Error('Invalid token response from OpenTok API');
     }
 
     // Store session info in database
