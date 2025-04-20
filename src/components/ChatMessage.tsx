@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -97,12 +98,9 @@ export function ChatMessage({
     }
   };
 
-  const handleReply = (replyContent?: string) => {
-    if (replyContent) {
-      onReply(replyContent);
-    } else {
-      onReply();
-    }
+  // Make sure this function doesn't attempt to pass arguments to onReply
+  const handleReply = () => {
+    onReply(); // Call without arguments as expected by the parent
   };
 
   return (
@@ -133,7 +131,7 @@ export function ChatMessage({
         attachments={attachments}
         onReply={handleReply}
         isReplying={isReplying}
-        onCancelReply={() => handleReply()}
+        onCancelReply={handleReply}
       />
 
       {voiceMessagePath && (
