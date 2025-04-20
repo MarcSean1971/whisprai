@@ -50,7 +50,8 @@ serve(async (req) => {
           "/*/conversations/**": {},
           "/*/sessions/**": {},
           "/*/media/**": {},
-          "/*/knocking/**": {}
+          "/*/knocking/**": {},
+          "/*/devices/**": {}
         }
       }
     })

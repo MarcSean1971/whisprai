@@ -26,68 +26,106 @@ export function VoiceCall({
   const clientRef = useRef<any>(null)
   const sessionRef = useRef<any>(null)
   const scriptLoadingRef = useRef<boolean>(false)
+  const scriptLoadedRef = useRef<boolean>(false)
 
   useEffect(() => {
-    const loadVonageSDK = async (retryCount = 0): Promise<void> => {
-      if (scriptLoadingRef.current) return
-      scriptLoadingRef.current = true
+    // Wait a moment before loading to ensure DOM is fully ready
+    const initTimer = setTimeout(() => {
+      loadVonageSDK().catch((error) => {
+        console.error('Initial script loading failed:', error)
+        onError(error)
+      })
+    }, 1000)
+
+    return () => {
+      clearTimeout(initTimer)
+      handleCleanup()
+    }
+  }, [onError])
+
+  const loadVonageSDK = async (retryCount = 0): Promise<void> => {
+    if (scriptLoadingRef.current) {
+      console.log('Script already loading, skipping duplicate load')
+      return
+    }
+
+    if (scriptLoadedRef.current && window.Vonage) {
+      console.log('Script already loaded, skipping load')
+      return
+    }
+
+    scriptLoadingRef.current = true
+    console.log('Loading Vonage Client SDK...')
+
+    return new Promise((resolve, reject) => {
+      // First remove any existing scripts to avoid conflicts
+      const existingScripts = document.querySelectorAll('script[src*="vonage"]')
+      existingScripts.forEach(script => script.remove())
 
       const script = document.createElement('script')
       script.src = 'https://cdn.jsdelivr.net/npm/@vonage/client-sdk@1.3.0/dist/vonageClientSDK.min.js'
       script.async = true
 
-      return new Promise((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Script loading timed out'))
-        }, 10000)
+      const timeoutId = setTimeout(() => {
+        scriptLoadingRef.current = false
+        script.remove()
+        reject(new Error('Script loading timed out'))
+      }, 15000)  // 15 second timeout
 
-        script.onload = () => {
-          console.log('Vonage Client SDK loaded successfully')
-          clearTimeout(timeoutId)
-          scriptLoadingRef.current = false
-          resolve()
+      script.onload = () => {
+        clearTimeout(timeoutId)
+        console.log('Vonage Client SDK loaded successfully')
+        scriptLoadingRef.current = false
+        scriptLoadedRef.current = true
+        
+        if (!window.Vonage) {
+          console.error('Vonage SDK loaded but global object not available')
+          reject(new Error('Vonage SDK not properly initialized'))
+          return
         }
+        
+        resolve()
+      }
 
-        script.onerror = () => {
-          console.error(`Failed to load Vonage Client SDK (attempt ${retryCount + 1})`)
-          clearTimeout(timeoutId)
-          scriptLoadingRef.current = false
-          
-          if (retryCount < 2) {
-            console.log('Retrying script load...')
-            setTimeout(() => loadVonageSDK(retryCount + 1).catch(reject), 2000)
-          } else {
-            reject(new Error('Failed to load voice call service after multiple attempts'))
-          }
+      script.onerror = () => {
+        clearTimeout(timeoutId)
+        console.error(`Failed to load Vonage Client SDK (attempt ${retryCount + 1})`)
+        script.remove()
+        scriptLoadingRef.current = false
+        
+        if (retryCount < 3) {
+          console.log('Retrying script load...')
+          setTimeout(() => {
+            loadVonageSDK(retryCount + 1).then(resolve).catch(reject)
+          }, 2000)
+        } else {
+          reject(new Error('Failed to load voice call service after multiple attempts'))
         }
+      }
 
-        document.body.appendChild(script)
-      })
-    }
-
-    loadVonageSDK().catch((error) => {
-      console.error('Script loading failed:', error)
-      onError(error)
+      document.body.appendChild(script)
     })
-
-    return () => {
-      const scripts = document.querySelectorAll('script[src*="vonage"]')
-      scripts.forEach(script => script.remove())
-      handleCleanup()
-    }
-  }, [onError])
+  }
 
   const handleCleanup = async () => {
     try {
       if (sessionRef.current) {
         console.log('Cleaning up session...')
-        await sessionRef.current.leave()
+        try {
+          await sessionRef.current.leave()
+        } catch (error) {
+          console.error('Error leaving session:', error)
+        }
         sessionRef.current = null
       }
       
       if (clientRef.current) {
         console.log('Disconnecting client...')
-        await clientRef.current.disconnect()
+        try {
+          await clientRef.current.disconnect()
+        } catch (error) {
+          console.error('Error disconnecting client:', error)
+        }
         clientRef.current = null
       }
       
@@ -108,10 +146,18 @@ export function VoiceCall({
       setIsConnecting(true)
       console.log('Initializing call...')
 
+      // If SDK is not loaded yet, try loading it again
       if (typeof window.Vonage === 'undefined') {
-        throw new Error('Voice call service not initialized. Please try again in a moment.')
+        console.log('Vonage not loaded, attempting to load SDK again')
+        await loadVonageSDK()
+        
+        // Double-check it's available after loading
+        if (typeof window.Vonage === 'undefined') {
+          throw new Error('Voice call service not initialized. Please try again in a moment.')
+        }
       }
 
+      console.log('Getting Vonage session token...')
       const { data: sessionResponse, error: sessionError } = await supabase.functions.invoke(
         'vonage-session',
         {
@@ -148,21 +194,23 @@ export function VoiceCall({
         handleCleanup()
       })
 
+      console.log('Creating session with token...')
       await clientRef.current.createSession(token)
       console.log('Session created successfully')
 
+      console.log('Creating call conversation...')
       sessionRef.current = await clientRef.current.session.create({
         name: `call-${Date.now()}`,
         display_name: `Call with ${recipientId}`
       })
 
+      console.log('Enabling audio...')
       await sessionRef.current.media.enable({
         audio: true,
         video: false
       })
 
       console.log('Audio enabled, inviting recipient...')
-
       await sessionRef.current.invite(recipientId)
 
       if (ringtoneRef.current) {
