@@ -2,11 +2,10 @@
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
-import { Menu, Search, PhoneCall } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { VoiceCallDialog } from "./voice-call/VoiceCallDialog";
 import {
   Sheet,
   SheetContent,
@@ -21,14 +20,11 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
   const { data: participants } = useParticipants(conversationId);
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isCallDialogOpen, setIsCallDialogOpen] = useState(false);
   const navigate = useNavigate();
   
   const handleBack = () => {
     navigate("/chats");
   };
-  
-  const singleParticipant = participants?.length === 1 ? participants[0] : null;
   
   return (
     <div className="flex items-center justify-between h-14 px-4 border-b py-3 sticky top-0 bg-background z-10">
@@ -85,25 +81,13 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
             </Button>
           </div>
         ) : (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsSearching(true)}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-
-            {singleParticipant && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsCallDialogOpen(true)}
-              >
-                <PhoneCall className="h-4 w-4" />
-              </Button>
-            )}
-          </>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsSearching(true)}
+          >
+            <Search className="h-4 w-4" />
+          </Button>
         )}
 
         <Sheet>
@@ -119,19 +103,9 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
                 Configure chat preferences and options
               </SheetDescription>
             </SheetHeader>
-            {/* Menu content will be implemented based on requirements */}
           </SheetContent>
         </Sheet>
       </div>
-
-      {singleParticipant && (
-        <VoiceCallDialog
-          isOpen={isCallDialogOpen}
-          onClose={() => setIsCallDialogOpen(false)}
-          recipientId={singleParticipant.id}
-          recipientName={`${singleParticipant.first_name || ''} ${singleParticipant.last_name || ''}`.trim()}
-        />
-      )}
     </div>
   );
 }
