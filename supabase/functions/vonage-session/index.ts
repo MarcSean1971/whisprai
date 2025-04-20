@@ -46,19 +46,18 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create OpenTok Project Auth Token
-    const authParams = new URLSearchParams({
-      partner_id: apiKey,
-      sig: apiSecret
-    }).toString();
+    // Create Basic Auth token
+    const authToken = btoa(`${apiKey}:${apiSecret}`);
+    
+    console.log('Creating OpenTok session with Basic Auth');
 
-    console.log('Creating OpenTok session with Project Auth');
-
-    // Create session with Project Auth Token
-    const sessionResponse = await fetch(`https://api.opentok.com/session/create?${authParams}`, {
+    // Create session with Basic Auth
+    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'X-OPENTOK-AUTH': authToken,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: 'p2p.preference=enabled'
     });
@@ -68,27 +67,23 @@ serve(async (req) => {
     console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
     console.log('Session response body:', sessionResponseText);
 
-    let sessionData;
-    try {
-      sessionData = JSON.parse(sessionResponseText);
-    } catch (e) {
-      console.error('Failed to parse session response:', e);
+    // Extract session ID from XML response
+    const sessionIdMatch = sessionResponseText.match(/<session_id>(.*?)<\/session_id>/);
+    if (!sessionIdMatch) {
+      console.error('Failed to extract session ID from response:', sessionResponseText);
       throw new Error('Invalid response format from OpenTok API');
     }
 
-    if (!sessionData.session_id) {
-      console.error('Invalid session data:', sessionData);
-      throw new Error('Invalid session response from OpenTok API');
-    }
-
-    const sessionId = sessionData.session_id;
+    const sessionId = sessionIdMatch[1];
     console.log('Session created:', { sessionId });
 
-    // Generate token with Project Auth Token
-    const tokenResponse = await fetch(`https://api.opentok.com/token/create?${authParams}`, {
+    // Generate token with Basic Auth
+    const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
+        'X-OPENTOK-AUTH': authToken,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
       },
       body: new URLSearchParams({
         session_id: sessionId,
@@ -104,18 +99,14 @@ serve(async (req) => {
     console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
     console.log('Token response body:', tokenResponseText);
 
-    let tokenData;
-    try {
-      tokenData = JSON.parse(tokenResponseText);
-    } catch (e) {
-      console.error('Failed to parse token response:', e);
-      throw new Error('Invalid token response format from OpenTok API');
-    }
-
-    if (!tokenData.token) {
-      console.error('Invalid token data:', tokenData);
+    // Extract token from XML response
+    const tokenMatch = tokenResponseText.match(/<token>(.*?)<\/token>/);
+    if (!tokenMatch) {
+      console.error('Failed to extract token from response:', tokenResponseText);
       throw new Error('Invalid token response from OpenTok API');
     }
+
+    const token = tokenMatch[1];
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
@@ -138,7 +129,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         sessionId,
-        token: tokenData.token,
+        token,
         apiKey
       }),
       { 
