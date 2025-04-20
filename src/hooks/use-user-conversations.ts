@@ -29,46 +29,63 @@ export function useUserConversations() {
             ),
             conversation_participants!inner (
               user_id,
-              profiles:profiles!inner (
+              profiles!inner (
                 first_name,
                 last_name,
                 avatar_url
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id)
-          .order('updated_at', { ascending: false });
+          .eq('conversation_participants.user_id', user.id);
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
         }
 
-        console.log("Conversations raw data:", JSON.stringify(conversations, null, 2));
+        console.log("Raw conversations data:", JSON.stringify(conversations, null, 2));
 
         return conversations.map(conversation => {
-          // Find all participants who are NOT the current user
+          // Get all participants except the current user
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id);
           
-          console.log("Conversation ID:", conversation.id);
-          console.log("Other participants:", otherParticipants);
-          
-          // For a 1-on-1 chat, get the other person's profile
+          console.log("Processing conversation:", conversation.id);
+          console.log("Other participants found:", otherParticipants);
+
+          // Get the other person's profile for 1-on-1 chats
           const otherParticipant = otherParticipants[0];
+          console.log("Selected other participant:", otherParticipant);
           
-          // Sort messages to get the latest one
+          if (!otherParticipant) {
+            console.warn("No other participant found for conversation:", conversation.id);
+          }
+
+          // Sort messages by date to get the latest
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
           const lastMessage = sortedMessages[0];
 
+          const otherProfile = otherParticipant?.profiles;
+          const name = otherProfile 
+            ? `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim()
+            : 'Unknown User';
+
+          console.log("Formatted conversation:", {
+            id: conversation.id,
+            name,
+            avatar: otherProfile?.avatar_url,
+            lastMessage: lastMessage ? {
+              content: lastMessage.content,
+              created_at: lastMessage.created_at,
+            } : null
+          });
+
           return {
             id: conversation.id,
-            name: otherParticipant?.profiles 
-              ? `${otherParticipant.profiles.first_name || ''} ${otherParticipant.profiles.last_name || ''}`.trim() 
-              : 'Unknown User',
-            avatar: otherParticipant?.profiles?.avatar_url,
+            name,
+            avatar: otherProfile?.avatar_url,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,
