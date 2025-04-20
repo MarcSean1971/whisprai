@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { TabsSection } from "@/components/home/TabsSection";
+import { ShareButton } from "@/components/shared/ShareButton";
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ export default function Chats() {
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         onSearchToggle={() => setIsSearching(!isSearching)}
+        rightAction={<ShareButton />}
       />
       
       <div className="flex-1 overflow-y-auto pb-16">
