@@ -103,16 +103,18 @@ export function useVonageCall({
       
       // Set up event handlers
       sessionRef.current.on('streamCreated', (event: any) => {
-        // Fix here: The subscribe method expects different parameters based on the Vonage SDK types
-        // Instead of passing separate parameters, we'll ensure we match the expected signature
+        // The TypeScript type definition expects only 2 parameters in this order:
+        // 1. stream: Stream object
+        // 2. options object (containing target element, properties, and callback)
         
         subscriberRef.current = sessionRef.current.subscribe(
           event.stream,
-          subscriberElement,
           {
             insertMode: 'append',
             width: '100%',
-            height: '100%'
+            height: '100%',
+            // Include the target element in the options object
+            appendTo: subscriberElement
           },
           (error: any) => {
             if (error) {
