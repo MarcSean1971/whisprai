@@ -59,7 +59,6 @@ export function TabsSection({
             </div>
           ) : filteredConversations.length > 0 ? (
             filteredConversations.map((conversation) => {
-              // Format timestamp if available
               const timestamp = conversation.lastMessage?.created_at 
                 ? format(new Date(conversation.lastMessage.created_at), 'MMM d')
                 : undefined;
@@ -73,6 +72,10 @@ export function TabsSection({
                   lastMessage={conversation.lastMessage}
                   timestamp={timestamp}
                   isGroup={conversation.is_group}
+                  participants={conversation.participants?.map(p => ({
+                    name: `${p.profile?.first_name || ''} ${p.profile?.last_name || ''}`.trim(),
+                    avatar: p.profile?.avatar_url
+                  }))}
                   onClick={() => onConversationClick(conversation.id)}
                 />
               );

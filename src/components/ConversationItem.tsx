@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { MoreVertical, PinIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Message } from "@/hooks/use-messages";
 
 interface ConversationItemProps {
   id: string;
   name: string;
   avatar?: string;
-  lastMessage?: any;
+  lastMessage?: Message;
   timestamp?: string;
   unreadCount?: number;
   isPinned?: boolean;
@@ -36,8 +37,16 @@ export function ConversationItem({
 }: ConversationItemProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Extract the message content properly
-  const messageContent = lastMessage?.content || "";
+  // Format the last message for display
+  const messagePreview = lastMessage?.content ? (
+    <p className="text-sm text-muted-foreground truncate max-w-[80%]">
+      {lastMessage.sender?.profiles?.first_name 
+        ? `${lastMessage.sender.profiles.first_name}: ` 
+        : ""
+      }
+      {lastMessage.content}
+    </p>
+  ) : null;
 
   return (
     <div
@@ -80,11 +89,7 @@ export function ConversationItem({
         </div>
         
         <div className="flex justify-between items-center">
-          {lastMessage && (
-            <p className="text-sm text-muted-foreground truncate max-w-[80%]">
-              {messageContent}
-            </p>
-          )}
+          {messagePreview}
           
           {unreadCount > 0 && (
             <Badge 
