@@ -37,6 +37,7 @@ export function MessageControls({
         <LocationControl onLocationClick={onLocationClick} />
       )}
       
+      {/* Only show the delete control if canDelete is true AND we want to display it outside the menu */}
       {canDelete && (
         <DeleteControl 
           onDelete={onDelete}

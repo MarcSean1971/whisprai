@@ -79,7 +79,7 @@ export function MessageContent({
             onToggleTranslation={onToggleTranslation}
             location={location}
             onLocationClick={onLocationClick}
-            canDelete={canDelete}
+            canDelete={false} // Always false to hide the delete button here
             onDelete={onDelete}
             isDeleting={isDeleting}
           />
