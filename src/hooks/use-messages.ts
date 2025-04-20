@@ -104,6 +104,7 @@ export function useMessages(conversationId: string) {
         throw messagesError;
       }
 
+      // Extract sender IDs from messages
       const senderIds = messages
         .map(msg => msg.sender_id)
         .filter((id): id is string => id !== null);
