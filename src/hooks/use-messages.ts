@@ -156,20 +156,14 @@ export function useMessages(conversationId: string) {
         if (message.parent && typeof message.parent === 'object') {
           const parentMessage = message.parent as any;
           
-          // Handle the case where parent.sender might be null or have an error
-          let parentSender = null;
-          if (parentMessage.sender && typeof parentMessage.sender === 'object' && !('error' in parentMessage.sender)) {
-            parentSender = {
-              id: parentMessage.sender.id,
-              profiles: parentMessage.sender.profiles || null
-            };
-          }
-          
           processedMessage.parent = {
             id: parentMessage.id,
             content: parentMessage.content,
             created_at: parentMessage.created_at,
-            sender: parentSender
+            sender: parentMessage.sender ? {
+              id: parentMessage.sender.id,
+              profiles: parentMessage.sender.profiles || null
+            } : null
           };
         }
 
