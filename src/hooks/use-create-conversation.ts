@@ -35,7 +35,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         return null;
       }
 
-      // Detailed logging for this section
+      // Check if conversation already exists
       console.log("Checking if conversation already exists");
       const { data: existingConversation, error: existingError } = await supabase.rpc(
         'get_existing_conversation',
@@ -74,7 +74,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
 
       console.log("Conversation created successfully:", conversation);
 
-      // Detailed logging for participants insertion
+      // Add participants to conversation
       console.log("Adding participants to conversation");
       const { error: participantsError } = await supabase
         .from('conversation_participants')
