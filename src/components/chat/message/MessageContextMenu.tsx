@@ -1,3 +1,4 @@
+
 import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 
@@ -35,6 +36,7 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
@@ -44,16 +46,8 @@ export function MessageContextMenu({
   };
 
   const handleDropdownChange = (open: boolean) => {
-    setIsDropdownOpen(open);
-    if (!open && !isEmojiPickerOpen) {
-      setIsDropdownOpen(false);
-    }
-  };
-
-  const handleEmojiPickerChange = (open: boolean) => {
-    setIsEmojiPickerOpen(open);
-    if (open) {
-      setIsDropdownOpen(true);
+    if (!isEmojiPickerOpen) {
+      setIsDropdownOpen(open);
     }
   };
 
@@ -62,7 +56,14 @@ export function MessageContextMenu({
     setIsEmojiPickerOpen(true);
   };
 
-  const renderMenuContent = () => (
+  const handleEmojiPickerChange = (open: boolean) => {
+    setIsEmojiPickerOpen(open);
+    if (!open) {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const menuContent = (
     <DropdownMenuContent
       align="start"
       side="bottom"
@@ -78,31 +79,13 @@ export function MessageContextMenu({
           <span>Toggle Translation</span>
         </DropdownMenuItem>
       )}
-      <Popover open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerChange}>
-        <PopoverTrigger asChild>
-          <DropdownMenuItem 
-            className="cursor-pointer" 
-            onSelect={handleAddReactionClick}
-          >
-            <Smile className="mr-2 h-4 w-4" />
-            <span>Add Reaction</span>
-          </DropdownMenuItem>
-        </PopoverTrigger>
-        <PopoverContent 
-          className="w-full p-0" 
-          align={isOwn ? "start" : "end"}
-          sideOffset={5}
-        >
-          <div className="z-[100]">
-            <EmojiPicker
-              width={300}
-              height={350}
-              onEmojiClick={handleEmojiSelect}
-              lazyLoadEmojis={true}
-            />
-          </div>
-        </PopoverContent>
-      </Popover>
+      <DropdownMenuItem
+        className="cursor-pointer"
+        onSelect={handleAddReactionClick}
+      >
+        <Smile className="mr-2 h-4 w-4" />
+        <span>Add Reaction</span>
+      </DropdownMenuItem>
     </DropdownMenuContent>
   );
 
@@ -112,16 +95,40 @@ export function MessageContextMenu({
         <div className="pt-2">
           <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownChange}>
             <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
+              <Button
+                ref={triggerRef}
+                variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
               >
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            {renderMenuContent()}
+            {menuContent}
           </DropdownMenu>
+          <Popover open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerChange}>
+            <PopoverTrigger className="hidden" />
+            <PopoverContent 
+              className="w-full p-0" 
+              align={isOwn ? "start" : "end"}
+              sideOffset={5}
+              style={{
+                position: 'fixed',
+                top: triggerRef.current ? triggerRef.current.getBoundingClientRect().bottom + 5 : 0,
+                left: triggerRef.current ? triggerRef.current.getBoundingClientRect().left : 0,
+                zIndex: 100
+              }}
+            >
+              <div className="z-[100]">
+                <EmojiPicker
+                  width={300}
+                  height={350}
+                  onEmojiClick={handleEmojiSelect}
+                  lazyLoadEmojis={true}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
       
@@ -134,6 +141,7 @@ export function MessageContextMenu({
           <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownChange}>
             <DropdownMenuTrigger asChild>
               <Button 
+                ref={triggerRef}
                 variant="ghost" 
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -141,8 +149,31 @@ export function MessageContextMenu({
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            {renderMenuContent()}
+            {menuContent}
           </DropdownMenu>
+          <Popover open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerChange}>
+            <PopoverTrigger className="hidden" />
+            <PopoverContent 
+              className="w-full p-0" 
+              align={isOwn ? "start" : "end"}
+              sideOffset={5}
+              style={{
+                position: 'fixed',
+                top: triggerRef.current ? triggerRef.current.getBoundingClientRect().bottom + 5 : 0,
+                left: triggerRef.current ? triggerRef.current.getBoundingClientRect().right - 300 : 0,
+                zIndex: 100
+              }}
+            >
+              <div className="z-[100]">
+                <EmojiPicker
+                  width={300}
+                  height={350}
+                  onEmojiClick={handleEmojiSelect}
+                  lazyLoadEmojis={true}
+                />
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
     </div>
