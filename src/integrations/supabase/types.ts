@@ -258,6 +258,7 @@ export type Database = {
           id: string
           metadata: Json | null
           original_language: string | null
+          parent_id: string | null
           private_recipient: string | null
           private_room: string | null
           sender_id: string | null
@@ -271,6 +272,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           original_language?: string | null
+          parent_id?: string | null
           private_recipient?: string | null
           private_room?: string | null
           sender_id?: string | null
@@ -284,6 +286,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           original_language?: string | null
+          parent_id?: string | null
           private_recipient?: string | null
           private_room?: string | null
           sender_id?: string | null
@@ -295,6 +298,13 @@ export type Database = {
             columns: ["conversation_id"]
             isOneToOne: false
             referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
         ]

@@ -89,7 +89,8 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
               unified: "",
               unifiedWithoutSkinTone: "",
               imageUrl: "",
-              getImageUrl: () => ""
+              getImageUrl: () => "",
+              isCustom: false
             })}
             className={cn(
               "h-6 px-2 text-xs rounded-full",

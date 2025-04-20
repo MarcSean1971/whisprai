@@ -1,10 +1,10 @@
-
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
+import { MessageReplyButton } from "./MessageReplyButton";
 
 interface MessageContentProps {
-  id: string; // Added this prop
+  id: string;
   content: string;
   timestamp: string;
   isOwn: boolean;
@@ -25,7 +25,7 @@ interface MessageContentProps {
 }
 
 export function MessageContent({
-  id, // Added this prop
+  id,
   content,
   timestamp,
   isOwn,
@@ -41,9 +41,9 @@ export function MessageContent({
   attachments
 }: MessageContentProps) {
   return (
-    <div className="flex items-start gap-2">
+    <div className="flex items-start gap-2 group">
       <MessageBubble
-        id={id} // Pass the id prop
+        id={id}
         content={content}
         timestamp={timestamp}
         isOwn={isOwn}
@@ -51,16 +51,24 @@ export function MessageContent({
         attachments={attachments}
       />
 
-      <MessageControls
-        showTranslationToggle={showTranslationToggle}
-        originalLanguage={originalLanguage}
-        onToggleTranslation={onToggleTranslation}
-        location={location}
-        onLocationClick={onLocationClick}
-        canDelete={canDelete}
-        onDelete={onDelete}
-        isDeleting={isDeleting}
-      />
+      <div className="flex items-center gap-1">
+        <MessageReplyButton 
+          onReply={() => {
+            console.log('Reply to message:', id);
+          }}
+          isOwn={isOwn}
+        />
+        <MessageControls
+          showTranslationToggle={showTranslationToggle}
+          originalLanguage={originalLanguage}
+          onToggleTranslation={onToggleTranslation}
+          location={location}
+          onLocationClick={onLocationClick}
+          canDelete={canDelete}
+          onDelete={onDelete}
+          isDeleting={isDeleting}
+        />
+      </div>
     </div>
   );
 }
