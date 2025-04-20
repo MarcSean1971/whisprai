@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
+import { MessageControls } from "./MessageControls";
 import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageContentProps {
@@ -48,24 +49,40 @@ export function MessageContent({
   attachments
 }: MessageContentProps) {
   return (
-    <div className="space-y-2">
-      <MessageContextMenu
-        onReply={() => onReply("")}
-        onToggleTranslation={onToggleTranslation}
-        showTranslationToggle={showTranslationToggle}
-        isOwn={isOwn}
-        messageId={id}
-      >
-        <MessageBubble
-          id={id}
-          content={content}
-          timestamp={timestamp}
-          isOwn={isOwn}
-          isAIMessage={isAIMessage}
-          attachments={attachments}
+    <div className="group space-y-2">
+      <div className="relative">
+        <MessageContextMenu
           onReply={() => onReply("")}
-        />
-      </MessageContextMenu>
+          onToggleTranslation={onToggleTranslation}
+          showTranslationToggle={showTranslationToggle}
+          isOwn={isOwn}
+          messageId={id}
+        >
+          <MessageBubble
+            id={id}
+            content={content}
+            timestamp={timestamp}
+            isOwn={isOwn}
+            isAIMessage={isAIMessage}
+            attachments={attachments}
+            onReply={() => onReply("")}
+          />
+        </MessageContextMenu>
+        
+        <div className="absolute right-0 top-0 -mr-12 hidden group-hover:flex items-center gap-1 p-1">
+          <MessageControls
+            showTranslationToggle={showTranslationToggle}
+            originalLanguage={originalLanguage}
+            onToggleTranslation={onToggleTranslation}
+            location={location}
+            onLocationClick={onLocationClick}
+            canDelete={canDelete}
+            onDelete={onDelete}
+            isDeleting={isDeleting}
+          />
+        </div>
+      </div>
+
       {isReplying && (
         <div className="ml-4 mt-2">
           <MessageReplyInput
