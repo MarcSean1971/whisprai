@@ -4,8 +4,10 @@ import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { MessageReactions } from "./reactions/MessageReactions";
 
 interface MessageBubbleProps {
+  id: string;
   content: string;
   timestamp: string;
   isOwn: boolean;
@@ -24,6 +26,7 @@ interface MessageBubbleProps {
 }
 
 export function MessageBubble({ 
+  id,
   content, 
   timestamp, 
   isOwn, 
@@ -149,6 +152,7 @@ export function MessageBubble({
       <div className="text-[10px] opacity-70 text-right mt-0.5">
         {timestamp}
       </div>
+      <MessageReactions messageId={id} isOwn={isOwn} />
     </div>
   );
 }
