@@ -1,4 +1,5 @@
 
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
@@ -22,7 +23,7 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
     "July", "August", "September", "October", "November", "December"
   ];
 
-  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
     form.getValues("birthdate") ? new Date(form.getValues("birthdate")) : undefined
   );
 
@@ -30,14 +31,14 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
     const newDate = selectedDate ? new Date(selectedDate) : new Date();
     newDate.setFullYear(parseInt(year));
     setSelectedDate(newDate);
-    form.onChange(format(newDate, "yyyy-MM-dd"));
+    form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
   };
 
   const handleMonthSelect = (monthName: string) => {
     const newDate = selectedDate ? new Date(selectedDate) : new Date();
     newDate.setMonth(months.indexOf(monthName));
     setSelectedDate(newDate);
-    form.onChange(format(newDate, "yyyy-MM-dd"));
+    form.setValue("birthdate", format(newDate, "yyyy-MM-dd"));
   };
 
   return (
