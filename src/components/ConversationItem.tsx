@@ -45,8 +45,8 @@ export function ConversationItem({
       {isGroup ? (
         <AvatarStack
           avatars={participants.map(p => ({
-            name: p.name,
-            src: p.avatar
+            src: p.avatar,
+            name: p.name
           }))}
           limit={3}
           size="md"
@@ -56,7 +56,7 @@ export function ConversationItem({
         <Avatar className="h-12 w-12 mr-3 flex-shrink-0">
           <AvatarImage src={avatar} alt={name} />
           <AvatarFallback className="bg-primary/10 text-primary">
-            {(name || "CH").slice(0, 2).toUpperCase()}
+            {name?.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       )}

@@ -29,7 +29,8 @@ export function useUserConversations() {
               user_id,
               profiles (
                 first_name,
-                last_name
+                last_name,
+                avatar_url
               )
             )
           `)
@@ -46,21 +47,24 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
-          // Get all participants' names
-          const participantNames = conversation.conversation_participants
+          // Get all participants' info
+          const participants = conversation.conversation_participants
             .map(participant => {
               const profile = participant.profiles;
-              if (profile?.first_name || profile?.last_name) {
-                return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
-              }
-              return 'Unknown User';
+              return {
+                name: profile?.first_name || profile?.last_name ? 
+                  `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 
+                  'Unknown User',
+                avatar: profile?.avatar_url || null
+              };
             });
 
           return {
             id: conversation.id,
-            name: participantNames.join(', '), // Join all participant names with commas
-            avatar: null,
+            name: participants.map(p => p.name).join(', '), // Join participant names
+            avatar: conversation.is_group ? null : participants[0]?.avatar || null,
             is_group: conversation.is_group,
+            participants: participants,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,
