@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 
@@ -45,33 +46,27 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create proper OpenTok auth token
-    const auth = btoa(`${apiKey}:${apiSecret}`);
-    console.log('Creating OpenTok session with credentials');
+    // Create OpenTok Project Auth Token
+    const authParams = new URLSearchParams({
+      partner_id: apiKey,
+      sig: apiSecret
+    }).toString();
 
-    // Create session with OpenTok-specific headers
-    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
+    console.log('Creating OpenTok session with Project Auth');
+
+    // Create session with Project Auth Token
+    const sessionResponse = await fetch(`https://api.opentok.com/session/create?${authParams}`, {
       method: 'POST',
       headers: {
-        'X-TB-TOKEN-AUTH': auth,
-        'X-TB-VERSION': '1.0',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: 'medium=routed&archiveMode=manual'
+      body: 'p2p.preference=enabled'
     });
 
     const sessionResponseText = await sessionResponse.text();
     console.log('Session response status:', sessionResponse.status);
     console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
     console.log('Session response body:', sessionResponseText);
-
-    // Check for XML error response
-    if (sessionResponseText.includes('errorPayload')) {
-      const errorMatch = sessionResponseText.match(/<message>(.*?)<\/message>/);
-      const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error';
-      throw new Error(`OpenTok API error: ${errorMessage}`);
-    }
 
     let sessionData;
     try {
@@ -89,20 +84,18 @@ serve(async (req) => {
     const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token with same OpenTok auth method
-    const tokenResponse = await fetch('https://api.opentok.com/token/create', {
+    // Generate token with Project Auth Token
+    const tokenResponse = await fetch(`https://api.opentok.com/token/create?${authParams}`, {
       method: 'POST',
       headers: {
-        'X-TB-TOKEN-AUTH': auth,
-        'X-TB-VERSION': '1.0',
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
       body: new URLSearchParams({
-        'session_id': sessionId,
-        'role': 'publisher',
-        'data': JSON.stringify({ userId: user.id }),
-        'expire_time': (Math.floor(Date.now() / 1000) + 3600).toString() // 1 hour
+        session_id: sessionId,
+        create_time: Math.floor(Date.now() / 1000).toString(),
+        expire_time: (Math.floor(Date.now() / 1000) + 3600).toString(), // 1 hour
+        role: 'publisher',
+        data: JSON.stringify({ userId: user.id })
       }).toString()
     });
 
@@ -110,13 +103,6 @@ serve(async (req) => {
     console.log('Token response status:', tokenResponse.status);
     console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
     console.log('Token response body:', tokenResponseText);
-
-    // Check for XML error response in token creation
-    if (tokenResponseText.includes('errorPayload')) {
-      const errorMatch = tokenResponseText.match(/<message>(.*?)<\/message>/);
-      const errorMessage = errorMatch ? errorMatch[1] : 'Unknown error';
-      throw new Error(`OpenTok API error: ${errorMessage}`);
-    }
 
     let tokenData;
     try {
