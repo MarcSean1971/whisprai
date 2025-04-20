@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Default token TTL in seconds
+const DEFAULT_TTL = 3600; // 1 hour
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -43,14 +46,17 @@ serve(async (req) => {
       const AccessToken = twilio.jwt.AccessToken;
       const VoiceGrant = AccessToken.VoiceGrant;
       
-      // Create an access token with a 1 hour TTL
+      // Set token TTL to 1 hour
+      const ttl = DEFAULT_TTL;
+      
+      // Create an access token with the specified TTL
       const token = new AccessToken(
         twilioAccountSid,
         twilioApiKey,
         twilioApiSecret,
         { 
           identity,
-          ttl: 3600 // 1 hour in seconds
+          ttl: ttl
         }
       );
 
@@ -71,7 +77,7 @@ serve(async (req) => {
           token: tokenString,
           identity,
           accountSid: twilioAccountSid,
-          ttl: 3600
+          ttl: ttl
         }),
         { 
           headers: { 
