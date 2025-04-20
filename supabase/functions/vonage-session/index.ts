@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { create, SignJWT } from "https://esm.sh/jose@4.14.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -40,36 +39,24 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('VONAGE_API_KEY');
-    const privateKey = Deno.env.get('VONAGE_PRIVATE_KEY');
+    const apiSecret = Deno.env.get('VONAGE_API_SECRET');
     
-    if (!apiKey || !privateKey) {
+    if (!apiKey || !apiSecret) {
       console.error('Missing Vonage credentials');
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Generate JWT for Vonage API authentication
-    const jwt = await new SignJWT({
-      application_id: Deno.env.get('VONAGE_APPLICATION_ID'),
-      sub: apiKey,
-      exp: Math.floor(Date.now() / 1000) + 3600, // 1 hour expiry
-    })
-    .setProtectedHeader({ alg: 'HS256' })
-    .sign(new TextEncoder().encode(privateKey));
+    console.log('Using Vonage credentials with API Key:', apiKey);
 
-    console.log('Generated JWT for Vonage API');
-
-    // Create session using Vonage Video API
-    const sessionResponse = await fetch('https://api.opentok.com/v2/project/session/create', {
+    // Create session using Vonage Video API with API Key and Secret
+    const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': jwt,
-        'Content-Type': 'application/json',
+        'X-OPENTOK-AUTH': `${apiKey}:${apiSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        "mediaMode": "routed",
-        "archiveMode": "manual"
-      })
+      body: 'medium=routed&archiveMode=manual'
     });
 
     if (!sessionResponse.ok) {
@@ -78,8 +65,12 @@ serve(async (req) => {
       throw new Error(`Failed to create Vonage session: ${errorText}`);
     }
 
-    const sessionData = await sessionResponse.json();
-    const sessionId = sessionData.session_id;
+    // Parse XML response
+    const responseText = await sessionResponse.text();
+    console.log('Session response:', responseText);
+    
+    // Extract session ID from XML response
+    const sessionId = responseText.match(/<session_id>(.*?)<\/session_id>/)?.[1];
 
     if (!sessionId) {
       throw new Error('Invalid session response from Vonage');
@@ -87,20 +78,20 @@ serve(async (req) => {
 
     console.log('Session created:', { sessionId });
 
-    // Generate token
-    const tokenResponse = await fetch(`https://api.opentok.com/v2/project/${apiKey}/token`, {
+    // Generate token using API Key and Secret
+    const tokenResponse = await fetch(`https://api.opentok.com/token/create`, {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': jwt,
-        'Content-Type': 'application/json',
+        'X-OPENTOK-AUTH': `${apiKey}:${apiSecret}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
-      body: JSON.stringify({
-        session_id: sessionId,
-        role: 'publisher',
-        data: JSON.stringify({ userId: user.id }),
-        expire_time: Math.floor(Date.now() / 1000) + 3600 // 1 hour
-      })
+      body: new URLSearchParams({
+        'session_id': sessionId,
+        'role': 'publisher',
+        'data': JSON.stringify({ userId: user.id }),
+        'expire_time': (Math.floor(Date.now() / 1000) + 3600).toString() // 1 hour
+      }).toString()
     });
 
     if (!tokenResponse.ok) {
@@ -109,7 +100,16 @@ serve(async (req) => {
       throw new Error(`Failed to generate Vonage token: ${errorText}`);
     }
 
-    const { token } = await tokenResponse.json();
+    // Parse token from response
+    const tokenText = await tokenResponse.text();
+    console.log('Token response:', tokenText);
+    
+    // Extract token from XML response
+    const token = tokenText.match(/<token>(.*?)<\/token>/)?.[1];
+    
+    if (!token) {
+      throw new Error('Invalid token response from Vonage');
+    }
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
