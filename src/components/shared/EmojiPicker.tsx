@@ -7,7 +7,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useState } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -15,6 +14,8 @@ interface EmojiPickerProps {
   side?: "top" | "right" | "bottom" | "left";
   align?: "start" | "center" | "end";
   sideOffset?: number;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function EmojiPicker({
@@ -22,21 +23,17 @@ export function EmojiPicker({
   triggerButton,
   side = "top",
   align = "start",
-  sideOffset = 5
+  sideOffset = 5,
+  open,
+  onOpenChange
 }: EmojiPickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
   const handleEmojiSelect = (emojiData: any) => {
     onEmojiSelect(emojiData);
-    setIsOpen(false);
+    onOpenChange(false);
   };
 
   const handleClose = () => {
-    setIsOpen(false);
-  };
-
-  const handleOpen = () => {
-    setIsOpen(true);
+    onOpenChange(false);
   };
 
   const defaultTrigger = (
@@ -45,7 +42,7 @@ export function EmojiPicker({
       size="icon"
       variant="ghost"
       className="text-muted-foreground hover:text-foreground"
-      onClick={handleOpen}
+      onClick={() => onOpenChange(true)}
     >
       <Smile className="h-5 w-5" />
       <span className="sr-only">Add emoji</span>
@@ -53,7 +50,7 @@ export function EmojiPicker({
   );
 
   return (
-    <Popover open={isOpen}>
+    <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         {triggerButton || defaultTrigger}
       </PopoverTrigger>
