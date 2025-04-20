@@ -1,3 +1,4 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
+import { AvatarStack } from "@/components/ui/avatar-stack";
 
 interface ChatHeaderProps {
   conversationId: string;
@@ -25,41 +27,43 @@ export function ChatHeader({
   const { profile } = useProfile();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
   
-  // Find the other participant (not the current user)
-  const otherParticipant = conversation?.participants?.find(p => {
-    return profile && p.id !== profile.id;
-  });
+  // Format participants for display
+  const participants = conversation?.participants?.map(p => ({
+    src: p.avatar_url || '',
+    name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
+  })) || [];
+
+  // Format participant names for text display
+  const participantNames = conversation?.participants
+    ?.filter(p => profile && p.id !== profile.id)
+    ?.map(p => `${p.first_name || ''} ${p.last_name || ''}`.trim())
+    .join(', ');
+
+  const handleParticipantClick = (participant: any) => {
+    setSelectedParticipant(participant);
+    setShowProfile(true);
+  };
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           <BackButton to="/chats" />
-          {otherParticipant && (
-            <button 
-              className="flex items-center"
-              onClick={() => setShowProfile(true)}
-            >
-              <Avatar>
-                <AvatarImage src={otherParticipant.avatar_url || ''} />
-                <AvatarFallback>
-                  {otherParticipant.first_name?.[0]}
-                  {otherParticipant.last_name?.[0]}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col ml-2">
-                <span className="font-bold">
-                  {otherParticipant.first_name} {otherParticipant.last_name}
-                </span>
-                {otherParticipant.tagline && (
-                  <span className="text-sm text-muted-foreground">{otherParticipant.tagline}</span>
-                )}
-              </div>
-            </button>
-          )}
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <AvatarStack 
+                avatars={participants} 
+                limit={3} 
+                size="sm"
+              />
+              <span className="font-semibold">{participantNames}</span>
+            </div>
+          </div>
         </div>
+        
         <div className="flex items-center gap-2">
           {isSearching ? (
             <div className="flex items-center relative">
@@ -122,11 +126,11 @@ export function ChatHeader({
           </DropdownMenu>
         </div>
       </div>
-      {otherParticipant && (
+      {selectedParticipant && (
         <ChatParticipantDialog 
           open={showProfile}
           onOpenChange={setShowProfile}
-          participant={otherParticipant}
+          participant={selectedParticipant}
         />
       )}
     </div>
