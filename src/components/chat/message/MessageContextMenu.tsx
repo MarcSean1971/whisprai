@@ -36,20 +36,18 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
   const { addReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
-    setIsDropdownOpen(false);
   };
 
   const handleAddReactionClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsEmojiPickerOpen(true);
-    setIsDropdownOpen(false);
   };
 
   return (
@@ -58,15 +56,11 @@ export function MessageContextMenu({
         <div className="pt-2">
           <DropdownMenu 
             open={isDropdownOpen} 
-            onOpenChange={(open) => {
-              if (!isEmojiPickerOpen) {
-                setIsDropdownOpen(open);
-              }
-            }}
+            onOpenChange={setIsDropdownOpen}
           >
             <DropdownMenuTrigger asChild>
               <Button
-                ref={buttonRef}
+                ref={dropdownTriggerRef}
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -92,6 +86,7 @@ export function MessageContextMenu({
               <DropdownMenuItem
                 className="cursor-pointer"
                 onClick={handleAddReactionClick}
+                onSelect={(e) => e.preventDefault()}
               >
                 <Smile className="mr-2 h-4 w-4" />
                 <span>Add Reaction</span>
@@ -109,16 +104,12 @@ export function MessageContextMenu({
         <div className="pt-2">
           <DropdownMenu 
             open={isDropdownOpen} 
-            onOpenChange={(open) => {
-              if (!isEmojiPickerOpen) {
-                setIsDropdownOpen(open);
-              }
-            }}
+            onOpenChange={setIsDropdownOpen}
           >
             <DropdownMenuTrigger asChild>
-              <Button 
-                ref={buttonRef}
-                variant="ghost" 
+              <Button
+                ref={dropdownTriggerRef}
+                variant="ghost"
                 size="icon"
                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
               >
@@ -143,6 +134,7 @@ export function MessageContextMenu({
               <DropdownMenuItem
                 className="cursor-pointer"
                 onClick={handleAddReactionClick}
+                onSelect={(e) => e.preventDefault())
               >
                 <Smile className="mr-2 h-4 w-4" />
                 <span>Add Reaction</span>
@@ -154,10 +146,15 @@ export function MessageContextMenu({
 
       <Popover 
         open={isEmojiPickerOpen} 
-        onOpenChange={setIsEmojiPickerOpen}
+        onOpenChange={(open) => {
+          setIsEmojiPickerOpen(open);
+          if (!open) {
+            setIsDropdownOpen(false);
+          }
+        }}
       >
         <PopoverTrigger asChild>
-          <div className="hidden" />
+          <div ref={dropdownTriggerRef} />
         </PopoverTrigger>
         <PopoverContent 
           className="w-full p-0 z-[100]"
