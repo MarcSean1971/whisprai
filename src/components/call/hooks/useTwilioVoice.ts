@@ -39,7 +39,8 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     updateState,
     isDeviceRegistered,
     validateToken,
-    currentToken
+    // Fix: Instead of passing the MutableRefObject directly, we pass its current value
+    currentToken: currentToken
   });
   const callActions = useCallActions({ state, updateState });
 
