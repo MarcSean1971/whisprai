@@ -27,6 +27,18 @@ interface MessageContentProps {
     name: string;
     type: string;
   }[];
+  parent?: {
+    id: string;
+    content: string;
+    created_at: string;
+    sender?: {
+      id: string;
+      profiles?: {
+        first_name?: string | null;
+        last_name?: string | null;
+      }
+    }
+  }
 }
 
 export function MessageContent({
@@ -46,7 +58,8 @@ export function MessageContent({
   onReply,
   isReplying = false,
   onCancelReply,
-  attachments
+  attachments,
+  parent
 }: MessageContentProps) {
   return (
     <div className="group space-y-2">
@@ -69,6 +82,7 @@ export function MessageContent({
             isAIMessage={isAIMessage}
             attachments={attachments}
             onReply={() => onReply("")}
+            parent={parent}
           />
         </MessageContextMenu>
         
@@ -79,7 +93,7 @@ export function MessageContent({
             onToggleTranslation={onToggleTranslation}
             location={location}
             onLocationClick={onLocationClick}
-            canDelete={false} // Always false to hide the delete button here
+            canDelete={false}
             onDelete={onDelete}
             isDeleting={isDeleting}
           />

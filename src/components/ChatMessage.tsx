@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -85,7 +84,6 @@ export function ChatMessage({
   const showTranslationToggle = hasTranslation && originalLanguage !== userLanguage;
   const isAIMessage = isAI || metadata?.isAIPrompt;
   
-  // Update canDelete logic to include AI messages
   const canDelete = isAIMessage || content.toLowerCase().startsWith('ai:') || content.toLowerCase().startsWith('a:');
   const isAIPrompt = metadata?.isAIPrompt;
   const voiceMessagePath = metadata?.voiceMessage;
@@ -100,9 +98,8 @@ export function ChatMessage({
     }
   };
 
-  // Make sure this function doesn't attempt to pass arguments to onReply
   const handleReply = () => {
-    onReply(); // Call without arguments as expected by the parent
+    onReply();
   };
 
   return (
@@ -134,6 +131,7 @@ export function ChatMessage({
         onReply={handleReply}
         isReplying={isReplying}
         onCancelReply={handleReply}
+        parent={metadata?.parent}
       />
 
       {voiceMessagePath && (

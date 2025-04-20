@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
-import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
+import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageReactions } from "./reactions/MessageReactions";
@@ -23,6 +23,18 @@ interface MessageBubbleProps {
     type: string;
   }[];
   onReply: () => void;
+  parent?: {
+    id: string;
+    content: string;
+    created_at: string;
+    sender?: {
+      id: string;
+      profiles?: {
+        first_name?: string | null;
+        last_name?: string | null;
+      }
+    }
+  }
 }
 
 export function MessageBubble({ 
@@ -30,11 +42,12 @@ export function MessageBubble({
   content, 
   timestamp, 
   isOwn, 
-  isAIMessage, 
+  isAIMessage,
   children, 
   attachment,
   attachments,
-  onReply
+  onReply,
+  parent
 }: MessageBubbleProps) {
   const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
 
@@ -138,6 +151,27 @@ export function MessageBubble({
     return null;
   };
 
+  const renderParentMessage = () => {
+    if (!parent) return null;
+
+    const senderName = parent.sender?.profiles ? 
+      `${parent.sender.profiles.first_name || ''} ${parent.sender.profiles.last_name || ''}`.trim() :
+      'Unknown User';
+
+    return (
+      <div className={cn(
+        "mb-1 text-xs border-l-2 pl-2",
+        isOwn ? "border-primary/50" : isAIMessage ? "border-violet-500/50" : "border-secondary/50"
+      )}>
+        <div className="flex items-center gap-1 text-muted-foreground">
+          <Reply className="h-3 w-3" />
+          <span className="font-medium">{senderName}</span>
+        </div>
+        <p className="line-clamp-1 text-muted-foreground">{parent.content}</p>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-2">
       <div className={cn(
@@ -148,6 +182,7 @@ export function MessageBubble({
           ? "bg-violet-500/20 border border-violet-500/20"
           : "bg-secondary"
       )}>
+        {renderParentMessage()}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
         {children}
