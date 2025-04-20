@@ -24,12 +24,22 @@ serve(async (req) => {
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
 
-    // Create an NCCO (Nexmo Call Control Object) for voice call
+    // Create an NCCO that plays a ringtone and connects to the conversation
     const ncco = [
+      {
+        action: 'stream',
+        streamUrl: ['https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/sounds/ringtone.mp3'],
+        loop: 0
+      },
       {
         action: 'conversation',
         name: `conversation-${Date.now()}`,
-      },
+        startOnEnter: true,
+        endOnExit: true,
+        record: false,
+        canSpeak: ['*'],
+        canHear: ['*']
+      }
     ]
 
     // Generate a unique session ID for this call

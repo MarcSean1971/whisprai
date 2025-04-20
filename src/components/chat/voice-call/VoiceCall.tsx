@@ -20,12 +20,16 @@ export function VoiceCall({
 }: VoiceCallProps) {
   const [isCallActive, setIsCallActive] = useState(false)
   const [isConnecting, setIsConnecting] = useState(false)
+  const ringtoneRef = useRef<HTMLAudioElement>(null)
   const callId = useRef<string | null>(null)
   
   useEffect(() => {
     return () => {
       if (callId.current) {
         endCall().catch(console.error)
+      }
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause()
       }
     }
   }, [])
@@ -50,6 +54,11 @@ export function VoiceCall({
 
       if (tokenError) throw new Error(tokenError.message)
       
+      // Start playing ringtone
+      if (ringtoneRef.current) {
+        ringtoneRef.current.play().catch(console.error)
+      }
+
       // Create a voice call
       const { data: callResponse, error: callError } = await supabase.functions.invoke(
         'vonage-create-call',
@@ -70,6 +79,9 @@ export function VoiceCall({
       
     } catch (error) {
       console.error('Error starting call:', error)
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause()
+      }
       onError(error instanceof Error ? error : new Error('Failed to start call'))
     } finally {
       setIsConnecting(false)
@@ -80,6 +92,10 @@ export function VoiceCall({
     if (!callId.current) return
     
     try {
+      if (ringtoneRef.current) {
+        ringtoneRef.current.pause()
+      }
+
       const { error } = await supabase.functions.invoke(
         'vonage-end-call',
         {
@@ -102,6 +118,8 @@ export function VoiceCall({
 
   return (
     <div className="space-y-4">
+      <audio ref={ringtoneRef} src="/sounds/ringtone.mp3" loop />
+      
       <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center">
         {isCallActive ? (
           <div className="text-center">
@@ -123,7 +141,7 @@ export function VoiceCall({
             size="icon"
             onClick={endCall}
           >
-            <PhoneOff />
+            <PhoneOff className="h-5 w-5" />
           </Button>
         ) : (
           <Button
@@ -132,7 +150,7 @@ export function VoiceCall({
             onClick={startCall}
             disabled={isConnecting}
           >
-            <PhoneCall />
+            <PhoneCall className="h-5 w-5" />
           </Button>
         )}
       </div>

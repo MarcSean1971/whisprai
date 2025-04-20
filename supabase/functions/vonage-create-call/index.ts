@@ -23,30 +23,36 @@ serve(async (req) => {
       applicationId: Deno.env.get('VONAGE_APPLICATION_ID'),
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
-    
-    // In a real-world scenario, you'd look up the phone number associated with the recipientId
-    // For now, we'll use a placeholder approach
-    
-    // Create a call using the Vonage Voice API
-    // Note: This requires a real phone number or SIP endpoint in production
-    const callId = `test-call-${Date.now()}`
-    
-    console.log('Creating call with session ID:', sessionId)
-    console.log('Recipient ID:', recipientId)
-    console.log('NCCO:', ncco)
 
-    // In production, you would use:
-    /*
+    // In a real implementation, we'd look up the phone number from the user profile
+    // For now we'll use a test number from Vonage
+    const fromNumber = Deno.env.get('VONAGE_VIRTUAL_NUMBER')
+    const toNumber = Deno.env.get('VONAGE_TO_NUMBER') // This should be the recipient's number
+
+    if (!fromNumber || !toNumber) {
+      throw new Error('Phone numbers not configured')
+    }
+
+    console.log('Creating call from', fromNumber, 'to', toNumber)
+    console.log('NCCO:', JSON.stringify(ncco, null, 2))
+
     const result = await vonage.voice.createCall({
-      to: [{ type: 'phone', number: phoneNumber }],
-      from: { type: 'phone', number: fromNumber },
+      to: [{ 
+        type: 'phone', 
+        number: toNumber 
+      }],
+      from: { 
+        type: 'phone', 
+        number: fromNumber 
+      },
       ncco: ncco
     })
-    */
+
+    console.log('Call created:', result)
 
     return new Response(
       JSON.stringify({ 
-        callId,
+        callId: result.uuid,
         status: 'initiated'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
