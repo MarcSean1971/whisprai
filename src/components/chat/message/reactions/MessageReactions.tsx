@@ -21,7 +21,7 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   }
 
   return (
-    <div className="flex flex-wrap gap-1 w-full justify-start">
+    <div className="flex flex-wrap gap-1">
       {Object.entries(reactionGroups).map(([emoji, count]) => (
         <span
           key={emoji}
