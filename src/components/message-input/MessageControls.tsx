@@ -21,6 +21,7 @@ import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { cn } from "@/lib/utils";
 
 interface MessageControlsProps {
   message: string;
@@ -48,10 +49,15 @@ export function MessageControls({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
-  const { toxicityScore, analyzeToxicity } = useToxicityAnalysis();
+  const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
 
   useEffect(() => {
-    analyzeToxicity(message);
+    if (message.trim()) {
+      analyzeToxicity(message);
+    } else {
+      // Reset toxicity score when message is empty
+      analyzeToxicity('');
+    }
   }, [message, analyzeToxicity]);
 
   const getButtonStyle = () => {
@@ -154,11 +160,22 @@ export function MessageControls({
           <Input
             ref={inputRef}
             value={message}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => {
+              onChange(e.target.value);
+              // Note: analyzeToxicity is now called via useEffect
+            }}
             placeholder="Type a message..."
-            className="pr-10 py-6 rounded-full"
+            className={cn(
+              "pr-10 py-6 rounded-full",
+              isAnalyzing && "pr-16" // Add space for loading indicator
+            )}
             disabled={disabled}
           />
+          {isAnalyzing && (
+            <div className="absolute right-12 top-1/2 -translate-y-1/2">
+              <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
+            </div>
+          )}
           
           <Popover 
             open={isEmojiPickerOpen}

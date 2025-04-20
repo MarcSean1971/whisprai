@@ -1,16 +1,17 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import debounce from 'lodash/debounce';
 
 export function useToxicityAnalysis() {
   const [toxicityScore, setToxicityScore] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [lastAnalyzedText, setLastAnalyzedText] = useState('');
 
-  const analyzeToxicity = useCallback(
+  // Debounced analysis function to prevent too many API calls
+  const debouncedAnalyze = useCallback(
     debounce(async (message: string) => {
-      if (!message.trim()) {
-        setToxicityScore(0);
+      if (!message.trim() || message === lastAnalyzedText) {
         return;
       }
 
@@ -22,15 +23,21 @@ export function useToxicityAnalysis() {
 
         if (error) throw error;
         setToxicityScore(data.score);
+        setLastAnalyzedText(message);
       } catch (error) {
         console.error('Error analyzing toxicity:', error);
-        setToxicityScore(0);
       } finally {
         setIsAnalyzing(false);
       }
-    }, 500),
+    }, 300), // 300ms delay before analyzing
     []
   );
 
-  return { toxicityScore, isAnalyzing, analyzeToxicity };
+  useEffect(() => {
+    return () => {
+      debouncedAnalyze.cancel();
+    };
+  }, [debouncedAnalyze]);
+
+  return { toxicityScore, isAnalyzing, analyzeToxicity: debouncedAnalyze };
 }
