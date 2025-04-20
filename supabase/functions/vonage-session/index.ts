@@ -28,7 +28,7 @@ serve(async (req) => {
     const ncco = [
       {
         action: 'stream',
-        streamUrl: ['https://vmwiigfhjvwecnlwppnj.supabase.co/storage/v1/object/public/sounds/ringtone.mp3'],
+        streamUrl: ['https://cdn.jsdelivr.net/gh/nexmo-community/ncco-examples@main/assets/ringtone.mp3'],
         loop: 0
       },
       {
@@ -38,7 +38,8 @@ serve(async (req) => {
         endOnExit: true,
         record: false,
         canSpeak: ['*'],
-        canHear: ['*']
+        canHear: ['*'],
+        eventWebhook: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/vonage-events?sessionId=${crypto.randomUUID()}`
       }
     ]
 
