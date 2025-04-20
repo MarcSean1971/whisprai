@@ -106,40 +106,44 @@ export function VoiceRecorder({
   }
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
-      <div className="flex items-center gap-2">
+    <div className={cn("flex flex-col items-center gap-4", className)}>
+      <div className="flex items-center gap-4">
         {isRecording ? (
           <>
-            <Button
-              variant="destructive"
-              size="icon"
-              onClick={handleStopRecording}
-              className={cn(
-                isRecording && "animate-pulse", 
-                isProcessing && "opacity-50",
-                "rounded-full h-10 w-10"
+            <div className="flex items-center gap-2">
+              <Button
+                variant="destructive"
+                size="icon"
+                onClick={handleStopRecording}
+                className={cn(
+                  "rounded-full h-12 w-12 animate-pulse", 
+                  isProcessing && "opacity-50"
+                )}
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <StopCircle className="h-6 w-6" />
+                )}
+                <span className="sr-only">Stop recording</span>
+              </Button>
+              
+              {isRecording && !isProcessing && (
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <div className="text-sm font-medium text-destructive">
+                    {formatDuration(recordingDuration)}
+                  </div>
+                </div>
               )}
-              disabled={isProcessing}
-            >
-              {isProcessing ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <StopCircle className="h-5 w-5" />
+              
+              {isProcessing && (
+                <div className="text-sm text-muted-foreground">
+                  Processing...
+                </div>
               )}
-              <span className="sr-only">Stop recording</span>
-            </Button>
-            
-            {isRecording && !isProcessing && (
-              <div className="text-sm font-medium">
-                {formatDuration(recordingDuration)}
-              </div>
-            )}
-            
-            {isProcessing && (
-              <div className="text-sm text-muted-foreground">
-                Processing...
-              </div>
-            )}
+            </div>
             
             <Button 
               variant="ghost" 
@@ -153,26 +157,29 @@ export function VoiceRecorder({
             </Button>
           </>
         ) : (
-          <>
+          <div className="flex items-center gap-4">
             <Button
               variant="default"
               size="icon"
               onClick={handleStartRecording}
-              className="rounded-full h-10 w-10"
+              className="rounded-full h-12 w-12 group"
               disabled={isProcessing}
             >
-              <Mic className="h-5 w-5" />
+              <Mic className={cn(
+                "h-6 w-6 transition-transform duration-300",
+                "group-hover:scale-110 group-hover:text-primary-foreground"
+              )} />
               <span className="sr-only">Start recording</span>
             </Button>
-            <span className="text-sm text-muted-foreground">
-              Tap to record audio
+            <span className="text-sm text-muted-foreground animate-fade-in">
+              Tap to record audio message
             </span>
-          </>
+          </div>
         )}
       </div>
       
       {isRecording && (
-        <p className="text-xs text-muted-foreground mt-1">
+        <p className="text-xs text-muted-foreground mt-1 animate-fade-in">
           Voice messages are automatically transcribed
         </p>
       )}
