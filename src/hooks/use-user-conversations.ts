@@ -1,6 +1,5 @@
 
 import { useQuery } from "@tanstack/react-query";
-import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -16,20 +15,22 @@ export function useUserConversations() {
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
-            *,
-            conversation_participants!inner (
-              user_id,
-              profiles!inner (
-                first_name,
-                last_name,
-                avatar_url
-              )
-            ),
+            id,
+            is_group,
+            created_at,
+            updated_at,
             messages (
               id,
               content,
               created_at,
               sender_id
+            ),
+            other_participant:conversation_participants!inner (
+              profiles!inner (
+                first_name,
+                last_name,
+                avatar_url
+              )
             )
           `)
           .eq('conversation_participants.user_id', user.id)
@@ -41,15 +42,11 @@ export function useUserConversations() {
         }
 
         return conversations.map(conversation => {
-          const otherParticipant = conversation.conversation_participants
-            .find(p => p.user_id !== user.id);
+          // Get the profile of the other participant
+          const otherParticipantProfile = conversation.other_participant
+            .find(p => p.profiles)?.profiles;
 
-          const otherProfile = otherParticipant?.profiles;
-          
-          const displayName = conversation.is_group 
-            ? `Group Chat (${conversation.conversation_participants.length} participants)`
-            : `${otherProfile?.first_name || ''} ${otherProfile?.last_name || ''}`.trim() || 'Unknown User';
-
+          // Sort messages to get the latest one
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
@@ -57,12 +54,12 @@ export function useUserConversations() {
 
           return {
             id: conversation.id,
-            name: displayName,
-            is_group: conversation.is_group,
-            avatar: !conversation.is_group ? otherProfile?.avatar_url : null,
+            name: otherParticipantProfile 
+              ? `${otherParticipantProfile.first_name || ''} ${otherParticipantProfile.last_name || ''}`.trim() 
+              : 'Unknown User',
+            avatar: otherParticipantProfile?.avatar_url,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
-              conversation_id: conversation.id,
               content: lastMessage.content,
               created_at: lastMessage.created_at,
               sender_id: lastMessage.sender_id
