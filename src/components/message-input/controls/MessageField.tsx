@@ -2,6 +2,7 @@
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
+import { useState } from "react";
 
 interface MessageFieldProps {
   message: string;
@@ -18,6 +19,8 @@ export function MessageField({
   isAnalyzing,
   inputRef
 }: MessageFieldProps) {
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
   };
@@ -47,6 +50,8 @@ export function MessageField({
           side="top"
           align="end"
           sideOffset={5}
+          open={isEmojiPickerOpen}
+          onOpenChange={setIsEmojiPickerOpen}
         />
       </div>
     </div>
