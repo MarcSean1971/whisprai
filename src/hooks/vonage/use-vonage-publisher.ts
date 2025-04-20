@@ -22,10 +22,13 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
     };
 
     try {
-      // Fix: Using the element ID or passing the DOM element directly
-      // The Vonage SDK supports either a DOM element ID (string) or the DOM element itself
+      // Fix: We need to assign a unique ID to the element and use that
+      // The Vonage SDK expects a string element ID
+      const publisherId = 'vonage-publisher-' + Date.now();
+      publisherRef.current.id = publisherId;
+      
       publisher.current = window.OT.initPublisher(
-        publisherRef.current, 
+        publisherId, 
         publisherOptions
       );
 
