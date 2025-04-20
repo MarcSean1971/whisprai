@@ -15,12 +15,12 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // Get conversations with a left join to include all participants
+        // RLS will automatically filter conversations to only those the user is a participant in
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants!inner (
+            conversation_participants (
               user_id,
               profiles:profiles (
                 id,
@@ -31,7 +31,6 @@ export function useUserConversations() {
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
@@ -81,4 +80,3 @@ export function useUserConversations() {
     staleTime: 30000 // 30 seconds
   });
 }
-
