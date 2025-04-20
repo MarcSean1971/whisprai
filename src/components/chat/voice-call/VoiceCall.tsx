@@ -28,19 +28,18 @@ export function VoiceCall({
   const scriptLoadingRef = useRef<boolean>(false)
 
   useEffect(() => {
-    // Load Vonage Client SDK script with enhanced retry mechanism
-    const loadScript = async (retryCount = 0): Promise<void> => {
+    const loadVonageSDK = async (retryCount = 0): Promise<void> => {
       if (scriptLoadingRef.current) return
       scriptLoadingRef.current = true
 
       const script = document.createElement('script')
-      script.src = 'https://downloads.vonage.com/client-sdk/sdk.js'
+      script.src = 'https://cdn.jsdelivr.net/npm/@vonage/client-sdk@1.3.0/dist/vonageClientSDK.min.js'
       script.async = true
 
       return new Promise((resolve, reject) => {
         const timeoutId = setTimeout(() => {
           reject(new Error('Script loading timed out'))
-        }, 10000) // 10 second timeout
+        }, 10000)
 
         script.onload = () => {
           console.log('Vonage Client SDK loaded successfully')
@@ -56,7 +55,7 @@ export function VoiceCall({
           
           if (retryCount < 2) {
             console.log('Retrying script load...')
-            setTimeout(() => loadScript(retryCount + 1).catch(reject), 2000)
+            setTimeout(() => loadVonageSDK(retryCount + 1).catch(reject), 2000)
           } else {
             reject(new Error('Failed to load voice call service after multiple attempts'))
           }
@@ -66,7 +65,7 @@ export function VoiceCall({
       })
     }
 
-    loadScript().catch((error) => {
+    loadVonageSDK().catch((error) => {
       console.error('Script loading failed:', error)
       onError(error)
     })
@@ -109,12 +108,10 @@ export function VoiceCall({
       setIsConnecting(true)
       console.log('Initializing call...')
 
-      // Verify SDK is loaded and available
       if (typeof window.Vonage === 'undefined') {
         throw new Error('Voice call service not initialized. Please try again in a moment.')
       }
 
-      // Get session credentials
       const { data: sessionResponse, error: sessionError } = await supabase.functions.invoke(
         'vonage-session',
         {
@@ -133,15 +130,13 @@ export function VoiceCall({
         throw new Error('Failed to get voice call credentials')
       }
 
-      console.log('Got Vonage credentials, initializing client...')
+      console.log('Got Vonage credentials, initializing RTC client...')
 
-      // Initialize client with latest SDK
       clientRef.current = new window.Vonage.Client({
         debug: true,
         autoConnect: false
       })
 
-      // Set up event handlers
       clientRef.current.on('error', (error: any) => {
         console.error('Vonage client error:', error)
         onError(new Error(error.message || 'Call failed'))
@@ -153,11 +148,9 @@ export function VoiceCall({
         handleCleanup()
       })
 
-      // Initialize session
       await clientRef.current.createSession(token)
       console.log('Session created successfully')
 
-      // Create and join conversation
       sessionRef.current = await clientRef.current.session.create({
         name: `call-${Date.now()}`,
         display_name: `Call with ${recipientId}`
@@ -170,10 +163,8 @@ export function VoiceCall({
 
       console.log('Audio enabled, inviting recipient...')
 
-      // Invite recipient
       await sessionRef.current.invite(recipientId)
 
-      // Start ringtone
       if (ringtoneRef.current) {
         await ringtoneRef.current.play().catch(console.error)
       }

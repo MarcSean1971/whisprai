@@ -37,7 +37,7 @@ serve(async (req) => {
       privateKey
     })
 
-    console.log('Generating JWT token')
+    console.log('Generating JWT token for RTC')
 
     const jwt = vonage.jwt.generate({
       application_id: applicationId,
@@ -45,11 +45,12 @@ serve(async (req) => {
       exp: Math.round(new Date().getTime() / 1000) + 3600,
       acl: {
         paths: {
+          "/*/rtc/**": {},
           "/*/users/**": {},
           "/*/conversations/**": {},
           "/*/sessions/**": {},
-          "/*/rtc/**": {},
-          "/*/media/**": {}
+          "/*/media/**": {},
+          "/*/knocking/**": {}
         }
       }
     })
