@@ -8,12 +8,38 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { UseFormReturn } from "react-hook-form";
 import { ProfileFormValues } from "./types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface BirthdateSectionProps {
   form: UseFormReturn<ProfileFormValues>;
 }
 
 export function BirthdateSection({ form }: BirthdateSectionProps) {
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => currentYear - i);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(
+    form.getValues("birthdate") ? new Date(form.getValues("birthdate")) : undefined
+  );
+
+  const handleYearSelect = (year: string) => {
+    const newDate = selectedDate ? new Date(selectedDate) : new Date();
+    newDate.setFullYear(parseInt(year));
+    setSelectedDate(newDate);
+    form.onChange(format(newDate, "yyyy-MM-dd"));
+  };
+
+  const handleMonthSelect = (monthName: string) => {
+    const newDate = selectedDate ? new Date(selectedDate) : new Date();
+    newDate.setMonth(months.indexOf(monthName));
+    setSelectedDate(newDate);
+    form.onChange(format(newDate, "yyyy-MM-dd"));
+  };
+
   return (
     <FormField
       control={form.control}
@@ -41,17 +67,45 @@ export function BirthdateSection({ form }: BirthdateSectionProps) {
               </FormControl>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
+              <div className="flex gap-2 border-b p-3">
+                <Select onValueChange={handleMonthSelect}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Month" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {months.map((month) => (
+                      <SelectItem key={month} value={month}>
+                        {month}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select onValueChange={handleYearSelect}>
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {years.map((year) => (
+                      <SelectItem key={year} value={year.toString()}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Calendar
                 mode="single"
-                selected={field.value ? new Date(field.value) : undefined}
-                onSelect={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  field.onChange(date ? format(date, "yyyy-MM-dd") : "");
+                }}
                 disabled={(date) =>
                   date > new Date() || date < new Date("1900-01-01")
                 }
                 initialFocus
-                className={cn("p-3 pointer-events-auto")}
-                fromYear={1900}
-                toYear={new Date().getFullYear()}
+                className={cn("p-3")}
+                defaultMonth={selectedDate}
               />
             </PopoverContent>
           </Popover>
