@@ -19,9 +19,9 @@ export function useUserConversations() {
           .from('conversations')
           .select(`
             *,
-            conversation_participants (
+            conversation_participants!inner (
               user_id,
-              profiles (
+              profiles!inner (
                 id,
                 first_name,
                 last_name,
@@ -30,7 +30,8 @@ export function useUserConversations() {
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id);
+          .eq('conversation_participants.user_id', user.id)
+          .order('updated_at', { ascending: false });
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
