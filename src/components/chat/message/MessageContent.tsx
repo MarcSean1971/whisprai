@@ -53,7 +53,11 @@ export function MessageContent({
   };
 
   const handleReplySubmit = async (replyContent: string) => {
-    await onReply();
+    onReply();
+    setIsReplying(false);
+  };
+
+  const handleReplyCancel = () => {
     setIsReplying(false);
   };
 
@@ -94,7 +98,8 @@ export function MessageContent({
       {isReplying && (
         <MessageReplyInput
           onSubmit={handleReplySubmit}
-          onCancel={() => setIsReplying(false)}
+          onCancel={handleReplyCancel}
+          isSubmitting={false}
         />
       )}
     </div>
