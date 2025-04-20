@@ -7,6 +7,7 @@ import { SendButton } from "./controls/SendButton";
 import { WarningDialog } from "./controls/WarningDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
 
 interface MessageControlsProps {
   message: string;
@@ -33,8 +34,7 @@ export function MessageControls({
 }: MessageControlsProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [toxicityScore, setToxicityScore] = useState(0);
+  const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
 
   // Utility function to get button style based on toxicity score
@@ -148,3 +148,4 @@ export function MessageControls({
     </>
   );
 }
+

@@ -66,3 +66,4 @@ export function useToxicityAnalysis() {
 
   return { toxicityScore, isAnalyzing, analyzeToxicity: debouncedAnalyze };
 }
+
