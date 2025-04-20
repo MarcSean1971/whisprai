@@ -26,14 +26,8 @@ export function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
-
-  const { translatedContents, translationsInProgress } = useMessageProcessor(
-    messages,
-    currentUserId,
-    userLanguage,
-    onNewReceivedMessage,
-    onTranslation
-  );
+  const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
+  const [translationsInProgress, setTranslationsInProgress] = useState(0);
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -63,16 +57,57 @@ export function ChatMessages({
   return (
     <TranslationProvider>
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
-        <MessageList
-          messages={messages}
+        {/* We're now inside the TranslationProvider, so it's safe to use the useMessageProcessor hook */}
+        <TranslationConsumer 
+          messages={messages} 
           currentUserId={currentUserId}
-          profile={{ language: userLanguage }}
-          translatedContents={translatedContents}
+          userLanguage={userLanguage}
+          onNewReceivedMessage={onNewReceivedMessage}
+          onTranslation={onTranslation}
           onReply={onReply}
           replyToMessageId={replyToMessageId}
         />
         <div ref={messagesEndRef} />
       </div>
     </TranslationProvider>
+  );
+}
+
+// Separate component that uses the translation hooks inside the provider
+function TranslationConsumer({
+  messages,
+  currentUserId,
+  userLanguage,
+  onNewReceivedMessage,
+  onTranslation,
+  onReply,
+  replyToMessageId
+}: {
+  messages: any[];
+  currentUserId: string | null;
+  userLanguage?: string;
+  onNewReceivedMessage?: () => void;
+  onTranslation?: (messageId: string, translatedContent: string) => void;
+  onReply: (messageId: string) => void;
+  replyToMessageId?: string | null;
+}) {
+  // Now this hook is used inside the TranslationProvider
+  const { translatedContents } = useMessageProcessor(
+    messages,
+    currentUserId,
+    userLanguage,
+    onNewReceivedMessage,
+    onTranslation
+  );
+
+  return (
+    <MessageList
+      messages={messages}
+      currentUserId={currentUserId}
+      profile={{ language: userLanguage }}
+      translatedContents={translatedContents}
+      onReply={onReply}
+      replyToMessageId={replyToMessageId}
+    />
   );
 }

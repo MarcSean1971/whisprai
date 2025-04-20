@@ -42,11 +42,10 @@ export function useMessageProcessor(
           const translated = await translateMessage(message.content, userLanguage);
           if (translated !== message.content) {
             // Fix: Create a new object with the previous state and add the new translation
-            const updatedContents = {
-              ...translatedContents,
+            setTranslatedContents(prev => ({
+              ...prev,
               [message.id]: translated
-            };
-            setTranslatedContents(updatedContents);
+            }));
             
             onTranslation?.(message.id, translated);
           }
@@ -57,7 +56,7 @@ export function useMessageProcessor(
     } finally {
       setTranslationsInProgress(0);
     }
-  }, [messages, userLanguage, currentUserId, translatedContents, translateMessage, onTranslation]);
+  }, [messages, userLanguage, currentUserId, translatedContents, translateMessage, onTranslation, setTranslatedContents, setTranslationsInProgress, translationsInProgress]);
 
   useEffect(() => {
     let mounted = true;
