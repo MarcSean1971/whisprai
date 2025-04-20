@@ -49,6 +49,7 @@
     "emoji-picker-react": "^4.12.2",
     "events": "^3.3.0",
     "input-otp": "^1.2.4",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "opentok": "^2.16.0",
