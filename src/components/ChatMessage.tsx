@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { MessageContent } from "./MessageContent";
+import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
 import { MessageWrapper } from "./chat/message/MessageWrapper";
 import { useVoiceMessageDeletion } from "./chat/message/voice-player/useVoiceMessageDeletion";
@@ -97,6 +98,12 @@ export function ChatMessage({
     }
   };
 
+  // Wrapper function to handle reply string coming from MessageContent
+  const handleReply = (content?: string) => {
+    // Just call onReply without arguments since that's what the parent expects
+    onReply();
+  };
+
   return (
     <MessageWrapper
       isOwn={isOwn}
@@ -123,9 +130,9 @@ export function ChatMessage({
         onDelete={handleDelete}
         isDeleting={isDeleting}
         attachments={attachments}
-        onReply={onReply}
+        onReply={handleReply}
         isReplying={isReplying}
-        onCancelReply={() => onReply("")}
+        onCancelReply={() => handleReply()}
       />
 
       {voiceMessagePath && (
