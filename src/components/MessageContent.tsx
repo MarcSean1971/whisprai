@@ -57,6 +57,7 @@ export function MessageContent({
         isOwn={isOwn}
         isAIMessage={isAIMessage}
         attachments={attachments}
+        onReply={onReply}
       />
     </MessageContextMenu>
   );
