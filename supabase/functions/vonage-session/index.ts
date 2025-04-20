@@ -31,7 +31,7 @@ serve(async (req) => {
     }
 
     console.log('Initializing Vonage client')
-    
+
     const vonage = new Vonage({
       applicationId,
       privateKey
@@ -39,17 +39,12 @@ serve(async (req) => {
 
     console.log('Generating JWT token')
 
-    // Use the correct jwt.generate() method
     const jwt = vonage.jwt.generate({
-      exp: Math.round(new Date().getTime() / 1000) + 3600,
+      application_id: applicationId,
       sub: recipientId,
-      acl: {
-        paths: {
-          "/*/sessions/**": {},
-          "/*/users/**": {},
-          "/*/conversations/**": {},
-          "/*/rtc/**": {}
-        }
+      exp: Math.round(new Date().getTime() / 1000) + 3600, // 1 hour expiry
+      paths: {
+        "/**": {}
       }
     })
 
@@ -58,7 +53,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         token: jwt,
-        applicationId
+        applicationId 
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -73,3 +68,4 @@ serve(async (req) => {
     )
   }
 })
+

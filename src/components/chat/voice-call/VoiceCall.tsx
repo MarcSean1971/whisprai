@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { PhoneCall, PhoneOff } from "lucide-react"
@@ -33,16 +32,34 @@ export function VoiceCall({
     script.async = true
     document.body.appendChild(script)
 
+    script.onerror = () => {
+      console.error('Failed to load Vonage Client SDK')
+      onError(new Error('Failed to load voice call service'))
+    }
+
     return () => {
       document.body.removeChild(script)
+      handleCleanup()
+    }
+  }, [onError])
+
+  const handleCleanup = async () => {
+    try {
+      if (sessionRef.current) {
+        await sessionRef.current.leave()
+        sessionRef.current = null
+      }
       if (clientRef.current) {
-        clientRef.current.disconnect()
+        await clientRef.current.disconnect()
+        clientRef.current = null
       }
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
       }
+    } catch (error) {
+      console.error('Cleanup error:', error)
     }
-  }, [])
+  }
 
   const initializeCall = async () => {
     try {
@@ -56,34 +73,45 @@ export function VoiceCall({
         }
       )
 
-      if (sessionError) throw new Error(sessionError.message)
+      if (sessionError) {
+        console.error('Session error:', sessionError)
+        throw new Error('Failed to initialize call')
+      }
       
       const { token, applicationId } = sessionResponse
       
       if (!token || !applicationId) {
-        throw new Error('Failed to get Vonage credentials')
+        throw new Error('Failed to get voice call credentials')
       }
 
       console.log('Got Vonage credentials, initializing client...')
 
       // Initialize Vonage client
-      clientRef.current = new window.Vonage.Client()
+      if (!window.Vonage) {
+        throw new Error('Voice call service not loaded')
+      }
+
+      clientRef.current = new window.Vonage.Client({
+        debug: true
+      })
 
       // Set up event handlers
       clientRef.current.on('error', (error: any) => {
         console.error('Vonage client error:', error)
         onError(new Error(error.message || 'Call failed'))
+        handleCleanup()
       })
 
-      clientRef.current.on('connected', () => {
-        console.log('Connected to Vonage')
+      clientRef.current.on('disconnected', () => {
+        console.log('Disconnected from voice service')
+        setIsCallActive(false)
       })
 
-      // Login with JWT
+      // Create session with the generated token
       await clientRef.current.createSession(token)
       console.log('Session created successfully')
 
-      // Create a session and join
+      // Create a conversation and join it
       sessionRef.current = await clientRef.current.session.create({
         name: `call-${Date.now()}`,
         display_name: `Call with ${recipientId}`
@@ -114,6 +142,7 @@ export function VoiceCall({
         ringtoneRef.current.pause()
       }
       onError(error instanceof Error ? error : new Error('Failed to start call'))
+      handleCleanup()
     } finally {
       setIsConnecting(false)
     }
@@ -121,23 +150,11 @@ export function VoiceCall({
 
   const endCall = async () => {
     try {
-      if (ringtoneRef.current) {
-        ringtoneRef.current.pause()
-      }
-
-      if (sessionRef.current) {
-        await sessionRef.current.leave()
-        sessionRef.current = null
-      }
-
-      if (clientRef.current) {
-        await clientRef.current.disconnect()
-        clientRef.current = null
-      }
-      
+      await handleCleanup()
       toast.success('Call ended')
     } catch (error) {
       console.error('Error ending call:', error)
+      onError(error instanceof Error ? error : new Error('Failed to end call'))
     } finally {
       setIsCallActive(false)
     }
