@@ -33,7 +33,7 @@ export function useChat(conversationId: string) {
       setIsProcessingAI(true);
       console.log("Processing AI message:", content);
       
-      const aiPrompt = content.replace(/^AI:\s*/, '').trim();
+      const aiPrompt = content.replace(/^(AI:|A:)\s*/i, '').trim();
       
       const { data: promptMessage, error: createError } = await supabase
         .from('messages')
@@ -99,8 +99,7 @@ export function useChat(conversationId: string) {
       return false;
     }
 
-    // Handle AI messages
-    if (content.toLowerCase().startsWith('ai:')) {
+    if (/^(AI:|A:)/i.test(content)) {
       return handleAIMessage(content);
     }
     

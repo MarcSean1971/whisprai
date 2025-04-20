@@ -27,7 +27,7 @@ export function MessageList({
   return messages.map((message, index) => {
     const isOwn = message.sender_id === currentUserId;
     const isAI = message.sender_id === null && !message.metadata?.isAIPrompt;
-    const isAIPrompt = message.metadata?.isAIPrompt;
+    const isAIPrompt = message.metadata?.isAIPrompt || message.private_room === 'AI';
     
     const showSender = !isOwn && !isAI && !isAIPrompt && 
                       (index === 0 || messages[index - 1].sender_id !== message.sender_id);
@@ -53,7 +53,7 @@ export function MessageList({
         content={message.content}
         timestamp={formattedTimestamp}
         isOwn={isOwn}
-        isAI={isAI}
+        isAI={isAI || isAIPrompt}
         status={message.status as any}
         sender={message.sender && {
           name: `${message.sender.profiles?.first_name || ''} ${message.sender.profiles?.last_name || ''}`.trim(),
