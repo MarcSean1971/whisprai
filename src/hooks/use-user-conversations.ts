@@ -12,6 +12,8 @@ export function useUserConversations() {
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
+        console.log("Current user ID:", user.id);
+
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
@@ -25,9 +27,9 @@ export function useUserConversations() {
               created_at,
               sender_id
             ),
-            conversation_participants!conversation_participants_conversation_id_fkey (
+            conversation_participants!inner (
               user_id,
-              profiles!fk_conversation_participants_profiles (
+              profiles:profiles!inner (
                 first_name,
                 last_name,
                 avatar_url
@@ -42,13 +44,19 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        return conversations.map(conversation => {
-          // Find the OTHER participant (not the current user)
-          const otherParticipant = conversation.conversation_participants
-            .find(p => p.user_id !== user.id);
-          
-          const otherProfile = otherParticipant?.profiles;
+        console.log("Conversations raw data:", JSON.stringify(conversations, null, 2));
 
+        return conversations.map(conversation => {
+          // Find all participants who are NOT the current user
+          const otherParticipants = conversation.conversation_participants
+            .filter(p => p.user_id !== user.id);
+          
+          console.log("Conversation ID:", conversation.id);
+          console.log("Other participants:", otherParticipants);
+          
+          // For a 1-on-1 chat, get the other person's profile
+          const otherParticipant = otherParticipants[0];
+          
           // Sort messages to get the latest one
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -57,10 +65,10 @@ export function useUserConversations() {
 
           return {
             id: conversation.id,
-            name: otherProfile 
-              ? `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim() 
+            name: otherParticipant?.profiles 
+              ? `${otherParticipant.profiles.first_name || ''} ${otherParticipant.profiles.last_name || ''}`.trim() 
               : 'Unknown User',
-            avatar: otherProfile?.avatar_url,
+            avatar: otherParticipant?.profiles?.avatar_url,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,
