@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -37,17 +36,6 @@ export function ConversationItem({
 }: ConversationItemProps) {
   const [isHovered, setIsHovered] = useState(false);
 
-  // Format the last message for display
-  const messagePreview = lastMessage?.content ? (
-    <p className="text-sm text-muted-foreground truncate max-w-[80%]">
-      {lastMessage.sender?.profiles?.first_name 
-        ? `${lastMessage.sender.profiles.first_name}: ` 
-        : ""
-      }
-      {lastMessage.content}
-    </p>
-  ) : null;
-
   return (
     <div
       className={cn(
@@ -78,7 +66,7 @@ export function ConversationItem({
       )}
 
       <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center mb-0.5">
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{name}</span>
             {isPinned && <PinIcon className="h-3 w-3 text-muted-foreground" />}
@@ -88,18 +76,25 @@ export function ConversationItem({
           )}
         </div>
         
-        <div className="flex justify-between items-center">
-          {messagePreview}
-          
-          {unreadCount > 0 && (
-            <Badge 
-              variant="default" 
-              className="ml-auto bg-primary text-primary-foreground rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
-            >
-              {unreadCount}
-            </Badge>
-          )}
-        </div>
+        {lastMessage?.content && (
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-muted-foreground truncate">
+              {lastMessage.sender?.profiles?.first_name 
+                ? `${lastMessage.sender.profiles.first_name}: ` 
+                : ""
+              }
+              {lastMessage.content}
+            </p>
+            {unreadCount > 0 && (
+              <Badge 
+                variant="default" 
+                className="ml-auto flex-shrink-0 bg-primary text-primary-foreground rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
+              >
+                {unreadCount}
+              </Badge>
+            )}
+          </div>
+        )}
       </div>
       
       {isHovered && (
