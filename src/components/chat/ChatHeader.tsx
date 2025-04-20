@@ -11,6 +11,18 @@ import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 
+// Define the Participant interface
+interface Participant {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  tagline: string | null;
+  bio: string | null;
+  birthdate: string | null;
+  email: string | null;
+}
+
 interface ChatHeaderProps {
   conversationId: string;
   replyToMessageId?: string | null;
