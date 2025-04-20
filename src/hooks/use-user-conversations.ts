@@ -46,8 +46,8 @@ export function useUserConversations() {
             .filter(p => p.user_id !== user.id)
             .map(p => ({
               id: p.user_id,
-              name: `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User',
-              avatar: p.profiles.avatar_url
+              name: p.profiles ? `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User' : 'Unknown User',
+              avatar: p.profiles?.avatar_url
             }));
 
           const sortedMessages = conversation.messages.sort(
@@ -55,14 +55,13 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
-          // Fix: Don't reference conversation.name, use conditional for group chat name
           const displayName = conversation.is_group 
             ? `Group Chat (${conversation.conversation_participants.length} participants)`
             : otherParticipants[0]?.name || 'Unknown User';
 
           return {
             id: conversation.id,
-            name: displayName, // Using the correctly defined displayName instead
+            name: displayName,
             is_group: conversation.is_group,
             participants: otherParticipants,
             avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
