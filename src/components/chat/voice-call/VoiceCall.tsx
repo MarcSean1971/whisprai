@@ -1,35 +1,39 @@
 
 import { useEffect, useRef, useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Volume2, VolumeX, PhoneOff } from "lucide-react"
+import { PhoneCall, PhoneOff } from "lucide-react"
 import { toast } from "sonner"
 import { supabase } from "@/integrations/supabase/client"
 
 interface VoiceCallProps {
   sessionId: string
+  ncco: any[]
   recipientId: string
   onError: (error: Error) => void
 }
 
-export function VoiceCall({ sessionId, recipientId, onError }: VoiceCallProps) {
-  const [isMuted, setIsMuted] = useState(false)
-  const vonageSession = useRef<any>(null)
-  const publisher = useRef<any>(null)
-
+export function VoiceCall({ 
+  sessionId, 
+  ncco, 
+  recipientId, 
+  onError 
+}: VoiceCallProps) {
+  const [isCallActive, setIsCallActive] = useState(false)
+  const [isConnecting, setIsConnecting] = useState(false)
+  const callId = useRef<string | null>(null)
+  
   useEffect(() => {
-    initializeVonage()
     return () => {
-      if (publisher.current) {
-        publisher.current.destroy()
-      }
-      if (vonageSession.current) {
-        vonageSession.current.disconnect()
+      if (callId.current) {
+        endCall().catch(console.error)
       }
     }
   }, [])
 
-  const initializeVonage = async () => {
+  const startCall = async () => {
     try {
+      setIsConnecting(true)
+      
       // Get token for the current user
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error('User not authenticated')
@@ -45,71 +49,92 @@ export function VoiceCall({ sessionId, recipientId, onError }: VoiceCallProps) {
       )
 
       if (tokenError) throw new Error(tokenError.message)
-
-      // Initialize Vonage session - using the global OT object provided by the Vonage script
-      // @ts-ignore - OT is a global object from the Vonage script
-      vonageSession.current = OT.initSession(sessionId)
       
-      vonageSession.current.connect(tokenResponse.token, (error: Error) => {
-        if (error) {
-          onError(error)
-          return
+      // Create a voice call
+      const { data: callResponse, error: callError } = await supabase.functions.invoke(
+        'vonage-create-call',
+        {
+          body: { 
+            sessionId,
+            recipientId,
+            ncco
+          }
         }
+      )
 
-        // Create publisher
-        // @ts-ignore - OT is a global object from the Vonage script
-        publisher.current = OT.initPublisher('publisher', {
-          insertMode: 'append',
-          width: '100%',
-          height: '100%'
-        })
-
-        vonageSession.current.publish(publisher.current)
-      })
-
+      if (callError) throw new Error(callError.message)
+      
+      callId.current = callResponse.callId
+      setIsCallActive(true)
+      toast.success('Call connected')
+      
     } catch (error) {
-      console.error('Error initializing Vonage:', error)
-      onError(error)
+      console.error('Error starting call:', error)
+      onError(error instanceof Error ? error : new Error('Failed to start call'))
+    } finally {
+      setIsConnecting(false)
     }
   }
 
-  const handleMuteToggle = () => {
-    if (publisher.current) {
-      publisher.current.publishAudio(!isMuted)
-      setIsMuted(!isMuted)
-    }
-  }
+  const endCall = async () => {
+    if (!callId.current) return
+    
+    try {
+      const { error } = await supabase.functions.invoke(
+        'vonage-end-call',
+        {
+          body: { 
+            callId: callId.current 
+          }
+        }
+      )
 
-  const handleEndCall = () => {
-    if (publisher.current) {
-      publisher.current.destroy()
+      if (error) throw new Error(error.message)
+      
+      toast.success('Call ended')
+    } catch (error) {
+      console.error('Error ending call:', error)
+    } finally {
+      setIsCallActive(false)
+      callId.current = null
     }
-    if (vonageSession.current) {
-      vonageSession.current.disconnect()
-    }
-    toast.success('Call ended')
   }
 
   return (
     <div className="space-y-4">
-      <div id="publisher" className="w-full h-64 bg-secondary rounded-lg"></div>
+      <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center">
+        {isCallActive ? (
+          <div className="text-center">
+            <div className="text-xl font-medium mb-2">Call in progress</div>
+            <div className="text-muted-foreground">Connected to voice call</div>
+          </div>
+        ) : (
+          <div className="text-center">
+            <div className="text-xl font-medium mb-2">Ready to connect</div>
+            <div className="text-muted-foreground">Press the call button to start</div>
+          </div>
+        )}
+      </div>
       
       <div className="flex justify-center gap-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleMuteToggle}
-        >
-          {isMuted ? <VolumeX /> : <Volume2 />}
-        </Button>
-        
-        <Button
-          variant="destructive"
-          size="icon"
-          onClick={handleEndCall}
-        >
-          <PhoneOff />
-        </Button>
+        {isCallActive ? (
+          <Button
+            variant="destructive"
+            size="icon"
+            onClick={endCall}
+          >
+            <PhoneOff />
+          </Button>
+        ) : (
+          <Button
+            variant="default"
+            size="icon"
+            onClick={startCall}
+            disabled={isConnecting}
+          >
+            <PhoneCall />
+          </Button>
+        )}
       </div>
     </div>
   )

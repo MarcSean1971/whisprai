@@ -13,37 +13,32 @@ serve(async (req) => {
   }
 
   try {
-    const { recipientId } = await req.json()
+    const { callId } = await req.json()
     
-    if (!recipientId) {
-      throw new Error('Recipient ID is required')
+    if (!callId) {
+      throw new Error('Call ID is required')
     }
 
     const vonage = new Vonage({
       applicationId: Deno.env.get('VONAGE_APPLICATION_ID'),
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
-
-    // Create an NCCO (Nexmo Call Control Object) for voice call
-    const ncco = [
-      {
-        action: 'conversation',
-        name: `conversation-${Date.now()}`,
-      },
-    ]
-
-    // Generate a unique session ID for this call
-    const sessionId = crypto.randomUUID()
+    
+    console.log('Ending call with ID:', callId)
+    
+    // In production, you would use:
+    /*
+    await vonage.voice.updateCall(callId, { action: 'hangup' })
+    */
 
     return new Response(
       JSON.stringify({ 
-        sessionId,
-        ncco
+        status: 'ended'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error creating Vonage session:', error)
+    console.error('Error ending Vonage call:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

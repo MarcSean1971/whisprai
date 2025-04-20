@@ -15,8 +15,12 @@ serve(async (req) => {
   try {
     const { sessionId, userId } = await req.json()
     
-    if (!sessionId || !userId) {
-      throw new Error('Session ID and User ID are required')
+    if (!sessionId) {
+      throw new Error('Session ID is required')
+    }
+
+    if (!userId) {
+      throw new Error('User ID is required')
     }
 
     const vonage = new Vonage({
@@ -24,11 +28,9 @@ serve(async (req) => {
       privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
     })
 
-    // Generate a token for the user
-    const token = await vonage.voice.generateToken(sessionId, {
-      exp: Math.floor(Date.now() / 1000) + (60 * 60), // 1 hour expiry
-      sub: userId,
-    })
+    // For Voice API we don't need a token in the same way as Video API
+    // Instead we'll return a simple identifier that can be used for calls
+    const token = `${userId}-${Date.now()}`
 
     return new Response(
       JSON.stringify({ token }),

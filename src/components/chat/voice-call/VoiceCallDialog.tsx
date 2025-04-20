@@ -19,6 +19,7 @@ export function VoiceCallDialog({
   recipientName
 }: VoiceCallDialogProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [ncco, setNcco] = useState<any[] | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -37,8 +38,12 @@ export function VoiceCallDialog({
       )
 
       if (sessionError) throw new Error(sessionError.message)
+      
       setSessionId(sessionResponse.sessionId)
-    } catch (err) {
+      setNcco(sessionResponse.ncco)
+      
+      console.log('Session initialized:', sessionResponse)
+    } catch (err: any) {
       console.error('Failed to initialize call:', err)
       setError(err.message)
       toast.error('Failed to initialize call')
@@ -55,6 +60,7 @@ export function VoiceCallDialog({
         {sessionId && (
           <VoiceCall 
             sessionId={sessionId}
+            ncco={ncco}
             recipientId={recipientId}
             onError={(err) => {
               setError(err.message)
