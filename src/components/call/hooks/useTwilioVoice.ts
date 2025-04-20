@@ -22,14 +22,16 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     initializeDevice, 
     refreshToken, 
     shouldRefreshToken,
-    tokenExpiryTime 
+    tokenExpiryTime,
+    isDeviceRegistered 
   } = useDeviceSetup();
   
   const { state, updateState, updateDevice, updateCallStatus, resetState } = useDeviceState();
   const { startCall } = useCallInitialization({ 
     userId, 
     updateCallStatus, 
-    updateState 
+    updateState,
+    isDeviceRegistered
   });
   const callActions = useCallActions({ state, updateState });
 
@@ -162,3 +164,4 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     ...callActions,
   };
 }
+
