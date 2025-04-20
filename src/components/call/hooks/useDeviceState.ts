@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Device } from 'twilio-client';
 import { CallStatus, TwilioVoiceState } from '../types';
 
@@ -14,19 +14,35 @@ export function useDeviceState() {
     remoteParticipant: null
   });
 
-  const updateState = (updates: Partial<TwilioVoiceState>) => {
-    setState(prev => ({ ...prev, ...updates }));
-  };
+  const updateState = useCallback((updates: Partial<TwilioVoiceState>) => {
+    setState(prev => {
+      const newState = { ...prev, ...updates };
+      
+      // Ensure consistent state transitions
+      if (updates.callStatus === CallStatus.COMPLETED && prev.callStatus === CallStatus.CONNECTING) {
+        console.log('Preventing premature call completion');
+        return prev;
+      }
+      
+      console.log('State update:', { 
+        previous: prev.callStatus, 
+        new: updates.callStatus,
+        state: newState 
+      });
+      
+      return newState;
+    });
+  }, []);
 
-  const updateDevice = (device: Device | null) => {
+  const updateDevice = useCallback((device: Device | null) => {
     updateState({ device, isReady: !!device });
-  };
+  }, [updateState]);
 
-  const updateCallStatus = (status: CallStatus) => {
+  const updateCallStatus = useCallback((status: CallStatus) => {
     updateState({ callStatus: status });
-  };
+  }, [updateState]);
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setState({
       device: null,
       activeCall: null,
@@ -36,7 +52,7 @@ export function useDeviceState() {
       isMuted: false,
       remoteParticipant: null
     });
-  };
+  }, []);
 
   return {
     state,

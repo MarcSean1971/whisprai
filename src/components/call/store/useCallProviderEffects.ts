@@ -34,39 +34,49 @@ export function useCallProviderEffects({
   twilioToggleMute: () => void;
   twilioError: string | null;
 }) {
-  // Keep track of whether handlers have been registered
   const handlersRegistered = useRef(false);
   
-  // Handle call initiation with debouncing
   useEffect(() => {
     let callInitTimeout: number | null = null;
+    let stateValidationTimeout: number | null = null;
     
     if (callStatus === CallStatus.CONNECTING && 
         recipientId && 
         isReady && 
         showActiveCall) {
       
-      // Small delay to ensure the UI has time to update
-      callInitTimeout = window.setTimeout(() => {
-        try {
-          console.log(`Initiating call to ${recipientId}`);
-          twilioStartCall(recipientId);
-        } catch (error) {
-          console.error('Error starting call:', error);
-          toast.error(`Failed to start call: ${error.message}`);
-          updateCallStatus(CallStatus.FAILED);
+      console.log('Call initiation requested:', {
+        status: callStatus,
+        recipient: recipientId,
+        ready: isReady
+      });
+      
+      stateValidationTimeout = window.setTimeout(() => {
+        if (callStatus === CallStatus.CONNECTING) {
+          callInitTimeout = window.setTimeout(() => {
+            try {
+              console.log(`Initiating call to ${recipientId}`);
+              twilioStartCall(recipientId);
+            } catch (error) {
+              console.error('Error starting call:', error);
+              toast.error(`Failed to start call: ${error.message}`);
+              updateCallStatus(CallStatus.FAILED);
+            }
+          }, 500);
         }
-      }, 500);
+      }, 100);
     }
     
     return () => {
       if (callInitTimeout) {
         window.clearTimeout(callInitTimeout);
       }
+      if (stateValidationTimeout) {
+        window.clearTimeout(stateValidationTimeout);
+      }
     };
   }, [callStatus, recipientId, isReady, showActiveCall, twilioStartCall, updateCallStatus]);
 
-  // Handle call status changes
   useEffect(() => {
     if (twilioCallStatus !== callStatus) {
       console.log(`Call status changed: ${callStatus} -> ${twilioCallStatus}`);
@@ -86,7 +96,6 @@ export function useCallProviderEffects({
     }
   }, [twilioCallStatus, callStatus, updateCallStatus]);
 
-  // Handle incoming calls
   useEffect(() => {
     if (twilioCallStatus === CallStatus.RINGING && remoteParticipant && !showIncomingCall) {
       console.log(`Incoming call from ${remoteParticipant}`);
@@ -94,20 +103,16 @@ export function useCallProviderEffects({
     }
   }, [twilioCallStatus, remoteParticipant, showIncomingCall]);
 
-  // Register call handlers once on component mount
   useEffect(() => {
-    // Only run this once to avoid infinite loops
     if (!handlersRegistered.current) {
       console.log('Registering call handlers');
       
-      // Store original handlers for reference
       const callStore = useCallStore.getState();
       const origAcceptCall = callStore.acceptCall;
       const origRejectCall = callStore.rejectCall;
       const origEndCall = callStore.endCall;
       const origToggleMute = callStore.toggleMute;
       
-      // Create wrapper functions that call both Twilio and the original handlers
       const wrapTwilioAction = (twilio: () => void, original: () => void) => {
         return () => {
           try {
@@ -115,12 +120,10 @@ export function useCallProviderEffects({
           } catch (err) {
             console.error('Twilio action error:', err);
           }
-          // Always execute the original handler to maintain UI state
           original();
         };
       };
       
-      // Update the store with wrapped handlers
       useCallStore.setState({
         acceptCall: wrapTwilioAction(twilioAnswerCall, origAcceptCall),
         rejectCall: wrapTwilioAction(twilioRejectCall, origRejectCall),
@@ -128,10 +131,8 @@ export function useCallProviderEffects({
         toggleMute: wrapTwilioAction(twilioToggleMute, origToggleMute)
       });
       
-      // Mark handlers as registered
       handlersRegistered.current = true;
       
-      // Cleanup function to restore original handlers on unmount
       return () => {
         console.log('Restoring original call handlers');
         useCallStore.setState({
@@ -144,7 +145,6 @@ export function useCallProviderEffects({
     }
   }, [twilioAnswerCall, twilioRejectCall, twilioEndCall, twilioToggleMute]);
 
-  // Handle Twilio errors
   useEffect(() => {
     if (twilioError) {
       console.error('Twilio error:', twilioError);

@@ -37,6 +37,9 @@ export function useCallInitialization({
       console.log(`Initiating call to ${recipientId}`);
       updateCallStatus(CallStatus.CONNECTING);
       
+      // Add a small delay to ensure UI state is updated before proceeding
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       // Call the voice-call function to initiate the call
       const { data, error: callError } = await supabase.functions.invoke('voice-call', {
         body: { 
@@ -51,10 +54,17 @@ export function useCallInitialization({
       }
 
       console.log('Call initiated successfully with call SID:', data.callSid);
-      updateState({ 
-        remoteParticipant: recipientId,
-        callStatus: CallStatus.RINGING 
-      });
+      
+      // Set remote participant first
+      updateState({ remoteParticipant: recipientId });
+      
+      // Then update call status after a short delay
+      setTimeout(() => {
+        updateState({ 
+          callStatus: CallStatus.RINGING 
+        });
+      }, 500);
+
     } catch (err: any) {
       console.error('Error starting call:', err);
       updateState({ 
