@@ -1,6 +1,6 @@
 
 import { X, Smile } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
+import EmojiPickerReact from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -58,7 +58,7 @@ export function EmojiPicker({
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          <EmojiPicker
+          <EmojiPickerReact
             width={300}
             height={350}
             onEmojiClick={onEmojiSelect}
