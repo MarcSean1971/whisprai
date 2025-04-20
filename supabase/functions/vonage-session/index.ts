@@ -42,9 +42,13 @@ serve(async (req) => {
     const jwt = vonage.jwt.generate({
       application_id: applicationId,
       sub: recipientId,
-      exp: Math.round(new Date().getTime() / 1000) + 3600, // 1 hour expiry
-      paths: {
-        "/**": {}
+      exp: Math.round(new Date().getTime() / 1000) + 3600,
+      acl: {
+        paths: {
+          "/*/users/**": {},
+          "/*/conversations/**": {},
+          "/*/sessions/**": {},
+        }
       }
     })
 
@@ -68,4 +72,3 @@ serve(async (req) => {
     )
   }
 })
-
