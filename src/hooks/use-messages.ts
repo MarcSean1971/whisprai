@@ -83,31 +83,28 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
+      // Modify the query to join profiles data directly
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select(`
           *,
-          sender:sender_id (
+          sender:profiles!messages_sender_id_fkey(
             id,
-            profiles (
-              first_name,
-              last_name,
-              avatar_url,
-              language
-            )
+            first_name,
+            last_name,
+            avatar_url,
+            language
           ),
-          parent:parent_id (
+          parent:parent_id(
             id,
             content,
             created_at,
-            sender:sender_id (
+            sender:profiles!messages_sender_id_fkey(
               id,
-              profiles (
-                first_name,
-                last_name,
-                avatar_url,
-                language
-              )
+              first_name, 
+              last_name,
+              avatar_url,
+              language
             )
           )
         `)
@@ -126,13 +123,15 @@ export function useMessages(conversationId: string) {
         return [];
       }
 
+      // Transform the data to match the expected Message interface
       return messages.map(message => {
         // Basic validation of required fields
         if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
           console.error('Invalid message structure:', message);
           return null;
         }
-
+        
+        // Create a properly structured message object based on what's returned from DB
         return {
           id: message.id,
           content: message.content,
@@ -145,16 +144,26 @@ export function useMessages(conversationId: string) {
           private_room: message.private_room,
           private_recipient: message.private_recipient,
           sender: message.sender ? {
-            id: message.sender.id,
-            profiles: message.sender.profiles
+            id: message.sender.id || message.sender_id,
+            profiles: {
+              first_name: message.sender.first_name,
+              last_name: message.sender.last_name,
+              avatar_url: message.sender.avatar_url,
+              language: message.sender.language
+            }
           } : null,
           parent: message.parent ? {
             id: message.parent.id,
             content: message.parent.content,
             created_at: message.parent.created_at,
             sender: message.parent.sender ? {
-              id: message.parent.sender.id,
-              profiles: message.parent.sender.profiles
+              id: message.parent.sender.id || message.parent.sender_id,
+              profiles: {
+                first_name: message.parent.sender.first_name,
+                last_name: message.parent.sender.last_name,
+                avatar_url: message.parent.sender.avatar_url,
+                language: message.parent.sender.language
+              }
             } : null
           } : null
         };
