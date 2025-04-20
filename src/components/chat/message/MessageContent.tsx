@@ -55,10 +55,8 @@ export function MessageContent({
   };
 
   const handleSubmitReply = (replyContent: string) => {
-    if (onReply) {
-      onReply(replyContent);
-      setIsReplying(false);
-    }
+    onReply(replyContent);
+    setIsReplying(false);
   };
 
   return (
@@ -81,10 +79,12 @@ export function MessageContent({
         />
       </MessageContextMenu>
       {isReplying && (
-        <MessageReplyInput
-          onSubmit={handleSubmitReply}
-          onCancel={handleCancelReply}
-        />
+        <div className="ml-4">
+          <MessageReplyInput
+            onSubmit={handleSubmitReply}
+            onCancel={handleCancelReply}
+          />
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
-import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
+import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageReactions } from "./reactions/MessageReactions";
@@ -152,18 +152,7 @@ export function MessageBubble({
         {renderAttachments()}
         {children}
         <div className="flex justify-between items-center mt-1">
-          <div className="flex items-center gap-2">
-            <MessageReactions messageId={id} isOwn={isOwn} />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={onReply}
-            >
-              <Reply className="h-4 w-4" />
-              <span className="sr-only">Reply to message</span>
-            </Button>
-          </div>
+          <MessageReactions messageId={id} isOwn={isOwn} />
           <span className="text-[10px] opacity-70">
             {timestamp}
           </span>
