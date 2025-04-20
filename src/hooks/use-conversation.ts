@@ -40,18 +40,11 @@ export function useConversation(conversationId: string) {
         return null;
       }
 
-      // Get participants with their profile information
+      // Get participants with their profile information - modified query structure
       const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
         .select(`
-          user_id,
-          profiles:user_id (
-            id,
-            first_name,
-            last_name,
-            email,
-            avatar_url
-          )
+          user_id
         `)
         .eq('conversation_id', conversationId);
 
@@ -60,14 +53,22 @@ export function useConversation(conversationId: string) {
         throw participantsError;
       }
 
+      // Get all user IDs from participants
+      const userIds = participantsData.map(p => p.user_id);
+      
+      // Fetch profile data for these users
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name, email, avatar_url')
+        .in('id', userIds);
+        
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
       // Format participants data
-      const formattedParticipants = participantsData?.map(p => ({
-        id: p.profiles.id,
-        first_name: p.profiles.first_name,
-        last_name: p.profiles.last_name,
-        email: p.profiles.email,
-        avatar_url: p.profiles.avatar_url
-      })) || [];
+      const formattedParticipants = profilesData || [];
 
       return {
         id: conversationData.id,
