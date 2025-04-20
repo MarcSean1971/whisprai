@@ -32,10 +32,12 @@ export function MessageMenuItems({
     console.log('Emoji selected:', emojiData);
     try {
       addReaction({ emoji: emojiData.emoji });
+      // We immediately close the menu to avoid UI freezing
       onCloseMenu();
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
+      onCloseMenu();
     }
   };
 

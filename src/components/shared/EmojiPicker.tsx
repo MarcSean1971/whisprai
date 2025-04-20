@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { useEffect } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -28,13 +29,24 @@ export function EmojiPicker({
 }: EmojiPickerProps) {
   const handleEmojiSelect = (emojiData: any) => {
     console.log('Emoji selected in picker:', emojiData);
+    // First call the callback to handle the emoji
     onEmojiSelect(emojiData);
-    onOpenChange(false);
+    // Then close the dialog with a small delay to allow state updates to propagate
+    setTimeout(() => {
+      onOpenChange(false);
+    }, 50);
   };
 
   const handleClose = () => {
     onOpenChange(false);
   };
+
+  // Clean up any UI state when the dialog closes
+  useEffect(() => {
+    if (!open) {
+      // Any additional cleanup could go here
+    }
+  }, [open]);
 
   const defaultTrigger = (
     <Button
@@ -71,12 +83,14 @@ export function EmojiPicker({
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          <EmojiPickerReact
-            width={300}
-            height={350}
-            onEmojiClick={handleEmojiSelect}
-            lazyLoadEmojis={true}
-          />
+          {open && ( // Only render the picker when dialog is open
+            <EmojiPickerReact
+              width={300}
+              height={350}
+              onEmojiClick={handleEmojiSelect}
+              lazyLoadEmojis={true}
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

@@ -17,6 +17,13 @@ export function EmojiPickerPopover({
   side = "right"
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  const handleEmojiSelect = (emojiData: any) => {
+    // Call the provided callback
+    onEmojiSelect(emojiData);
+    // Make sure we close the popover
+    setIsOpen(false);
+  };
 
   const triggerButton = (
     <DropdownMenuItem 
@@ -33,7 +40,7 @@ export function EmojiPickerPopover({
 
   return (
     <EmojiPicker
-      onEmojiSelect={onEmojiSelect}
+      onEmojiSelect={handleEmojiSelect}
       triggerButton={triggerButton}
       side={side}
       align={align}
