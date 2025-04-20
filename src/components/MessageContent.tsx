@@ -4,6 +4,7 @@ import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageControls } from "@/components/chat/message/MessageControls";
 
 interface MessageContentProps {
+  id: string; // Added this prop
   content: string;
   timestamp: string;
   isOwn: boolean;
@@ -29,6 +30,7 @@ interface MessageContentProps {
 }
 
 export function MessageContent({
+  id, // Added this prop
   content,
   timestamp,
   isOwn,
@@ -47,6 +49,7 @@ export function MessageContent({
   return (
     <div className="flex items-start gap-2">
       <MessageBubble
+        id={id} // Pass the id prop
         content={content}
         timestamp={timestamp}
         isOwn={isOwn}

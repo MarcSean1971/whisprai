@@ -22,7 +22,10 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
     return acc;
   }, {} as Record<string, number>);
 
-  const handleEmojiClick = ({ emoji }: EmojiClickData) => {
+  const handleEmojiClick = (data: EmojiClickData) => {
+    const emoji = data.emoji;
+    
+    // Check if the current user has already reacted with this emoji
     const hasReacted = reactions.some(r => 
       r.emoji === emoji && r.user_id === profile?.id
     );
@@ -66,7 +69,15 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
             key={emoji}
             variant="ghost"
             size="sm"
-            onClick={() => handleEmojiClick({ emoji, names: [] })}
+            onClick={() => handleEmojiClick({ 
+              emoji, 
+              names: [], 
+              activeSkinTone: "neutral",
+              unified: "",
+              unifiedWithoutSkinTone: "",
+              imageUrl: "",
+              getImageUrl: () => ""
+            })}
             className={cn(
               "h-6 px-2 text-xs rounded-full",
               hasReacted && "bg-accent",

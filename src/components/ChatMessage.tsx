@@ -105,6 +105,7 @@ export function ChatMessage({
       isAIMessage={isAIMessage}
     >
       <MessageContent
+        id={id}
         content={displayContent}
         timestamp={timestamp}
         isOwn={isOwn}
