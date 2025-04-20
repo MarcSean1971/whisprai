@@ -25,38 +25,55 @@ export function VoiceCall({
   const ringtoneRef = useRef<HTMLAudioElement>(null)
   const clientRef = useRef<any>(null)
   const sessionRef = useRef<any>(null)
+  const scriptLoadingRef = useRef<boolean>(false)
 
   useEffect(() => {
-    // Load Vonage Client SDK script with retry mechanism
-    const loadScript = (retryCount = 0) => {
+    // Load Vonage Client SDK script with enhanced retry mechanism
+    const loadScript = async (retryCount = 0): Promise<void> => {
+      if (scriptLoadingRef.current) return
+      scriptLoadingRef.current = true
+
       const script = document.createElement('script')
-      script.src = 'https://static.opentok.com/v2/js/opentok.min.js'
+      script.src = 'https://downloads.vonage.com/client-sdk/sdk.js'
       script.async = true
 
-      script.onload = () => {
-        console.log('Vonage Client SDK loaded successfully')
-      }
+      return new Promise((resolve, reject) => {
+        const timeoutId = setTimeout(() => {
+          reject(new Error('Script loading timed out'))
+        }, 10000) // 10 second timeout
 
-      script.onerror = () => {
-        console.error(`Failed to load Vonage Client SDK (attempt ${retryCount + 1})`)
-        if (retryCount < 2) {
-          console.log('Retrying script load...')
-          setTimeout(() => loadScript(retryCount + 1), 1000)
-        } else {
-          onError(new Error('Failed to load voice call service'))
+        script.onload = () => {
+          console.log('Vonage Client SDK loaded successfully')
+          clearTimeout(timeoutId)
+          scriptLoadingRef.current = false
+          resolve()
         }
-      }
 
-      document.body.appendChild(script)
-      return script
+        script.onerror = () => {
+          console.error(`Failed to load Vonage Client SDK (attempt ${retryCount + 1})`)
+          clearTimeout(timeoutId)
+          scriptLoadingRef.current = false
+          
+          if (retryCount < 2) {
+            console.log('Retrying script load...')
+            setTimeout(() => loadScript(retryCount + 1).catch(reject), 2000)
+          } else {
+            reject(new Error('Failed to load voice call service after multiple attempts'))
+          }
+        }
+
+        document.body.appendChild(script)
+      })
     }
 
-    const script = loadScript()
+    loadScript().catch((error) => {
+      console.error('Script loading failed:', error)
+      onError(error)
+    })
 
     return () => {
-      if (script && script.parentNode) {
-        script.parentNode.removeChild(script)
-      }
+      const scripts = document.querySelectorAll('script[src*="vonage"]')
+      scripts.forEach(script => script.remove())
       handleCleanup()
     }
   }, [onError])
@@ -64,17 +81,24 @@ export function VoiceCall({
   const handleCleanup = async () => {
     try {
       if (sessionRef.current) {
+        console.log('Cleaning up session...')
         await sessionRef.current.leave()
         sessionRef.current = null
       }
+      
       if (clientRef.current) {
+        console.log('Disconnecting client...')
         await clientRef.current.disconnect()
         clientRef.current = null
       }
+      
       if (ringtoneRef.current) {
         ringtoneRef.current.pause()
         ringtoneRef.current.currentTime = 0
       }
+      
+      setIsCallActive(false)
+      setIsConnecting(false)
     } catch (error) {
       console.error('Cleanup error:', error)
     }
@@ -85,11 +109,12 @@ export function VoiceCall({
       setIsConnecting(true)
       console.log('Initializing call...')
 
-      // Wait for SDK to be available
-      if (!window.Vonage) {
-        throw new Error('Voice call service not loaded. Please try again.')
+      // Verify SDK is loaded and available
+      if (typeof window.Vonage === 'undefined') {
+        throw new Error('Voice call service not initialized. Please try again in a moment.')
       }
 
+      // Get session credentials
       const { data: sessionResponse, error: sessionError } = await supabase.functions.invoke(
         'vonage-session',
         {
@@ -110,8 +135,10 @@ export function VoiceCall({
 
       console.log('Got Vonage credentials, initializing client...')
 
+      // Initialize client with latest SDK
       clientRef.current = new window.Vonage.Client({
-        debug: true
+        debug: true,
+        autoConnect: false
       })
 
       // Set up event handlers
@@ -123,21 +150,19 @@ export function VoiceCall({
 
       clientRef.current.on('disconnected', () => {
         console.log('Disconnected from voice service')
-        setIsCallActive(false)
         handleCleanup()
       })
 
-      // Create session with the generated token
+      // Initialize session
       await clientRef.current.createSession(token)
       console.log('Session created successfully')
 
-      // Create a conversation and join it
+      // Create and join conversation
       sessionRef.current = await clientRef.current.session.create({
         name: `call-${Date.now()}`,
         display_name: `Call with ${recipientId}`
       })
 
-      // Enable audio
       await sessionRef.current.media.enable({
         audio: true,
         video: false
@@ -145,12 +170,12 @@ export function VoiceCall({
 
       console.log('Audio enabled, inviting recipient...')
 
-      // Invite the recipient
+      // Invite recipient
       await sessionRef.current.invite(recipientId)
 
-      // Start playing ringtone
+      // Start ringtone
       if (ringtoneRef.current) {
-        ringtoneRef.current.play().catch(console.error)
+        await ringtoneRef.current.play().catch(console.error)
       }
       
       setIsCallActive(true)
@@ -176,8 +201,6 @@ export function VoiceCall({
     } catch (error) {
       console.error('Error ending call:', error)
       onError(error instanceof Error ? error : new Error('Failed to end call'))
-    } finally {
-      setIsCallActive(false)
     }
   }
 

@@ -48,6 +48,8 @@ serve(async (req) => {
           "/*/users/**": {},
           "/*/conversations/**": {},
           "/*/sessions/**": {},
+          "/*/rtc/**": {},
+          "/*/media/**": {}
         }
       }
     })
