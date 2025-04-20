@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -83,11 +82,25 @@ export function useMessages(conversationId: string) {
         throw new Error('User not authenticated');
       }
 
-      // First fetch the messages with their basic data
       const { data: messages, error: messagesError } = await supabase
         .from('messages')
         .select(`
-          *
+          *,
+          sender:sender_id (
+            id,
+            profiles (
+              first_name,
+              last_name,
+              avatar_url,
+              language
+            )
+          ),
+          parent:parent_id (
+            id,
+            content,
+            created_at,
+            sender_id
+          )
         `)
         .eq('conversation_id', conversationId)
         .or(`private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`)
@@ -99,106 +112,49 @@ export function useMessages(conversationId: string) {
         throw messagesError;
       }
 
-      // Collect all parent_ids to fetch their details
-      const parentIds = messages
-        .filter(msg => msg.parent_id)
-        .map(msg => msg.parent_id);
-        
-      // Fetch parent messages if there are any
-      let parentsMap: Record<string, any> = {};
-      
-      if (parentIds.length > 0) {
-        const { data: parentMessages, error: parentsError } = await supabase
-          .from('messages')
-          .select(`
-            id,
-            content,
-            created_at,
-            sender_id
-          `)
-          .in('id', parentIds);
-          
-        if (parentsError) {
-          console.error('Error fetching parent messages:', parentsError);
-        } else if (parentMessages) {
-          parentsMap = parentMessages.reduce((acc, parent) => {
-            acc[parent.id] = parent;
-            return acc;
-          }, {} as Record<string, any>);
-        }
-      }
+      const parentSenderIds = messages
+        .filter(msg => msg.parent?.sender_id)
+        .map(msg => msg.parent.sender_id);
 
-      // Extract sender IDs from messages and parent messages
-      const senderIds = messages
-        .map(msg => msg.sender_id)
-        .filter((id): id is string => id !== null);
-        
-      const parentSenderIds = Object.values(parentsMap)
-        .map((parent: any) => parent.sender_id)
-        .filter((id): id is string => id !== null);
-        
-      const allSenderIds = [...new Set([...senderIds, ...parentSenderIds])];
-
-      // Fetch profiles for all senders
-      let profilesMap: Record<string, any> = {};
-      
-      if (allSenderIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
+      let parentProfilesMap: Record<string, any> = {};
+      if (parentSenderIds.length > 0) {
+        const { data: parentProfiles, error: parentProfilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, language')
-          .in('id', allSenderIds);
-          
-        if (profilesError) {
-          console.error('Error fetching profiles:', profilesError);
-        } else if (profiles) {
-          profilesMap = profiles.reduce((acc, profile) => {
+          .in('id', parentSenderIds);
+
+        if (parentProfilesError) {
+          console.error('Error fetching parent sender profiles:', parentProfilesError);
+        } else if (parentProfiles) {
+          parentProfilesMap = parentProfiles.reduce((acc, profile) => {
             acc[profile.id] = profile;
             return acc;
           }, {} as Record<string, any>);
         }
       }
 
-      // Process the messages to have the correct type structure
-      const messagesWithProfiles = messages.map(message => {
-        let processedMessage: Message = {
-          ...message,
-          sender: message.sender_id ? {
-            id: message.sender_id,
-            profiles: profilesMap[message.sender_id] ? {
-              first_name: profilesMap[message.sender_id].first_name,
-              last_name: profilesMap[message.sender_id].last_name,
-              avatar_url: profilesMap[message.sender_id].avatar_url,
-              language: profilesMap[message.sender_id].language
-            } : undefined
-          } : undefined,
-          parent: null // Default to null, will be populated below if needed
-        };
-
-        // Add parent information if available
-        if (message.parent_id && parentsMap[message.parent_id]) {
-          const parent = parentsMap[message.parent_id];
-          const parentSenderId = parent.sender_id;
-          
-          processedMessage.parent = {
-            id: parent.id,
-            content: parent.content,
-            created_at: parent.created_at,
-            sender: parentSenderId ? {
-              id: parentSenderId,
-              profiles: profilesMap[parentSenderId] ? {
-                first_name: profilesMap[parentSenderId].first_name,
-                last_name: profilesMap[parentSenderId].last_name,
-                avatar_url: profilesMap[parentSenderId].avatar_url,
-                language: profilesMap[parentSenderId].language
-              } : null
-            } : null
-          };
-        }
-
-        return processedMessage;
-      });
-
-      return messagesWithProfiles;
+      return messages.map(message => ({
+        id: message.id,
+        content: message.content,
+        created_at: message.created_at,
+        conversation_id: message.conversation_id,
+        sender_id: message.sender_id,
+        status: message.status,
+        original_language: message.original_language,
+        metadata: message.metadata,
+        private_room: message.private_room,
+        private_recipient: message.private_recipient,
+        sender: message.sender,
+        parent: message.parent ? {
+          id: message.parent.id,
+          content: message.parent.content,
+          created_at: message.parent.created_at,
+          sender: message.parent.sender_id ? {
+            id: message.parent.sender_id,
+            profiles: parentProfilesMap[message.parent.sender_id]
+          } : null
+        } : null
+      }));
     }
   });
 }
