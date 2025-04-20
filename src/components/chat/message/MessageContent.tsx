@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
 import { MessageReplyButton } from "./MessageReplyButton";
+import { MessageReactionButton } from "./reactions/MessageReactionButton";
 
 interface MessageContentProps {
   id: string;
@@ -65,7 +66,8 @@ export function MessageContent({
           isDeleting={isDeleting}
         />
       </div>
-      <div className={cn("flex", isOwn ? "justify-end mr-8" : "justify-start ml-1")}>
+      <div className={cn("flex flex-col gap-1", isOwn ? "items-end mr-8" : "items-start ml-1")}>
+        <MessageReactionButton messageId={id} isOwn={isOwn} />
         <MessageReplyButton 
           onReply={onReply}
           isOwn={isOwn}
