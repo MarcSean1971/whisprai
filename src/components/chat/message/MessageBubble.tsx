@@ -1,10 +1,9 @@
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
-import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
+import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageReactions } from "./reactions/MessageReactions";
-import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageBubbleProps {
   id: string;
@@ -23,7 +22,7 @@ interface MessageBubbleProps {
     name: string;
     type: string;
   }[];
-  onReply?: (content: string) => void;
+  onReply: () => void;
 }
 
 export function MessageBubble({ 
@@ -37,7 +36,6 @@ export function MessageBubble({
   attachments,
   onReply
 }: MessageBubbleProps) {
-  const [isReplying, setIsReplying] = useState(false);
   const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
 
   const getAttachmentIcon = (file: { type: string }) => {
@@ -140,17 +138,10 @@ export function MessageBubble({
     return null;
   };
 
-  const handleSubmitReply = (replyContent: string) => {
-    if (onReply) {
-      onReply(replyContent);
-      setIsReplying(false);
-    }
-  };
-
   return (
     <div className="space-y-2">
       <div className={cn(
-        "rounded-lg py-2 px-3 max-w-[400px]",
+        "rounded-lg py-2 px-3 max-w-[400px] relative group",
         isOwn
           ? "bg-primary text-primary-foreground"
           : isAIMessage
@@ -161,7 +152,18 @@ export function MessageBubble({
         {renderAttachments()}
         {children}
         <div className="flex justify-between items-center mt-1">
-          <MessageReactions messageId={id} isOwn={isOwn} />
+          <div className="flex items-center gap-2">
+            <MessageReactions messageId={id} isOwn={isOwn} />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={onReply}
+            >
+              <Reply className="h-4 w-4" />
+              <span className="sr-only">Reply to message</span>
+            </Button>
+          </div>
           <span className="text-[10px] opacity-70">
             {timestamp}
           </span>

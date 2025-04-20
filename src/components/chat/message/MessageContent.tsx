@@ -19,7 +19,7 @@ interface MessageContentProps {
   canDelete: boolean;
   onDelete: () => void;
   isDeleting: boolean;
-  onReply: () => void;
+  onReply: (replyContent: string) => void;
   attachments?: {
     url: string;
     name: string;
@@ -56,7 +56,7 @@ export function MessageContent({
 
   const handleSubmitReply = (replyContent: string) => {
     if (onReply) {
-      onReply();
+      onReply(replyContent);
       setIsReplying(false);
     }
   };
