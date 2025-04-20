@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useEffect } from "react";
 
 export interface MessageReaction {
   id: string;
@@ -13,6 +14,30 @@ export interface MessageReaction {
 
 export function useMessageReactions(messageId: string) {
   const queryClient = useQueryClient();
+
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel(`message-reactions-${messageId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'message_reactions',
+          filter: `message_id=eq.${messageId}`,
+        },
+        (payload) => {
+          console.log('Message reaction change:', payload);
+          queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [messageId, queryClient]);
 
   const { data: reactions = [], isLoading } = useQuery({
     queryKey: ['message-reactions', messageId],
@@ -50,17 +75,35 @@ export function useMessageReactions(messageId: string) {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
+    onMutate: async ({ emoji }) => {
+      // Optimistic update
+      const previousReactions = queryClient.getQueryData(['message-reactions', messageId]);
+      
+      queryClient.setQueryData(['message-reactions', messageId], (old: MessageReaction[] = []) => {
+        const { data: { user } } = supabase.auth.getSession() as any;
+        return [...old, {
+          id: 'temp-id',
+          message_id: messageId,
+          user_id: user?.id,
+          emoji,
+          created_at: new Date().toISOString()
+        }];
+      });
+
+      return { previousReactions };
     },
-    onError: () => {
+    onError: (err, variables, context) => {
+      // Revert optimistic update on error
+      queryClient.setQueryData(['message-reactions', messageId], context?.previousReactions);
       toast.error('Failed to add reaction');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
     }
   });
 
   const removeReaction = useMutation({
     mutationFn: async ({ emoji }: { emoji: string }) => {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
       
@@ -76,11 +119,11 @@ export function useMessageReactions(messageId: string) {
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
-    },
     onError: () => {
       toast.error('Failed to remove reaction');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['message-reactions', messageId] });
     }
   });
 

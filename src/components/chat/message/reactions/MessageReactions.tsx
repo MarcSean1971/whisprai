@@ -1,6 +1,8 @@
 
 import { cn } from "@/lib/utils";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
+import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
 
 interface MessageReactionsProps {
   messageId: string;
@@ -8,7 +10,7 @@ interface MessageReactionsProps {
 }
 
 export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
-  const { reactions } = useMessageReactions(messageId);
+  const { reactions, removeReaction } = useMessageReactions(messageId);
   
   // Group reactions by emoji and count them
   const reactionGroups = reactions.reduce((acc, reaction) => {
@@ -20,18 +22,25 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
     return null;
   }
 
+  const handleClick = (emoji: string) => {
+    removeReaction({ emoji });
+  };
+
   return (
     <div className="flex flex-wrap gap-1">
       {Object.entries(reactionGroups).map(([emoji, count]) => (
-        <span
+        <Button
           key={emoji}
+          variant="ghost"
+          size="sm"
+          onClick={() => handleClick(emoji)}
           className={cn(
-            "text-[10px] flex items-center gap-0.5 bg-black/5 px-1.5 py-0.5 rounded-full",
-            isOwn && "bg-white/10"
+            "h-5 px-1.5 text-[10px] flex items-center gap-0.5 bg-black/5 hover:bg-black/10 rounded-full",
+            isOwn && "bg-white/10 hover:bg-white/20"
           )}
         >
           {emoji} {count > 1 && <span className="font-medium">{count}</span>}
-        </span>
+        </Button>
       ))}
     </div>
   );
