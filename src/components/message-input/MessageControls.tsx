@@ -61,7 +61,7 @@ export function MessageControls({
 
   const getButtonStyle = () => {
     if (!message.trim()) {
-      return "bg-[#FFDEE2] hover:bg-[#FFD0D6] transition-colors duration-200";
+      return "bg-gradient-to-r from-[#9b87f5] to-[#7C4DFF] text-white hover:opacity-90 transition-colors duration-200";
     }
 
     if (isAnalyzing) {
@@ -70,18 +70,18 @@ export function MessageControls({
 
     let baseColor = "";
     if (toxicityScore <= 20) {
-      baseColor = "bg-gradient-to-r from-[#F2FCE2] to-[#E0F5C8]";
+      baseColor = "bg-gradient-to-r from-[#4ade80] to-[#10b981]";
     } else if (toxicityScore <= 40) {
-      baseColor = "bg-gradient-to-r from-[#FEF7CD] to-[#FFF0A0]";
+      baseColor = "bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]";
     } else if (toxicityScore <= 60) {
-      baseColor = "bg-gradient-to-r from-[#FEC6A1] to-[#FEB182]";
+      baseColor = "bg-gradient-to-r from-[#fb923c] to-[#f97316]";
     } else if (toxicityScore <= 80) {
-      baseColor = "bg-gradient-to-r from-[#FFA07A] to-[#FF7F50]";
+      baseColor = "bg-gradient-to-r from-[#f87171] to-[#ef4444]";
     } else {
-      baseColor = "bg-gradient-to-r from-[#FF6B6B] to-[#ea384c]";
+      baseColor = "bg-gradient-to-r from-[#dc2626] to-[#b91c1c]";
     }
 
-    return `${baseColor} transition-all duration-200 ease-in-out hover:opacity-90`;
+    return `${baseColor} text-white transition-all duration-200 ease-in-out hover:opacity-90`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
