@@ -13,6 +13,7 @@ interface MessageMenuItemsProps {
   canDelete?: boolean;
   isDeleting?: boolean;
   messageId: string;
+  onCloseMenu: () => void;
 }
 
 export function MessageMenuItems({
@@ -22,7 +23,8 @@ export function MessageMenuItems({
   onDelete,
   canDelete,
   isDeleting,
-  messageId
+  messageId,
+  onCloseMenu
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
   
@@ -30,6 +32,7 @@ export function MessageMenuItems({
     console.log('Emoji selected:', emojiData);
     try {
       addReaction({ emoji: emojiData.emoji });
+      onCloseMenu();
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
@@ -38,7 +41,10 @@ export function MessageMenuItems({
 
   return (
     <>
-      <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
+      <DropdownMenuItem className="cursor-pointer" onClick={() => {
+        onReply();
+        onCloseMenu();
+      }}>
         <Reply className="mr-2 h-4 w-4" />
         <span>Reply</span>
       </DropdownMenuItem>
@@ -50,7 +56,10 @@ export function MessageMenuItems({
       />
       
       {showTranslationToggle && (
-        <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
+        <DropdownMenuItem className="cursor-pointer" onClick={() => {
+          onToggleTranslation?.();
+          onCloseMenu();
+        }}>
           <Languages className="mr-2 h-4 w-4" />
           <span>Toggle Translation</span>
         </DropdownMenuItem>
@@ -59,7 +68,10 @@ export function MessageMenuItems({
       {canDelete && (
         <DropdownMenuItem 
           className="cursor-pointer text-destructive hover:text-destructive" 
-          onClick={onDelete}
+          onClick={() => {
+            onDelete?.();
+            onCloseMenu();
+          }}
           disabled={isDeleting}
         >
           <Trash2 className="mr-2 h-4 w-4" />

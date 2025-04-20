@@ -30,12 +30,14 @@ export function MessageContextMenu({
   onDelete,
   isDeleting
 }: MessageContextMenuProps) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  
   return (
     <div className="group flex flex-col gap-1">
       <div className="flex items-start gap-2">
         {isOwn && (
           <div className="pt-2">
-            <DropdownMenu>
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
               <MessageMenuButton />
               <DropdownMenuContent
                 align="start"
@@ -50,6 +52,7 @@ export function MessageContextMenu({
                   canDelete={canDelete}
                   isDeleting={isDeleting}
                   messageId={messageId}
+                  onCloseMenu={() => setMenuOpen(false)}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
@@ -60,7 +63,7 @@ export function MessageContextMenu({
 
         {!isOwn && (
           <div className="pt-2">
-            <DropdownMenu>
+            <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
               <MessageMenuButton />
               <DropdownMenuContent
                 align="end"
@@ -75,6 +78,7 @@ export function MessageContextMenu({
                   canDelete={canDelete}
                   isDeleting={isDeleting}
                   messageId={messageId}
+                  onCloseMenu={() => setMenuOpen(false)}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
