@@ -114,23 +114,13 @@
   }
 }
 
-@layer base {
-  * {
-    @apply border-border;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-  }
-}
-
 @layer utilities {
   .no-scrollbar {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    -ms-overflow-style: none !important;
+    scrollbar-width: none !important;
   }
 
   .no-scrollbar::-webkit-scrollbar {
-    display: none;
+    display: none !important;
   }
 }
