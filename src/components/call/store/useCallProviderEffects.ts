@@ -92,14 +92,17 @@ export function useCallProviderEffects({
     }
   }, [twilioCallStatus, remoteParticipant, showIncomingCall]);
 
-  // Handle call actions
+  // Handle call actions - THIS IS THE PROBLEMATIC PART
   useEffect(() => {
-    const originalAcceptCall = useCallStore.getState().acceptCall;
-    const originalRejectCall = useCallStore.getState().rejectCall;
-    const originalEndCall = useCallStore.getState().endCall;
-    const originalToggleMute = useCallStore.getState().toggleMute;
+    // Get the original function references
+    const callStore = useCallStore.getState();
+    const originalAcceptCall = callStore.acceptCall;
+    const originalRejectCall = callStore.rejectCall;
+    const originalEndCall = callStore.endCall;
+    const originalToggleMute = callStore.toggleMute;
     
-    useCallStore.setState({
+    // Create a local variable to track if we've already set the handlers
+    const handlers = {
       acceptCall: () => {
         try {
           console.log('Accepting call');
@@ -136,15 +139,36 @@ export function useCallProviderEffects({
         }
         originalToggleMute();
       }
-    });
+    };
     
+    // Update the store with our handlers
+    useCallStore.setState(handlers);
+    
+    // Cleanup function
     return () => {
-      useCallStore.setState({
-        acceptCall: originalAcceptCall,
-        rejectCall: originalRejectCall,
-        endCall: originalEndCall,
-        toggleMute: originalToggleMute
-      });
+      // Restore original functions only if the current ones match our handlers
+      // This prevents overwriting handlers set by other components
+      const currentState = useCallStore.getState();
+      if (currentState.acceptCall === handlers.acceptCall) {
+        useCallStore.setState({
+          acceptCall: originalAcceptCall,
+        });
+      }
+      if (currentState.rejectCall === handlers.rejectCall) {
+        useCallStore.setState({
+          rejectCall: originalRejectCall,
+        });
+      }
+      if (currentState.endCall === handlers.endCall) {
+        useCallStore.setState({
+          endCall: originalEndCall,
+        });
+      }
+      if (currentState.toggleMute === handlers.toggleMute) {
+        useCallStore.setState({
+          toggleMute: originalToggleMute,
+        });
+      }
     };
   }, [twilioAnswerCall, twilioRejectCall, twilioEndCall, twilioToggleMute]);
 
