@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,18 +40,16 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        // Fetch sender profiles in a separate query
         const messageIds = conversations
           .flatMap(conv => conv.messages)
           .filter(msg => msg)
           .map(msg => msg.id);
 
-        // Only fetch profiles if there are messages
         let senderProfiles = {};
         if (messageIds.length > 0) {
           const { data: profilesData, error: profilesError } = await supabase
             .from('profiles')
-            .select('id, first_name, last_name')
+            .select('id, first_name, last_name, avatar_url')
             .in('id', conversations.flatMap(conv => 
               conv.messages.map(msg => msg.sender_id)).filter(id => id != null));
   
@@ -67,7 +64,6 @@ export function useUserConversations() {
         }
 
         return conversations.map(conversation => {
-          // Get all participants except current user
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id)
             .map(p => ({
@@ -76,14 +72,11 @@ export function useUserConversations() {
               avatar: p.profiles.avatar_url
             }));
 
-          // Get the most recent message
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
           );
           const lastMessage = sortedMessages[0];
 
-          // For direct chats, use the other participant's name
-          // For group chats, show number of participants
           const displayName = conversation.is_group
             ? `Group Chat (${conversation.conversation_participants.length} participants)`
             : otherParticipants[0]?.name || 'Unknown User';
@@ -106,7 +99,8 @@ export function useUserConversations() {
               sender: lastMessage.sender_id && senderProfiles[lastMessage.sender_id] ? {
                 profiles: {
                   first_name: senderProfiles[lastMessage.sender_id].first_name,
-                  last_name: senderProfiles[lastMessage.sender_id].last_name
+                  last_name: senderProfiles[lastMessage.sender_id].last_name,
+                  avatar_url: senderProfiles[lastMessage.sender_id].avatar_url
                 }
               } : undefined
             } : null,
