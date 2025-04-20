@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { Vonage } from 'npm:@vonage/server-sdk'
+import { createJWT } from "npm:@vonage/jwt"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -19,26 +19,34 @@ serve(async (req) => {
       throw new Error('Recipient ID is required')
     }
 
-    const vonage = new Vonage({
-      applicationId: Deno.env.get('VONAGE_APPLICATION_ID'),
-      privateKey: Deno.env.get('VONAGE_PRIVATE_KEY')
-    })
+    const privateKey = Deno.env.get('VONAGE_PRIVATE_KEY')
+    const applicationId = Deno.env.get('VONAGE_APPLICATION_ID')
+
+    if (!privateKey || !applicationId) {
+      throw new Error('Vonage credentials not configured')
+    }
 
     // Generate a JWT token for the client SDK
-    const token = vonage.generateJwt({
-      acl: {
-        paths: {
-          "/*/users/**": {},
-          "/*/conversations/**": {},
-          "/*/sessions/**": {}
+    const token = createJWT(
+      privateKey,
+      {
+        application_id: applicationId,
+        sub: "chat",
+        exp: Math.round(new Date().getTime() / 1000) + 86400, // 24 hours
+        acl: {
+          paths: {
+            "/*/users/**": {},
+            "/*/conversations/**": {},
+            "/*/sessions/**": {}
+          }
         }
       }
-    })
+    )
 
     return new Response(
       JSON.stringify({ 
         token,
-        applicationId: Deno.env.get('VONAGE_APPLICATION_ID')
+        applicationId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
