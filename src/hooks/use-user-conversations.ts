@@ -19,6 +19,19 @@ export function useUserConversations() {
           .from('conversations')
           .select(`
             *,
+            messages (
+              id,
+              content,
+              created_at,
+              sender_id,
+              metadata,
+              sender:profiles!messages_sender_id_fkey (
+                id,
+                first_name,
+                last_name,
+                avatar_url
+              )
+            ),
             conversation_participants (
               user_id,
               profiles (
@@ -29,7 +42,8 @@ export function useUserConversations() {
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id);
+          .eq('conversation_participants.user_id', user.id)
+          .order('updated_at', { ascending: false });
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
@@ -52,6 +66,10 @@ export function useUserConversations() {
             p.user_id !== user.id && p.profiles
           );
 
+          // Get the latest message
+          const messages = conversation.messages || [];
+          const lastMessage = messages.length > 0 ? messages[0] : null;
+
           // For group chats or direct chats, show appropriate name
           const displayName = conversation.is_group 
             ? `Group Chat (${otherParticipants.length + 1} participants)` 
@@ -66,8 +84,22 @@ export function useUserConversations() {
               avatar: p.profiles?.avatar_url || null
             })),
             name: displayName,
-            avatar: !conversation.is_group ? otherParticipants[0]?.profiles?.avatar_url : null
+            avatar: !conversation.is_group ? otherParticipants[0]?.profiles?.avatar_url : null,
+            lastMessage: lastMessage ? {
+              id: lastMessage.id,
+              content: lastMessage.content,
+              created_at: lastMessage.created_at,
+              sender: lastMessage.sender,
+              metadata: lastMessage.metadata
+            } : null
           };
+        });
+
+        // Sort conversations by last message date
+        processedConversations.sort((a, b) => {
+          const dateA = a.lastMessage?.created_at || a.created_at;
+          const dateB = b.lastMessage?.created_at || b.created_at;
+          return new Date(dateB).getTime() - new Date(dateA).getTime();
         });
 
         console.log('Processed conversations:', processedConversations);
