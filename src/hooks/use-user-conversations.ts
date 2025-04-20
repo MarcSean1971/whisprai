@@ -30,12 +30,7 @@ export function useUserConversations() {
               id,
               content,
               created_at,
-              sender_id,
-              profiles:profiles!sender_id (
-                id,
-                first_name,
-                last_name
-              )
+              sender_id
             )
           `)
           .eq('conversation_participants.user_id', user.id)
@@ -44,6 +39,31 @@ export function useUserConversations() {
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
           throw conversationsError;
+        }
+
+        // Fetch sender profiles in a separate query
+        const messageIds = conversations
+          .flatMap(conv => conv.messages)
+          .filter(msg => msg)
+          .map(msg => msg.id);
+
+        // Only fetch profiles if there are messages
+        let senderProfiles = {};
+        if (messageIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name')
+            .in('id', conversations.flatMap(conv => 
+              conv.messages.map(msg => msg.sender_id)).filter(id => id != null));
+  
+          if (profilesError) {
+            console.error('Error fetching sender profiles:', profilesError);
+          } else if (profilesData) {
+            senderProfiles = profilesData.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+          }
         }
 
         return conversations.map(conversation => {
@@ -83,14 +103,12 @@ export function useUserConversations() {
               created_at: lastMessage.created_at,
               sender_id: lastMessage.sender_id,
               status: 'sent',
-              sender: lastMessage.profiles 
-                ? {
-                    profiles: {
-                      first_name: lastMessage.profiles.first_name,
-                      last_name: lastMessage.profiles.last_name
-                    }
-                  }
-                : undefined
+              sender: lastMessage.sender_id && senderProfiles[lastMessage.sender_id] ? {
+                profiles: {
+                  first_name: senderProfiles[lastMessage.sender_id].first_name,
+                  last_name: senderProfiles[lastMessage.sender_id].last_name
+                }
+              } : undefined
             } : null,
             created_at: conversation.created_at,
             updated_at: conversation.updated_at
