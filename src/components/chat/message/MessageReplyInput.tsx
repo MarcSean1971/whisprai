@@ -62,8 +62,9 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
         disabled={isSaved}
         className={cn(
           "min-h-[36px] max-h-[150px] flex-1 py-2 px-3 text-sm resize-none overflow-hidden",
-          "focus:ring-1 focus:ring-primary",
-          isSaved && "bg-gray-50 text-gray-700 cursor-not-allowed"
+          "focus:ring-1 focus:ring-primary border-purple-200",
+          "bg-purple-50/50 hover:bg-purple-50",
+          isSaved && "bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200"
         )}
       />
       {content.trim() && !isSaved && (
@@ -72,7 +73,7 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
             type="submit" 
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
+            className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
             disabled={isSubmitting}
           >
             <Send className="h-4 w-4" />
@@ -81,7 +82,7 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
             type="button"
             size="icon"
             variant="ghost"
-            className="h-8 w-8"
+            className="h-8 w-8 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
             onClick={handleCancel}
             disabled={isSubmitting}
           >
