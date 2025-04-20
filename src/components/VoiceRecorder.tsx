@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { Mic, StopCircle, X, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useVoiceRecorder } from "@/hooks/use-voice-recorder";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { RecordingButton } from "./voice-recorder/RecordingButton";
+import { RecordingStatus } from "./voice-recorder/RecordingStatus";
+import { CancelButton } from "./voice-recorder/CancelButton";
+import { PermissionError } from "./voice-recorder/PermissionError";
 
 interface VoiceRecorderProps {
   onSendVoice: (base64Audio: string) => void;
@@ -48,12 +50,6 @@ export function VoiceRecorder({
     checkPermission();
   }, []);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   const handleStartRecording = async () => {
     if (!hasPermission) {
       toast.error('Please allow microphone access to record messages');
@@ -93,16 +89,7 @@ export function VoiceRecorder({
   };
 
   if (hasPermission === false) {
-    return (
-      <div className={cn("flex items-center gap-2", className)}>
-        <Button
-          variant="destructive"
-          onClick={() => toast.error('Please enable microphone access in your browser settings')}
-        >
-          Microphone Access Needed
-        </Button>
-      </div>
-    );
+    return <PermissionError className={className} />;
   }
 
   return (
@@ -111,69 +98,36 @@ export function VoiceRecorder({
         {isRecording ? (
           <>
             <div className="flex items-center gap-2">
-              <Button
-                variant="destructive"
-                size="icon"
-                onClick={handleStopRecording}
-                className={cn(
-                  "rounded-full h-12 w-12 animate-pulse", 
-                  isProcessing && "opacity-50"
-                )}
-                disabled={isProcessing}
-              >
-                {isProcessing ? (
-                  <Loader2 className="h-6 w-6 animate-spin" />
-                ) : (
-                  <StopCircle className="h-6 w-6" />
-                )}
-                <span className="sr-only">Stop recording</span>
-              </Button>
+              <RecordingButton 
+                isRecording={isRecording}
+                isProcessing={isProcessing}
+                onStartRecording={handleStartRecording}
+                onStopRecording={handleStopRecording}
+              />
               
-              {isRecording && !isProcessing && (
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                  <div className="text-sm font-medium text-destructive">
-                    {formatDuration(recordingDuration)}
-                  </div>
-                </div>
-              )}
-              
-              {isProcessing && (
-                <div className="text-sm text-muted-foreground">
-                  Processing...
-                </div>
-              )}
+              <RecordingStatus 
+                isRecording={isRecording}
+                isProcessing={isProcessing}
+                recordingDuration={recordingDuration}
+              />
             </div>
             
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={handleCancel}
-              disabled={isProcessing}
-              className="rounded-full h-10 w-10"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Cancel recording</span>
-            </Button>
+            <CancelButton onCancel={handleCancel} isProcessing={isProcessing} />
           </>
         ) : (
           <div className="flex items-center gap-4">
-            <Button
-              variant="default"
-              size="icon"
-              onClick={handleStartRecording}
-              className="rounded-full h-12 w-12 group"
-              disabled={isProcessing}
-            >
-              <Mic className={cn(
-                "h-6 w-6 transition-transform duration-300",
-                "group-hover:scale-110 group-hover:text-primary-foreground"
-              )} />
-              <span className="sr-only">Start recording</span>
-            </Button>
-            <span className="text-sm text-muted-foreground animate-fade-in">
-              Tap to record audio message
-            </span>
+            <RecordingButton 
+              isRecording={isRecording}
+              isProcessing={isProcessing}
+              onStartRecording={handleStartRecording}
+              onStopRecording={handleStopRecording}
+            />
+            
+            <RecordingStatus 
+              isRecording={isRecording}
+              isProcessing={isProcessing}
+              recordingDuration={recordingDuration}
+            />
           </div>
         )}
       </div>
