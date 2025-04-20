@@ -5,33 +5,74 @@ import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
 import { toast } from 'sonner';
 
-// Token expiration buffer (5 minutes before actual expiry)
+// Minimum wait time between token requests (5 seconds)
+const MIN_TOKEN_REQUEST_INTERVAL = 5000;
+// Token refresh buffer (5 minutes before expiry)
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
-const MAX_TOKEN_RETRIES = 3;
-const TOKEN_ERROR_COOLDOWN_MS = 10000; // Cooldown to prevent spamming token requests
+const TOKEN_ERROR_COOLDOWN_MS = 10000; // 10 second cooldown after token errors
 
-interface UseDeviceSetupResult {
-  setupBrowserEnvironment: () => void;
-  initializeDevice: (userId: string) => Promise<Device>;
-  refreshToken: (device: Device, userId: string) => Promise<void>;
-  shouldRefreshToken: () => boolean;
-  tokenExpiryTime: number | null;
-  isDeviceRegistered: boolean;
-}
-
-export function useDeviceSetup(): UseDeviceSetupResult {
+export function useDeviceSetup() {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
   const [deviceRegistered, setDeviceRegistered] = useState(false);
   const tokenRequestInProgress = useRef(false);
-  const lastTokenError = useRef<number>(0);
-  
-  const setupBrowserEnvironment = () => {
+  const lastTokenRequest = useRef<number>(0);
+  const deviceInitTimeout = useRef<number | null>(null);
+  const recoveryTimerRef = useRef<number | null>(null);
+
+  const fetchTwilioToken = async (userId: string): Promise<{ 
+    token: string, 
+    ttl: number,
+    expiresAt: string 
+  }> => {
+    // Prevent rapid token requests
+    const now = Date.now();
+    if (now - lastTokenRequest.current < MIN_TOKEN_REQUEST_INTERVAL) {
+      console.log('Token request too soon, waiting...');
+      await new Promise(resolve => setTimeout(resolve, MIN_TOKEN_REQUEST_INTERVAL));
+    }
+
+    if (tokenRequestInProgress.current) {
+      console.log('Token request in progress, waiting...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return fetchTwilioToken(userId);
+    }
+
+    console.log('Fetching new Twilio token...');
+    tokenRequestInProgress.current = true;
+    lastTokenRequest.current = now;
+
+    try {
+      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
+        body: { 
+          identity: userId,
+          ttl: 1800 // 30 minutes
+        }
+      });
+
+      if (tokenError || !tokenData?.token) {
+        throw new Error(tokenError?.message || 'Failed to get access token');
+      }
+
+      console.log('Token received, expires:', tokenData.expiresAt);
+      setTokenExpiryTime(new Date(tokenData.expiresAt).getTime());
+
+      return {
+        token: tokenData.token,
+        ttl: tokenData.ttl,
+        expiresAt: tokenData.expiresAt
+      };
+    } finally {
+      tokenRequestInProgress.current = false;
+    }
+  };
+
+  const setupBrowserEnvironment = useCallback(() => {
     try {
       console.log('Setting up browser environment for Twilio');
       initializeTwilioEnvironment();
       
-      // Verify that our polyfills are properly set up
+      // Verify polyfills are properly set up
       if (!window.util || typeof window.util.inherits !== 'function') {
         throw new Error('Browser environment setup failed: missing util.inherits');
       }
@@ -40,167 +81,93 @@ export function useDeviceSetup(): UseDeviceSetupResult {
         throw new Error('Browser environment setup failed: missing EventEmitter');
       }
       
-      console.log('Browser environment initialized successfully with all required polyfills');
+      console.log('Browser environment initialized successfully');
     } catch (err) {
       console.error('Failed to initialize browser environment:', err);
       throw err;
     }
-  };
+  }, []);
 
-  const fetchTwilioToken = async (userId: string, retryCount = 0): Promise<{ token: string, ttl: number }> => {
-    if (tokenRequestInProgress.current) {
-      console.log('Token request already in progress, waiting...');
-      // Wait for the existing request to complete
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return fetchTwilioToken(userId, retryCount);
-    }
-
-    // Check for token request cooldown
-    const now = Date.now();
-    if (now - lastTokenError.current < TOKEN_ERROR_COOLDOWN_MS && retryCount > 0) {
-      console.log(`Token request in cooldown period, waiting ${Math.ceil((TOKEN_ERROR_COOLDOWN_MS - (now - lastTokenError.current)) / 1000)}s...`);
-      await new Promise(resolve => setTimeout(resolve, TOKEN_ERROR_COOLDOWN_MS - (now - lastTokenError.current)));
-    }
-
-    console.log(`Fetching Twilio token for user: ${userId} (attempt ${retryCount + 1}/${MAX_TOKEN_RETRIES})`);
-    
-    tokenRequestInProgress.current = true;
-    
-    try {
-      const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
-        body: { identity: userId }
-      });
-
-      tokenRequestInProgress.current = false;
-
-      if (tokenError || !tokenData?.token) {
-        lastTokenError.current = Date.now();
-        throw new Error(tokenError?.message || 'Failed to get access token');
-      }
-
-      const expiryTimeMs = Date.now() + ((tokenData.ttl || 3600) * 1000);
-      setTokenExpiryTime(expiryTimeMs);
-      
-      console.log(`Token received with TTL: ${tokenData.ttl}s, expires at: ${new Date(expiryTimeMs).toISOString()}`);
-      
-      return {
-        token: tokenData.token,
-        ttl: tokenData.ttl || 3600
-      };
-    } catch (err) {
-      tokenRequestInProgress.current = false;
-      console.error('Error fetching token:', err);
-      
-      if (retryCount < MAX_TOKEN_RETRIES - 1) {
-        console.log(`Token fetch failed, retrying in ${(retryCount + 1) * 1000}ms...`);
-        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
-        return fetchTwilioToken(userId, retryCount + 1);
-      }
-      throw err;
-    }
-  };
-
-  const initializeDevice = async (userId: string, retryCount = 0): Promise<Device> => {
+  const initializeDevice = async (userId: string): Promise<Device> => {
     if (!userId) {
       throw new Error('Cannot initialize Twilio device without a user ID');
     }
-    
-    console.log(`Initializing Twilio device for user: ${userId} (attempt ${retryCount + 1})`);
+
+    console.log('Initializing new Twilio device');
     
     try {
       const { token } = await fetchTwilioToken(userId);
-      console.log('Creating new Twilio device instance');
       
-      // Clean up any existing device before creating a new one
+      // Clean up any existing device
       try {
         const global = window as any;
         if (global.twilioDevice) {
-          console.log('Destroying existing device before creating a new one');
+          console.log('Cleaning up existing device');
           global.twilioDevice.destroy();
           global.twilioDevice = null;
         }
       } catch (e) {
         console.warn('Error cleaning up existing device:', e);
       }
-      
+
       const device = new Device();
       
-      // Store reference to device globally for debugging
-      (window as any).twilioDevice = device;
-      
-      // Set up device ready event promise with timeout
-      const deviceReadyPromise = new Promise<boolean>((resolve, reject) => {
-        const timeoutId = setTimeout(() => {
+      // Set up device ready promise with timeout
+      const deviceReady = new Promise<Device>((resolve, reject) => {
+        deviceInitTimeout.current = window.setTimeout(() => {
           device.destroy();
           reject(new Error('Device initialization timed out'));
         }, DEVICE_INIT_TIMEOUT);
-        
+
         device.on('ready', () => {
-          clearTimeout(timeoutId);
+          if (deviceInitTimeout.current) {
+            clearTimeout(deviceInitTimeout.current);
+          }
           setDeviceRegistered(true);
           console.log('Device registered successfully');
-          resolve(true);
-        });
-        
-        device.on('error', (err) => {
-          clearTimeout(timeoutId);
-          console.error('Device error:', err);
-          
-          if (err.code === 31204) { // Token error
-            setDeviceRegistered(false);
-            lastTokenError.current = Date.now();
-          }
-          reject(err);
+          resolve(device);
         });
 
-        // Listen for offline events
-        device.on('offline', () => {
-          console.log('Device went offline');
-          setDeviceRegistered(false);
+        device.on('error', (err) => {
+          if (deviceInitTimeout.current) {
+            clearTimeout(deviceInitTimeout.current);
+          }
+          console.error('Device error:', err);
+          reject(err);
         });
       });
+
+      // Store reference to device globally for debugging
+      (window as any).twilioDevice = device;
       
       console.log('Setting up device with token');
       device.setup(token, {
         debug: true,
         allowIncomingWhileBusy: true,
-        codecPreferences: ['opus', 'pcmu'] as any[],
+        codecPreferences: ['opus', 'pcmu'],
         warnings: true
       });
 
-      // Wait for device to be ready
-      await deviceReadyPromise;
-      
-      return device;
-    } catch (err: any) {
-      console.error(`Error in device setup (attempt ${retryCount + 1}):`, err);
-      setDeviceRegistered(false);
-      
-      if (retryCount < 2) {
-        const delay = Math.pow(2, retryCount) * 1000;
-        console.log(`Retrying device setup in ${delay}ms...`);
-        
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return initializeDevice(userId, retryCount + 1);
-      }
-      
+      return await deviceReady;
+    } catch (err) {
+      console.error('Failed to initialize device:', err);
       throw err;
     }
   };
 
   const refreshToken = async (device: Device, userId: string): Promise<void> => {
+    if (!device || !userId) {
+      console.warn('Cannot refresh token: invalid device or user ID');
+      return;
+    }
+
     try {
       console.log('Refreshing Twilio token');
       const { token } = await fetchTwilioToken(userId);
       
-      // Verify device exists and is not destroyed
-      if (device && typeof device.updateToken === 'function') {
-        device.updateToken(token);
-        setDeviceRegistered(true);
-        console.log('Device token refreshed successfully');
-      } else {
-        throw new Error('Invalid device state during token refresh');
-      }
+      device.updateToken(token);
+      setDeviceRegistered(true);
+      console.log('Device token refreshed successfully');
     } catch (err) {
       console.error('Failed to refresh token:', err);
       setDeviceRegistered(false);
@@ -211,12 +178,10 @@ export function useDeviceSetup(): UseDeviceSetupResult {
   const shouldRefreshToken = useCallback((): boolean => {
     if (!tokenExpiryTime) return false;
     
-    // Refresh if we're within the buffer period before expiration
     const shouldRefresh = Date.now() > (tokenExpiryTime - TOKEN_REFRESH_BUFFER_MS);
     if (shouldRefresh) {
       console.log('Token needs refreshing');
     }
-    
     return shouldRefresh;
   }, [tokenExpiryTime]);
 

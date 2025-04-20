@@ -8,7 +8,9 @@ const corsHeaders = {
 }
 
 // Default token TTL in seconds
-const DEFAULT_TTL = 3600; // 1 hour
+const DEFAULT_TTL = 1800; // 30 minutes
+const MIN_TTL = 300; // 5 minutes
+const MAX_TTL = 7200; // 2 hours
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -17,14 +19,16 @@ serve(async (req) => {
   }
 
   try {
-    const { identity } = await req.json();
+    const { identity, ttl: requestedTtl } = await req.json();
     
     if (!identity) {
       console.error('Missing identity parameter');
       throw new Error('Missing required parameter: identity');
     }
 
-    console.log(`Generating token for identity: ${identity}`);
+    // Validate and normalize TTL
+    const ttl = Math.min(Math.max(requestedTtl || DEFAULT_TTL, MIN_TTL), MAX_TTL);
+    console.log(`Generating token for identity: ${identity} with TTL: ${ttl}s`);
 
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
@@ -42,12 +46,8 @@ serve(async (req) => {
     }
 
     try {
-      // Use the twilio package to create a token
       const AccessToken = twilio.jwt.AccessToken;
       const VoiceGrant = AccessToken.VoiceGrant;
-      
-      // Set token TTL to 1 hour
-      const ttl = DEFAULT_TTL;
       
       // Create an access token with the specified TTL
       const token = new AccessToken(
@@ -56,7 +56,8 @@ serve(async (req) => {
         twilioApiSecret,
         { 
           identity,
-          ttl: ttl
+          ttl: ttl,
+          nbf: Math.floor(Date.now() / 1000) // Not Before - token becomes valid immediately
         }
       );
 
@@ -72,14 +73,18 @@ serve(async (req) => {
       const tokenString = token.toJwt();
       console.log('Token generated successfully');
 
+      const now = Date.now();
+      const expiresAt = now + (ttl * 1000);
+
       return new Response(
         JSON.stringify({ 
           token: tokenString,
           identity,
           accountSid: twilioAccountSid,
           ttl: ttl,
-          timestamp: new Date().toISOString(),
-          expiresAt: new Date(Date.now() + (ttl * 1000)).toISOString()
+          timestamp: new Date(now).toISOString(),
+          expiresAt: new Date(expiresAt).toISOString(),
+          validFrom: new Date(now).toISOString()
         }),
         { 
           headers: { 
@@ -100,7 +105,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'If this persists, please contact support.',
+        details: 'If this persists, please check your Twilio credentials or contact support.',
         timestamp: new Date().toISOString()
       }),
       {
