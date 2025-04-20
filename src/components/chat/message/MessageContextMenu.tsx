@@ -143,13 +143,13 @@ export function MessageContextMenu({
         )}
       </div>
 
+      {/* Fixed Popover implementation - ensuring single child for PopoverTrigger */}
       <Popover 
         open={isEmojiPickerOpen} 
         onOpenChange={setIsEmojiPickerOpen}
-        modal={true}
       >
         <PopoverTrigger asChild>
-          <div className="hidden" /> {/* Empty div as trigger */}
+          <span className="hidden" />
         </PopoverTrigger>
         <PopoverContent 
           className="w-full p-4 z-[100]"
@@ -180,4 +180,3 @@ export function MessageContextMenu({
     </div>
   );
 }
-
