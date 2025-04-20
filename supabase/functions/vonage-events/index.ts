@@ -13,17 +13,28 @@ serve(async (req) => {
 
   try {
     const event = await req.json()
-    console.log('Received Vonage event:', event)
+    console.log('Received Vonage event:', JSON.stringify(event, null, 2))
     
-    // Here you can handle different event types like:
-    // - started: call has started
-    // - ringing: call is ringing
-    // - answered: call was answered
-    // - completed: call has ended
-    // For now we'll just log them
+    // Detailed event logging
+    switch (event.status) {
+      case 'started':
+        console.log(`Call ${event.uuid} started`);
+        break;
+      case 'ringing':
+        console.log(`Call ${event.uuid} is ringing`);
+        break;
+      case 'answered':
+        console.log(`Call ${event.uuid} was answered`);
+        break;
+      case 'completed':
+        console.log(`Call ${event.uuid} has ended`);
+        break;
+      default:
+        console.log(`Unhandled event status: ${event.status}`);
+    }
 
     return new Response(
-      JSON.stringify({ received: true }),
+      JSON.stringify({ received: true, status: 'processed' }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
