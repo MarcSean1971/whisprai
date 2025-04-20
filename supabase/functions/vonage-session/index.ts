@@ -46,7 +46,7 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create base64 encoded auth header
+    // Format auth header correctly - remove 'Basic' prefix as it's added by Vonage
     const authHeader = btoa(`${apiKey}:${apiSecret}`);
     console.log('Attempting to create session with Vonage');
 
@@ -54,8 +54,8 @@ serve(async (req) => {
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': `Basic ${authHeader}`,
-        'X-TB-VERSION': '1.0',
+        'X-OPENTOK-AUTH': authHeader,
+        'X-TB-VERSION': '1',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
@@ -78,12 +78,12 @@ serve(async (req) => {
     const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token using API Key and Secret
+    // Generate token using API Key and Secret with corrected auth header
     const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': `Basic ${authHeader}`,
-        'X-TB-VERSION': '1.0',
+        'X-OPENTOK-AUTH': authHeader,
+        'X-TB-VERSION': '1',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
