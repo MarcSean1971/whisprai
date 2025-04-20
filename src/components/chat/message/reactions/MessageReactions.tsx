@@ -1,5 +1,6 @@
 
 import { cn } from "@/lib/utils";
+import { useMessageReactions } from "@/hooks/use-message-reactions";
 
 interface MessageReactionsProps {
   messageId: string;
