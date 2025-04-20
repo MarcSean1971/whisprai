@@ -26,7 +26,7 @@ export function ChatHeader({
   const { profile } = useProfile();
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
+  const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   
   const otherParticipants = conversation?.participants?.filter(p => 
@@ -35,7 +35,8 @@ export function ChatHeader({
 
   const participants = otherParticipants.map(p => ({
     src: p.avatar_url || '',
-    name: `${p.first_name || ''} ${p.last_name || ''}`.trim()
+    name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
+    onClick: () => handleParticipantClick(p)
   }));
 
   // Format participant names and taglines for display

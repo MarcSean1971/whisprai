@@ -6,6 +6,7 @@ interface AvatarStackProps {
   avatars: {
     src?: string;
     name: string;
+    onClick?: () => void;
   }[];
   limit?: number;
   size?: "sm" | "md" | "lg";
@@ -30,7 +31,14 @@ export function AvatarStack({
   return (
     <div className={cn("flex items-center", className)}>
       {displayAvatars.map((avatar, i) => (
-        <Avatar key={i} className={cn("border-2 border-background", sizeClasses[size])}>
+        <Avatar 
+          key={i} 
+          className={cn(
+            "border-2 border-background cursor-pointer hover:scale-105 transition-transform", 
+            sizeClasses[size]
+          )}
+          onClick={avatar.onClick}
+        >
           <AvatarImage src={avatar.src} alt={avatar.name} />
           <AvatarFallback className="bg-primary/10 text-primary">
             {avatar.name.slice(0, 2).toUpperCase()}
