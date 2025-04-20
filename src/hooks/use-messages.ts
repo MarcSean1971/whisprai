@@ -1,3 +1,4 @@
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -120,14 +121,44 @@ export function useMessages(conversationId: string) {
         throw messagesError;
       }
 
-      return messages.map(message => ({
-        ...message,
-        sender: message.sender,
-        parent: message.parent ? {
-          ...message.parent,
-          sender: message.parent.sender
-        } : null
-      }));
+      if (!messages) {
+        console.warn('No messages returned from query');
+        return [];
+      }
+
+      return messages.map(message => {
+        // Basic validation of required fields
+        if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
+          console.error('Invalid message structure:', message);
+          return null;
+        }
+
+        return {
+          id: message.id,
+          content: message.content,
+          created_at: message.created_at,
+          conversation_id: message.conversation_id,
+          sender_id: message.sender_id,
+          status: message.status || 'sent',
+          original_language: message.original_language,
+          metadata: message.metadata,
+          private_room: message.private_room,
+          private_recipient: message.private_recipient,
+          sender: message.sender ? {
+            id: message.sender.id,
+            profiles: message.sender.profiles
+          } : null,
+          parent: message.parent ? {
+            id: message.parent.id,
+            content: message.parent.content,
+            created_at: message.parent.created_at,
+            sender: message.parent.sender ? {
+              id: message.parent.sender.id,
+              profiles: message.parent.sender.profiles
+            } : null
+          } : null
+        };
+      }).filter(Boolean); // Remove any null messages from validation
     }
   });
 }
