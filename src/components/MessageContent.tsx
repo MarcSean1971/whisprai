@@ -2,7 +2,6 @@
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
-import { MessageReactions } from "@/components/chat/message/reactions/MessageReactions";
 
 interface MessageContentProps {
   id: string;
@@ -51,17 +50,14 @@ export function MessageContent({
       isOwn={isOwn}
       messageId={id}
     >
-      <div className="flex flex-col">
-        <MessageBubble
-          id={id}
-          content={content}
-          timestamp={timestamp}
-          isOwn={isOwn}
-          isAIMessage={isAIMessage}
-          attachments={attachments}
-        />
-        <MessageReactions messageId={id} isOwn={isOwn} />
-      </div>
+      <MessageBubble
+        id={id}
+        content={content}
+        timestamp={timestamp}
+        isOwn={isOwn}
+        isAIMessage={isAIMessage}
+        attachments={attachments}
+      />
     </MessageContextMenu>
   );
 }

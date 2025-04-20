@@ -16,6 +16,7 @@ import {
 import { useState, useRef } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
+import { MessageReactions } from "./reactions/MessageReactions";
 
 interface MessageContextMenuProps {
   children: React.ReactNode;
@@ -52,98 +53,105 @@ export function MessageContextMenu({
   };
 
   return (
-    <div className="group flex items-start gap-2">
-      {isOwn && (
-        <div className="pt-2">
-          <DropdownMenu 
-            open={isDropdownOpen} 
-            onOpenChange={setIsDropdownOpen}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button
-                ref={dropdownTriggerRef}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              side="bottom"
-              className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+    <div className="group flex flex-col gap-1">
+      <div className="flex items-start gap-2">
+        {isOwn && (
+          <div className="pt-2">
+            <DropdownMenu 
+              open={isDropdownOpen} 
+              onOpenChange={setIsDropdownOpen}
             >
-              <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
-                <Reply className="mr-2 h-4 w-4" />
-                <span>Reply</span>
-              </DropdownMenuItem>
-              {showTranslationToggle && (
-                <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
-                  <Languages className="mr-2 h-4 w-4" />
-                  <span>Toggle Translation</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={handleAddReactionClick}
-                onSelect={(e) => e.preventDefault()}
+              <DropdownMenuTrigger asChild>
+                <Button
+                  ref={dropdownTriggerRef}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                side="bottom"
+                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
               >
-                <Smile className="mr-2 h-4 w-4" />
-                <span>Add Reaction</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
+                  <Reply className="mr-2 h-4 w-4" />
+                  <span>Reply</span>
+                </DropdownMenuItem>
+                {showTranslationToggle && (
+                  <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
+                    <Languages className="mr-2 h-4 w-4" />
+                    <span>Toggle Translation</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={handleAddReactionClick}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <Smile className="mr-2 h-4 w-4" />
+                  <span>Add Reaction</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+        
+        <div className="flex-1">
+          {children}
         </div>
-      )}
-      
-      <div className="flex-1">
-        {children}
-      </div>
 
-      {!isOwn && (
-        <div className="pt-2">
-          <DropdownMenu 
-            open={isDropdownOpen} 
-            onOpenChange={setIsDropdownOpen}
-          >
-            <DropdownMenuTrigger asChild>
-              <Button
-                ref={dropdownTriggerRef}
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="bottom"
-              className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+        {!isOwn && (
+          <div className="pt-2">
+            <DropdownMenu 
+              open={isDropdownOpen} 
+              onOpenChange={setIsDropdownOpen}
             >
-              <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
-                <Reply className="mr-2 h-4 w-4" />
-                <span>Reply</span>
-              </DropdownMenuItem>
-              {showTranslationToggle && (
-                <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
-                  <Languages className="mr-2 h-4 w-4" />
-                  <span>Toggle Translation</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={handleAddReactionClick}
-                onSelect={(e) => e.preventDefault()}
+              <DropdownMenuTrigger asChild>
+                <Button
+                  ref={dropdownTriggerRef}
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                side="bottom"
+                className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
               >
-                <Smile className="mr-2 h-4 w-4" />
-                <span>Add Reaction</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
+                <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
+                  <Reply className="mr-2 h-4 w-4" />
+                  <span>Reply</span>
+                </DropdownMenuItem>
+                {showTranslationToggle && (
+                  <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
+                    <Languages className="mr-2 h-4 w-4" />
+                    <span>Toggle Translation</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={handleAddReactionClick}
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  <Smile className="mr-2 h-4 w-4" />
+                  <span>Add Reaction</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
+      </div>
+      
+      {/* Add reactions below the message bubble with compact styling */}
+      <div className="ml-1 -mt-1">
+        <MessageReactions messageId={messageId} isOwn={isOwn} />
+      </div>
 
       <Popover 
         open={isEmojiPickerOpen} 

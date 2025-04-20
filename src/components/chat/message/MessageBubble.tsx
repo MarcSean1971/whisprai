@@ -3,7 +3,6 @@ import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { MessageReactions } from "./reactions/MessageReactions";
 
 interface MessageBubbleProps {
   id: string;
@@ -148,9 +147,8 @@ export function MessageBubble({
       <div className="text-sm break-words">{content}</div>
       {renderAttachments()}
       {children}
-      <div className="flex items-center gap-2 mt-0.5">
-        <MessageReactions messageId={id} isOwn={isOwn} />
-        <span className="text-[10px] opacity-70 ml-auto">
+      <div className="text-right">
+        <span className="text-[10px] opacity-70">
           {timestamp}
         </span>
       </div>
