@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -47,6 +48,18 @@ interface ChatMessageProps {
       name: string;
       type: string;
     }[];
+    parent?: {
+      id: string;
+      content: string;
+      created_at: string;
+      sender?: {
+        id: string;
+        profiles?: {
+          first_name?: string | null;
+          last_name?: string | null;
+        }
+      }
+    };
   };
   onReply: () => void;
   isReplying?: boolean;

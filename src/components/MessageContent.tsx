@@ -23,6 +23,18 @@ interface MessageContentProps {
     name: string;
     type: string;
   }[];
+  parent?: {
+    id: string;
+    content: string;
+    created_at: string;
+    sender?: {
+      id: string;
+      profiles?: {
+        first_name?: string | null;
+        last_name?: string | null;
+      }
+    }
+  }
 }
 
 export function MessageContent({
@@ -40,7 +52,8 @@ export function MessageContent({
   onDelete,
   isDeleting,
   onReply,
-  attachments
+  attachments,
+  parent
 }: MessageContentProps) {
   return (
     <MessageContextMenu
@@ -58,6 +71,7 @@ export function MessageContent({
         isAIMessage={isAIMessage}
         attachments={attachments}
         onReply={onReply}
+        parent={parent}
       />
     </MessageContextMenu>
   );
