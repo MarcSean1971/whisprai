@@ -4,7 +4,7 @@ import { useDeviceSetup } from './useDeviceSetup';
 import { useDeviceState } from './useDeviceState';
 import { useCallActions } from './useCallActions';
 import { useCallInitialization } from './useCallInitialization';
-import { UseTwilioVoiceProps } from '../types';
+import { UseTwilioVoiceProps, CallStatus } from '../types';
 
 export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const setupCompleted = useRef(false);
@@ -75,5 +75,3 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     ...callActions,
   };
 }
-
-export { CallStatus };
