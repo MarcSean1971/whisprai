@@ -54,7 +54,7 @@ export function ChatMessages({
 
   return (
     <TranslationProvider>
-      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar h-full">
         <MessageList
           messages={messages}
           currentUserId={currentUserId}

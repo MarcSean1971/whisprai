@@ -66,35 +66,39 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+    <div className="flex flex-col h-screen w-full bg-background">
       <ChatHeader 
         conversationId={id} 
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
-      <Suspense fallback={
-        <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
-          <MessageSkeleton />
-          <MessageSkeleton />
-          <MessageSkeleton />
-        </div>
-      }>
-        <ChatMessages 
-          messages={messages || []} 
-          userLanguage={profile?.language}
-          onNewReceivedMessage={handleNewReceivedMessage}
-          onTranslation={handleTranslation}
-          onReply={startReply}
-          replyToMessageId={replyToMessageId}
+      <div className="flex-1 overflow-hidden">
+        <Suspense fallback={
+          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
+            <MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
+          </div>
+        }>
+          <ChatMessages 
+            messages={messages || []} 
+            userLanguage={profile?.language}
+            onNewReceivedMessage={handleNewReceivedMessage}
+            onTranslation={handleTranslation}
+            onReply={startReply}
+            replyToMessageId={replyToMessageId}
+          />
+        </Suspense>
+      </div>
+      <div className="sticky bottom-0 w-full bg-background border-t z-10">
+        <ChatInput
+          conversationId={id}
+          onSendMessage={handleSendMessage}
+          suggestions={suggestions}
+          isLoadingSuggestions={isLoadingSuggestions}
+          replyMode={!!replyToMessageId}
         />
-      </Suspense>
-      <ChatInput
-        conversationId={id}
-        onSendMessage={handleSendMessage}
-        suggestions={suggestions}
-        isLoadingSuggestions={isLoadingSuggestions}
-        replyMode={!!replyToMessageId}
-      />
+      </div>
     </div>
   );
 }
