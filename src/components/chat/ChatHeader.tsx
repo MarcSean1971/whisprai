@@ -1,4 +1,5 @@
-import { BackButton } from "@/components/BackButton";
+
+import { BackButton } from "@/components/ui/back-button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -21,6 +22,7 @@ export function ChatHeader({
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
 
+  // Fix type error by using optional chaining for profile.id
   const participant = conversation?.participants?.find(p => p.id !== profile?.id);
 
   return (
