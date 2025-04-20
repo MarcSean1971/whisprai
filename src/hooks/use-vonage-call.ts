@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { loadVonageScript } from "@/lib/vonage-loader";
@@ -27,7 +26,6 @@ export function useVonageCall({
   
   const scriptLoaded = useRef(false);
   
-  // Load the Vonage script if not already loaded
   useEffect(() => {
     if (!scriptLoaded.current) {
       loadVonageScript()
@@ -80,7 +78,6 @@ export function useVonageCall({
       setIsConnecting(true);
       setError(null);
       
-      // Get session information from our backend
       const { data, error: sessionError } = await supabase.functions.invoke('vonage-session', {
         body: { 
           conversationId, 
@@ -98,33 +95,23 @@ export function useVonageCall({
         throw new Error("Invalid session data received");
       }
       
-      // Initialize the session
       sessionRef.current = window.OT.initSession(apiKey, sessionId);
       
-      // Set up event handlers
       sessionRef.current.on('streamCreated', (event: any) => {
-        // The TypeScript definition expects only 2 parameters:
-        // 1. stream: Stream object
-        // 2. options object (containing target element, properties, and callback)
-        
-        // Create a config object that includes the callback
         const subscribeOptions = {
           insertMode: 'append',
           width: '100%',
           height: '100%',
-          appendTo: subscriberElement, // Target element included in options
-          // Include the callback as part of the options object
+          appendTo: subscriberElement,
           subscribeToAudio: true,
           subscribeToVideo: true
         };
         
-        // Fix: Use only 2 arguments - the stream and options
         subscriberRef.current = sessionRef.current.subscribe(
           event.stream,
           subscribeOptions
         );
         
-        // Set subscriber state in a separate step after subscribe
         subscriberRef.current.on('connected', () => {
           setHasRemoteParticipant(true);
         });
@@ -145,25 +132,24 @@ export function useVonageCall({
         }
       });
       
-      // Initialize the publisher
+      const publisherOptions = {
+        insertMode: 'append',
+        width: '100%',
+        height: '100%',
+        publishAudio: true,
+        publishVideo: false,
+      };
+      
       publisherRef.current = window.OT.initPublisher(
         publisherElement,
-        {
-          insertMode: 'append',
-          width: '100%',
-          height: '100%',
-          publishAudio: true,
-          publishVideo: false,
-        },
-        (error: any) => {
-          if (error) {
-            console.error('Error initializing publisher:', error);
-            setError("Could not access camera/microphone");
-          }
-        }
+        publisherOptions
       );
       
-      // Connect to the session
+      publisherRef.current.on('error', (error: any) => {
+        console.error('Error initializing publisher:', error);
+        setError("Could not access camera/microphone");
+      });
+      
       sessionRef.current.connect(token, (error: any) => {
         if (error) {
           console.error('Error connecting to session:', error);
@@ -172,7 +158,6 @@ export function useVonageCall({
           return;
         }
         
-        // Publish our stream to the session
         sessionRef.current.publish(publisherRef.current, (pubError: any) => {
           if (pubError) {
             console.error('Error publishing stream:', pubError);
