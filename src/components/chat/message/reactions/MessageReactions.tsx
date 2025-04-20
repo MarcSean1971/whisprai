@@ -21,13 +21,13 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-1 mt-1">
+    <div className="flex flex-wrap gap-1">
       {Object.entries(reactionGroups).map(([emoji, count]) => (
         <span
           key={emoji}
           className={cn(
-            "text-[10px] flex items-center gap-0.5 bg-muted/50 px-1.5 py-0.5 rounded-full",
-            isOwn && "bg-primary/10"
+            "text-[10px] flex items-center gap-0.5 bg-black/5 px-1.5 py-0.5 rounded-full",
+            isOwn && "bg-white/10"
           )}
         >
           {emoji} {count > 1 && <span className="font-medium">{count}</span>}

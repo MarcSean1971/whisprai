@@ -146,8 +146,11 @@ export function MessageBubble({
     )}>
       <div className="text-sm break-words">{content}</div>
       {renderAttachments()}
+      <div className="mt-2">
+        <MessageReactions messageId={id} isOwn={isOwn} />
+      </div>
       {children}
-      <div className="text-right">
+      <div className="text-right mt-1">
         <span className="text-[10px] opacity-70">
           {timestamp}
         </span>
