@@ -21,23 +21,25 @@ export function MessageContextMenu({
 }: MessageContextMenuProps) {
   return (
     <ContextMenu>
-      <ContextMenuTrigger asChild>
+      <ContextMenuTrigger className="inline-block w-full touch-none" asChild>
         {children}
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={onReply}>
+      <ContextMenuContent
+        className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md animate-in fade-in-0 zoom-in-95"
+      >
+        <ContextMenuItem className="cursor-pointer" onClick={onReply}>
           <Reply className="mr-2 h-4 w-4" />
-          Reply
+          <span>Reply</span>
         </ContextMenuItem>
         {showTranslationToggle && (
-          <ContextMenuItem onClick={onToggleTranslation}>
+          <ContextMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
             <Languages className="mr-2 h-4 w-4" />
-            Toggle Translation
+            <span>Toggle Translation</span>
           </ContextMenuItem>
         )}
-        <ContextMenuItem>
+        <ContextMenuItem className="cursor-pointer">
           <Smile className="mr-2 h-4 w-4" />
-          Add Reaction
+          <span>Add Reaction</span>
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
