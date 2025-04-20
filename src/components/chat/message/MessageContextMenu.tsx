@@ -1,5 +1,6 @@
+
 import { MoreVertical } from "lucide-react";
-import { Reply, Languages, Smile } from "lucide-react";
+import { Reply, Languages, Smile, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
