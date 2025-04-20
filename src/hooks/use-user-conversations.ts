@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +19,7 @@ export function useUserConversations() {
             *,
             conversation_participants!inner (
               user_id,
-              profiles!inner (
+              profiles (
                 id,
                 first_name,
                 last_name,
@@ -40,34 +41,11 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        const messageIds = conversations
-          .flatMap(conv => conv.messages)
-          .filter(msg => msg)
-          .map(msg => msg.id);
-
-        let senderProfiles = {};
-        if (messageIds.length > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, first_name, last_name, avatar_url')
-            .in('id', conversations.flatMap(conv => 
-              conv.messages.map(msg => msg.sender_id)).filter(id => id != null));
-  
-          if (profilesError) {
-            console.error('Error fetching sender profiles:', profilesError);
-          } else if (profilesData) {
-            senderProfiles = profilesData.reduce((acc, profile) => {
-              acc[profile.id] = profile;
-              return acc;
-            }, {});
-          }
-        }
-
         return conversations.map(conversation => {
           const otherParticipants = conversation.conversation_participants
             .filter(p => p.user_id !== user.id)
             .map(p => ({
-              id: p.profiles.id,
+              id: p.user_id,
               name: `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() || 'Unknown User',
               avatar: p.profiles.avatar_url
             }));
@@ -77,32 +55,20 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
-          const displayName = conversation.is_group
-            ? `Group Chat (${conversation.conversation_participants.length} participants)`
-            : otherParticipants[0]?.name || 'Unknown User';
-
           return {
             id: conversation.id,
-            name: displayName,
+            name: conversation.is_group 
+              ? conversation.name || `Group Chat (${conversation.conversation_participants.length} participants)`
+              : otherParticipants[0]?.name || 'Unknown User',
             is_group: conversation.is_group,
             participants: otherParticipants,
             avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               conversation_id: conversation.id,
-              content: lastMessage.content.length > 50 
-                ? `${lastMessage.content.substring(0, 50)}...` 
-                : lastMessage.content,
+              content: lastMessage.content,
               created_at: lastMessage.created_at,
-              sender_id: lastMessage.sender_id,
-              status: 'sent',
-              sender: lastMessage.sender_id && senderProfiles[lastMessage.sender_id] ? {
-                profiles: {
-                  first_name: senderProfiles[lastMessage.sender_id].first_name,
-                  last_name: senderProfiles[lastMessage.sender_id].last_name,
-                  avatar_url: senderProfiles[lastMessage.sender_id].avatar_url
-                }
-              } : undefined
+              sender_id: lastMessage.sender_id
             } : null,
             created_at: conversation.created_at,
             updated_at: conversation.updated_at

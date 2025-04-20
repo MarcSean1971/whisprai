@@ -1,4 +1,4 @@
-import { useState } from "react";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AvatarStack } from "@/components/ui/avatar-stack";
@@ -33,8 +33,6 @@ export function ConversationItem({
   participants = [],
   onClick,
 }: ConversationItemProps) {
-  const [isHovered, setIsHovered] = useState(false);
-
   return (
     <div
       className={cn(
@@ -43,8 +41,6 @@ export function ConversationItem({
         unreadCount > 0 && "font-medium"
       )}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {isGroup ? (
         <AvatarStack
