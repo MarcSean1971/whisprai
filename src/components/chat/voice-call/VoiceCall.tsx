@@ -55,7 +55,7 @@ export function VoiceCall({
     }
 
     scriptLoadingRef.current = true
-    console.log('Loading Vonage Client SDK...')
+    console.log('Loading Vonage Video SDK...')
 
     return new Promise((resolve, reject) => {
       // First remove any existing scripts to avoid conflicts
@@ -63,7 +63,7 @@ export function VoiceCall({
       existingScripts.forEach(script => script.remove())
 
       const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/@vonage/client-sdk@1.3.0/dist/vonageClientSDK.min.js'
+      script.src = 'https://static.opentok.com/v2/js/opentok.min.js'  // Updated SDK URL
       script.async = true
 
       const timeoutId = setTimeout(() => {
@@ -74,13 +74,13 @@ export function VoiceCall({
 
       script.onload = () => {
         clearTimeout(timeoutId)
-        console.log('Vonage Client SDK loaded successfully')
+        console.log('Vonage Video SDK loaded successfully')
         scriptLoadingRef.current = false
         scriptLoadedRef.current = true
         
-        if (!window.Vonage) {
-          console.error('Vonage SDK loaded but global object not available')
-          reject(new Error('Vonage SDK not properly initialized'))
+        if (!window.OT) {  // Check for OpenTok global object
+          console.error('Vonage Video SDK not properly initialized')
+          reject(new Error('Vonage Video SDK not properly initialized'))
           return
         }
         
@@ -89,7 +89,7 @@ export function VoiceCall({
 
       script.onerror = () => {
         clearTimeout(timeoutId)
-        console.error(`Failed to load Vonage Client SDK (attempt ${retryCount + 1})`)
+        console.error(`Failed to load Vonage Video SDK (attempt ${retryCount + 1})`)
         script.remove()
         scriptLoadingRef.current = false
         
@@ -112,9 +112,9 @@ export function VoiceCall({
       if (sessionRef.current) {
         console.log('Cleaning up session...')
         try {
-          await sessionRef.current.leave()
+          await sessionRef.current.disconnect()
         } catch (error) {
-          console.error('Error leaving session:', error)
+          console.error('Error disconnecting session:', error)
         }
         sessionRef.current = null
       }
@@ -147,12 +147,12 @@ export function VoiceCall({
       console.log('Initializing call...')
 
       // If SDK is not loaded yet, try loading it again
-      if (typeof window.Vonage === 'undefined') {
-        console.log('Vonage not loaded, attempting to load SDK again')
+      if (typeof window.OT === 'undefined') {
+        console.log('Vonage SDK not loaded, attempting to load SDK again')
         await loadVonageSDK()
         
         // Double-check it's available after loading
-        if (typeof window.Vonage === 'undefined') {
+        if (typeof window.OT === 'undefined') {
           throw new Error('Voice call service not initialized. Please try again in a moment.')
         }
       }
@@ -176,42 +176,42 @@ export function VoiceCall({
         throw new Error('Failed to get voice call credentials')
       }
 
-      console.log('Got Vonage credentials, initializing RTC client...')
+      console.log('Got Vonage credentials, initializing session...')
 
-      clientRef.current = new window.Vonage.Client({
-        debug: true,
-        autoConnect: false
+      // Initialize OpenTok session
+      const session = window.OT.initSession(applicationId, token)
+
+      session.on('streamCreated', (event: any) => {
+        console.log('Stream created, subscribing...')
+        session.subscribe(event.stream, 'subscriber', {
+          insertMode: 'append',
+          width: '100%',
+          height: '100%'
+        })
       })
 
-      clientRef.current.on('error', (error: any) => {
-        console.error('Vonage client error:', error)
-        onError(new Error(error.message || 'Call failed'))
+      session.on('sessionDisconnected', () => {
+        console.log('Session disconnected')
         handleCleanup()
       })
 
-      clientRef.current.on('disconnected', () => {
-        console.log('Disconnected from voice service')
-        handleCleanup()
+      session.connect((error: any) => {
+        if (error) {
+          console.error('Error connecting to session:', error)
+          throw error
+        }
+
+        console.log('Session connected, publishing stream...')
+        const publisher = window.OT.initPublisher('publisher', {
+          insertMode: 'append',
+          width: '100%',
+          height: '100%'
+        })
+
+        session.publish(publisher)
       })
 
-      console.log('Creating session with token...')
-      await clientRef.current.createSession(token)
-      console.log('Session created successfully')
-
-      console.log('Creating call conversation...')
-      sessionRef.current = await clientRef.current.session.create({
-        name: `call-${Date.now()}`,
-        display_name: `Call with ${recipientId}`
-      })
-
-      console.log('Enabling audio...')
-      await sessionRef.current.media.enable({
-        audio: true,
-        video: false
-      })
-
-      console.log('Audio enabled, inviting recipient...')
-      await sessionRef.current.invite(recipientId)
+      sessionRef.current = session
 
       if (ringtoneRef.current) {
         await ringtoneRef.current.play().catch(console.error)
@@ -249,9 +249,9 @@ export function VoiceCall({
       
       <div className="w-full h-64 bg-secondary rounded-lg flex items-center justify-center">
         {isCallActive ? (
-          <div className="text-center">
-            <div className="text-xl font-medium mb-2">Call in progress</div>
-            <div className="text-muted-foreground">Connected to voice call</div>
+          <div className="space-y-4">
+            <div id="publisher" className="w-full h-32" />
+            <div id="subscriber" className="w-full h-32" />
           </div>
         ) : (
           <div className="text-center">
