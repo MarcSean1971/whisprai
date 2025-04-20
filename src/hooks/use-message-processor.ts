@@ -42,10 +42,11 @@ export function useMessageProcessor(
           const translated = await translateMessage(message.content, userLanguage);
           if (translated !== message.content) {
             // Fix: Create a new object with the previous state and add the new translation
-            setTranslatedContents(prev => ({
-              ...prev,
+            const newTranslations = {
+              ...translatedContents,
               [message.id]: translated
-            }));
+            };
+            setTranslatedContents(newTranslations);
             
             onTranslation?.(message.id, translated);
           }
