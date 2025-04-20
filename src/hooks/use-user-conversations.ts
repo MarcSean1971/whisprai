@@ -44,6 +44,9 @@ export function useUserConversations() {
 
           return {
             id: conversation.id,
+            name: "Conversation", // Default placeholder name
+            avatar: null, // Default placeholder avatar
+            is_group: conversation.is_group,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,

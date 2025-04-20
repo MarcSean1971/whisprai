@@ -8,7 +8,7 @@ import type { Message } from "@/hooks/use-messages";
 
 interface ConversationItemProps {
   id: string;
-  name: string;
+  name?: string;
   avatar?: string;
   lastMessage?: Message;
   timestamp?: string;
@@ -22,7 +22,7 @@ interface ConversationItemProps {
 
 export function ConversationItem({
   id,
-  name,
+  name = "Chat",
   avatar,
   lastMessage,
   timestamp,
@@ -56,7 +56,7 @@ export function ConversationItem({
         <Avatar className="h-12 w-12 mr-3 flex-shrink-0">
           <AvatarImage src={avatar} alt={name} />
           <AvatarFallback className="bg-primary/10 text-primary">
-            {name.slice(0, 2).toUpperCase()}
+            {(name || "CH").slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       )}
