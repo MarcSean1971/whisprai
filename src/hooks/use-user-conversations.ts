@@ -25,8 +25,9 @@ export function useUserConversations() {
               created_at,
               sender_id
             ),
-            other_participant:conversation_participants!inner (
-              profiles!inner (
+            conversation_participants!conversation_participants_conversation_id_fkey (
+              user_id,
+              profiles!fk_conversation_participants_profiles (
                 first_name,
                 last_name,
                 avatar_url
@@ -42,9 +43,11 @@ export function useUserConversations() {
         }
 
         return conversations.map(conversation => {
-          // Get the profile of the other participant
-          const otherParticipantProfile = conversation.other_participant
-            .find(p => p.profiles)?.profiles;
+          // Find the OTHER participant (not the current user)
+          const otherParticipant = conversation.conversation_participants
+            .find(p => p.user_id !== user.id);
+          
+          const otherProfile = otherParticipant?.profiles;
 
           // Sort messages to get the latest one
           const sortedMessages = conversation.messages.sort(
@@ -54,10 +57,10 @@ export function useUserConversations() {
 
           return {
             id: conversation.id,
-            name: otherParticipantProfile 
-              ? `${otherParticipantProfile.first_name || ''} ${otherParticipantProfile.last_name || ''}`.trim() 
+            name: otherProfile 
+              ? `${otherProfile.first_name || ''} ${otherProfile.last_name || ''}`.trim() 
               : 'Unknown User',
-            avatar: otherParticipantProfile?.avatar_url,
+            avatar: otherProfile?.avatar_url,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,
