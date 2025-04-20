@@ -16,7 +16,7 @@ interface Window {
   };
   Vonage?: any;
   OT?: {
-    initSession: (apiKey: string, sessionId: string) => any;
+    initSession: (apiKey: string, token: string) => any;
     initPublisher: (targetElement: string, options: any) => any;
     [key: string]: any;
   };

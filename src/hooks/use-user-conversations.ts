@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import type { Conversation } from "@/types/conversation";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
 
 export function useUserConversations() {
   const { toast } = useToast();
@@ -12,19 +11,39 @@ export function useUserConversations() {
     queryKey: ['user-conversations'],
     queryFn: async () => {
       try {
-        console.log('Starting to fetch user conversations');
-        
-        // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error('Not authenticated');
 
         console.log('Fetching conversations for user:', user.id);
 
-        // Get all conversations the user is part of (simpler query that works with RLS)
+        // First, directly check if the user is participating in any conversations
+        const { data: participations, error: participationsError } = await supabase
+          .from('conversation_participants')
+          .select('conversation_id')
+          .eq('user_id', user.id);
+
+        if (participationsError) {
+          console.error('Error fetching participations:', participationsError);
+          throw participationsError;
+        }
+
+        // Extract conversation IDs
+        const conversationIds = participations?.map(p => p.conversation_id) || [];
+        
+        // Handle no conversations case
+        if (!conversationIds.length) {
+          console.log('No conversations found for user');
+          return [];
+        }
+        
+        console.log('Found conversation IDs:', conversationIds);
+        
+        // Fetch conversations using the IDs
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
-          .select('*')
+          .select('*, created_at, updated_at, is_group')
+          .in('id', conversationIds)
           .order('updated_at', { ascending: false });
 
         if (conversationsError) {
@@ -33,52 +52,48 @@ export function useUserConversations() {
         }
 
         console.log('Successfully fetched conversations:', conversations?.length);
-        
-        if (!conversations || conversations.length === 0) {
-          return [];
-        }
 
-        // Fetch all participants for these conversations
-        const allConversationIds = conversations.map(c => c.id);
-        
-        const { data: allParticipants, error: participantsError } = await supabase
-          .from('conversation_participants')
-          .select(`
-            conversation_id,
-            user_id,
-            profiles!inner (
-              id, 
-              first_name,
-              last_name,
-              avatar_url,
-              language
-            )
-          `)
-          .in('conversation_id', allConversationIds);
+        // For each conversation, get the participants and newest message
+        const conversationsWithDetails = await Promise.all(conversations.map(async (conversation) => {
+          // Get all participants for this conversation
+          const { data: participants, error: participantsError } = await supabase
+            .from('conversation_participants')
+            .select(`
+              user_id,
+              profiles!inner (
+                id, 
+                first_name,
+                last_name,
+                avatar_url,
+                language
+              )
+            `)
+            .eq('conversation_id', conversation.id);
 
-        if (participantsError) {
-          console.error('Error fetching participants:', participantsError);
-          throw participantsError;
-        }
+          if (participantsError) {
+            console.error(`Error fetching participants for conversation ${conversation.id}:`, participantsError);
+            return null;
+          }
 
-        // Fetch all latest messages for these conversations
-        const { data: allMessages, error: messagesError } = await supabase
-          .from('messages')
-          .select('id, content, sender_id, created_at, status, conversation_id')
-          .in('conversation_id', allConversationIds)
-          .order('created_at', { ascending: false });
+          // Get latest message for this conversation
+          const { data: messages, error: messagesError } = await supabase
+            .from('messages')
+            .select('id, content, sender_id, created_at, status')
+            .eq('conversation_id', conversation.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
 
-        if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
-          throw messagesError;
-        }
+          if (messagesError) {
+            console.error(`Error fetching messages for conversation ${conversation.id}:`, messagesError);
+            return null;
+          }
 
-        // Process all conversations
-        const processedConversations = conversations.map(conversation => {
-          // Get participants for this conversation
-          const conversationParticipants = allParticipants
-            ?.filter(p => p.conversation_id === conversation.id && p.user_id !== user.id)
-            .map(p => ({
+          const lastMessage = messages && messages.length > 0 ? messages[0] : undefined;
+          
+          // Filter out current user from participants list
+          const otherParticipants = participants
+            ?.filter(p => p.user_id !== user.id)
+            ?.map(p => ({
               user_id: p.user_id,
               profile: {
                 id: p.profiles?.id || p.user_id,
@@ -89,40 +104,28 @@ export function useUserConversations() {
               }
             })) || [];
 
-          // Get latest message for this conversation
-          const latestMessage = allMessages?.find(m => m.conversation_id === conversation.id);
-          
-          const primaryProfile = conversationParticipants[0]?.profile;
+          const primaryProfile = otherParticipants[0]?.profile;
           
           const displayName = primaryProfile 
             ? (primaryProfile.first_name 
                 ? `${primaryProfile.first_name || ''} ${primaryProfile.last_name || ''}`.trim()
                 : `User ${primaryProfile.id.slice(0, 8)}`)
             : 'Unknown User';
-            
-          // Format timestamp for display
-          let formattedTimestamp;
-          if (latestMessage?.created_at) {
-            try {
-              formattedTimestamp = format(new Date(latestMessage.created_at), 'MMM d');
-            } catch (e) {
-              console.error('Error formatting date:', e);
-              formattedTimestamp = undefined;
-            }
-          }
 
           return {
             ...conversation,
-            participants: conversationParticipants,
-            lastMessage: latestMessage,
+            participants: otherParticipants,
+            lastMessage,
             name: displayName,
-            avatar: primaryProfile?.avatar_url || null,
-            timestamp: formattedTimestamp
+            avatar: primaryProfile?.avatar_url || null
           };
-        });
+        }));
 
-        console.log('Successfully processed conversations:', processedConversations.length);
-        return processedConversations as Conversation[];
+        // Filter out any null results from errors in the Promise.all
+        const validConversations = conversationsWithDetails.filter(conv => conv !== null) as Conversation[];
+        
+        console.log('Successfully processed conversations:', validConversations.length);
+        return validConversations;
       } catch (error) {
         console.error('Error in useUserConversations:', error);
         toast({

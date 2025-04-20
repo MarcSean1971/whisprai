@@ -13,10 +13,11 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
   const [isCreating, setIsCreating] = useState(false);
 
   const createConversation = async (contactId: string) => {
-    console.log("Starting conversation creation with contact ID:", contactId);
+    console.log("Starting conversation creation process");
+    console.log("Contact ID:", contactId);
     
     if (isCreating) {
-      console.log("Creation already in progress");
+      console.log("Conversation creation already in progress");
       return null;
     }
     
@@ -26,6 +27,9 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
+      console.log("Current user:", user);
+      console.log("User error:", userError);
+      
       if (userError || !user) {
         console.error("Authentication error:", userError);
         toast.error('Not authenticated');
@@ -33,15 +37,10 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       }
 
       // Check if conversation already exists
-      console.log("Checking if conversation already exists");
-      const { data: existingConversation, error: existingError } = await supabase.rpc(
+      const { data: existingConversation } = await supabase.rpc(
         'get_existing_conversation',
         { user1_id: user.id, user2_id: contactId }
       );
-
-      if (existingError) {
-        console.error("Error checking existing conversation:", existingError);
-      }
 
       if (existingConversation) {
         console.log("Found existing conversation:", existingConversation);
@@ -50,26 +49,27 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         return existingConversation;
       }
 
+      // Create new conversation if none exists
       console.log("No existing conversation found, creating new one");
       const { data: conversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({
           is_group: false,
-          updated_at: new Date().toISOString(),
-          created_by: user.id
+          updated_at: new Date().toISOString()
         })
         .select()
         .single();
 
+      console.log("Conversation creation result:", conversation);
+      console.log("Conversation creation error:", conversationError);
+
       if (conversationError) {
         console.error("Failed to create conversation:", conversationError);
-        toast.error(conversationError.message || 'Failed to create conversation');
+        toast.error('Failed to create conversation');
         return null;
       }
 
-      console.log("Conversation created successfully:", conversation);
-
-      // Add participants to conversation
+      // Add participants
       console.log("Adding participants to conversation");
       const { error: participantsError } = await supabase
         .from('conversation_participants')
@@ -84,24 +84,31 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
           }
         ]);
 
+      console.log("Participants insertion error:", participantsError);
+
       if (participantsError) {
         console.error("Failed to add participants:", participantsError);
+        // Cleanup the conversation
+        await supabase.from('conversations').delete().eq('id', conversation.id);
         
-        // Clean up the conversation
-        const { error: deleteError } = await supabase
-          .from('conversations')
-          .delete()
-          .eq('id', conversation.id);
-          
-        if (deleteError) {
-          console.error("Error cleaning up conversation:", deleteError);
+        if (participantsError.message.includes('Conversation already exists between these users')) {
+          toast.info('A conversation already exists with this user');
+          // Fetch the existing conversation and redirect
+          const { data: existingConv } = await supabase.rpc(
+            'get_existing_conversation',
+            { user1_id: user.id, user2_id: contactId }
+          );
+          if (existingConv) {
+            navigate(`/chat/${existingConv}`);
+            return existingConv;
+          }
+        } else {
+          toast.error('Failed to add participants to the conversation');
         }
-        
-        toast.error(participantsError.message || 'Failed to add participants');
         return null;
       }
 
-      console.log("Conversation creation complete, ID:", conversation.id);
+      console.log("Conversation created successfully");
       toast.success("Conversation started");
       
       if (onSuccess) {
@@ -113,7 +120,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       
     } catch (error) {
       console.error('Unexpected error in conversation creation:', error);
-      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
+      toast.error('An unexpected error occurred');
       return null;
     } finally {
       setIsCreating(false);

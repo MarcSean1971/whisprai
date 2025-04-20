@@ -1,3 +1,4 @@
+
 import { EmptyState } from "@/components/EmptyState";
 import { Search, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SentRequests } from "@/components/contacts/SentRequests";
 import { ReceivedRequests } from "@/components/contacts/ReceivedRequests";
 import { Skeleton } from "@/components/ui/skeleton";
+import { format } from "date-fns";
 
 interface TabsSectionProps {
   activeTab: 'chats' | 'contacts';
@@ -56,18 +58,25 @@ export function TabsSection({
               <Button onClick={() => window.location.reload()}>Try Again</Button>
             </div>
           ) : filteredConversations.length > 0 ? (
-            filteredConversations.map((conversation) => (
-              <ConversationItem
-                key={conversation.id}
-                id={conversation.id}
-                name={conversation.name || 'Unnamed Conversation'}
-                avatar={conversation.avatar}
-                lastMessage={conversation.lastMessage}
-                timestamp={conversation.timestamp}
-                isGroup={conversation.is_group}
-                onClick={() => onConversationClick(conversation.id)}
-              />
-            ))
+            filteredConversations.map((conversation) => {
+              // Format timestamp if available
+              const timestamp = conversation.lastMessage?.created_at 
+                ? format(new Date(conversation.lastMessage.created_at), 'MMM d')
+                : undefined;
+                
+              return (
+                <ConversationItem
+                  key={conversation.id}
+                  id={conversation.id}
+                  name={conversation.name || 'Unnamed Conversation'}
+                  avatar={conversation.avatar}
+                  lastMessage={conversation.lastMessage}
+                  timestamp={timestamp}
+                  isGroup={conversation.is_group}
+                  onClick={() => onConversationClick(conversation.id)}
+                />
+              );
+            })
           ) : (
             <EmptyState
               icon={<Search className="h-6 w-6 text-muted-foreground" />}
