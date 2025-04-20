@@ -25,13 +25,11 @@ export function useUserConversations() {
                 id,
                 first_name,
                 last_name,
-                avatar_url,
-                language
+                avatar_url
               )
             )
           `)
-          .eq('conversation_participants.user_id', user.id)
-          .order('updated_at', { ascending: false });
+          .eq('conversation_participants.user_id', user.id);
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
@@ -46,26 +44,29 @@ export function useUserConversations() {
         console.log('Raw conversations data:', conversations);
 
         const processedConversations = conversations.map(conversation => {
-          // Filter out current user from participants list
-          const otherParticipants = conversation.conversation_participants
-            .filter(p => p.user_id !== user.id);
+          // Get all participants including the current user
+          const allParticipants = conversation.conversation_participants || [];
+          
+          // Filter out current user from participants list for display
+          const otherParticipants = allParticipants.filter(p => 
+            p.user_id !== user.id && p.profiles
+          );
 
           // For group chats or direct chats, show appropriate name
-          const primaryParticipant = otherParticipants[0]?.profiles;
           const displayName = conversation.is_group 
-            ? 'Group Chat' 
-            : primaryParticipant 
-              ? `${primaryParticipant.first_name || ''} ${primaryParticipant.last_name || ''}`.trim() || `User ${primaryParticipant.id.slice(0, 8)}`
+            ? `Group Chat (${otherParticipants.length + 1} participants)` 
+            : otherParticipants[0]?.profiles
+              ? `${otherParticipants[0].profiles.first_name || ''} ${otherParticipants[0].profiles.last_name || ''}`.trim()
               : 'Unknown User';
-          
+
           return {
             ...conversation,
             participants: otherParticipants.map(p => ({
-              user_id: p.user_id,
-              profile: p.profiles
+              name: p.profiles ? `${p.profiles.first_name || ''} ${p.profiles.last_name || ''}`.trim() : 'Unknown User',
+              avatar: p.profiles?.avatar_url || null
             })),
             name: displayName,
-            avatar: primaryParticipant?.avatar_url || null
+            avatar: !conversation.is_group ? otherParticipants[0]?.profiles?.avatar_url : null
           };
         });
 
