@@ -8,11 +8,23 @@ export function useParticipants(conversationId: string) {
     queryKey: ["participants", conversationId],
     queryFn: async () => {
       try {
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) throw new Error('Not authenticated');
+
         const { data: participantsData, error: participantsError } = await supabase
           .from('conversation_participants')
-          .select('profiles:user_id(id, first_name, last_name, avatar_url, tagline)')
+          .select(`
+            profiles (
+              id,
+              first_name,
+              last_name,
+              avatar_url,
+              tagline
+            )
+          `)
           .eq('conversation_id', conversationId)
-          .neq('user_id', (await supabase.auth.getUser()).data.user?.id);
+          .neq('user_id', user.id);
         
         if (participantsError) {
           console.error("Error fetching participants:", participantsError);

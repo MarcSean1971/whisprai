@@ -15,14 +15,13 @@ export function useUserConversations() {
 
         console.log('Fetching conversations for user:', user.id);
 
-        // Get all conversations the user participates in
         const { data: conversations, error: conversationsError } = await supabase
           .from('conversations')
           .select(`
             *,
-            conversation_participants!inner (
+            conversation_participants (
               user_id,
-              profiles!inner (
+              profiles (
                 id,
                 first_name,
                 last_name,
@@ -46,37 +45,13 @@ export function useUserConversations() {
 
         console.log('Raw conversations data:', conversations);
 
-        // Process conversations to get participants' info
-        const processedConversations = await Promise.all(conversations.map(async (conversation) => {
-          // Get ALL participants for this conversation
-          const { data: allParticipants, error: participantsError } = await supabase
-            .from('conversation_participants')
-            .select(`
-              user_id,
-              profiles (
-                id,
-                first_name,
-                last_name,
-                avatar_url,
-                language
-              )
-            `)
-            .eq('conversation_id', conversation.id);
+        const processedConversations = conversations.map(conversation => {
+          // Filter out current user from participants list
+          const otherParticipants = conversation.conversation_participants
+            .filter(p => p.user_id !== user.id);
 
-          if (participantsError) {
-            console.error('Error fetching all participants:', participantsError);
-            throw participantsError;
-          }
-
-          // Filter out current user from participants list for display purposes
-          const otherParticipants = allParticipants.filter(p => p.user_id !== user.id);
-          console.log(`Conversation ${conversation.id} - other participants:`, otherParticipants);
-
-          // For group chats, we might want to show all participants
-          // For direct chats, we usually show just the other person
+          // For group chats or direct chats, show appropriate name
           const primaryParticipant = otherParticipants[0]?.profiles;
-          
-          // Fixed the error by removing the reference to conversation.name and using a default name instead
           const displayName = conversation.is_group 
             ? 'Group Chat' 
             : primaryParticipant 
@@ -92,7 +67,7 @@ export function useUserConversations() {
             name: displayName,
             avatar: primaryParticipant?.avatar_url || null
           };
-        }));
+        });
 
         console.log('Processed conversations:', processedConversations);
         return processedConversations;
@@ -102,7 +77,6 @@ export function useUserConversations() {
         throw error;
       }
     },
-    retry: 1,
     staleTime: 30000 // 30 seconds
   });
 }
