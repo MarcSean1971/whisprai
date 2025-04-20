@@ -1,6 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import twilio from "https://esm.sh/twilio@4.13.0"
+import twilio from "npm:twilio@4.13.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,9 +26,19 @@ serve(async (req) => {
     
     console.log(`Processing call from ${from} to ${to}`);
 
-    // Configure the call behavior
-    const dial = twiml.dial({ callerId: from });
-    dial.client(to);
+    // Configure the call behavior with error handling
+    const dial = twiml.dial({ 
+      callerId: from,
+      timeout: 20, // Give more time for the client to answer
+      action: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/call-status`,
+      method: 'POST'
+    });
+    
+    dial.client({
+      statusCallbackEvent: ['initiated', 'ringing', 'answered'],
+      statusCallback: `https://vmwiigfhjvwecnlwppnj.supabase.co/functions/v1/call-status`,
+      statusCallbackMethod: 'POST'
+    }, to);
 
     // Set response headers for TwiML
     const headers = {
@@ -42,12 +52,11 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in voice-webhook:', error);
     
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    const twiml = new twilio.twiml.VoiceResponse();
+    twiml.say('An error occurred while processing your call. Please try again.');
+    
+    return new Response(twiml.toString(), { 
+      headers: { ...corsHeaders, 'Content-Type': 'text/xml' }
+    });
   }
 })

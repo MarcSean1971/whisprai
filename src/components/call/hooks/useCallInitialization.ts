@@ -22,10 +22,16 @@ export function useCallInitialization({
     }
 
     try {
+      console.log(`Initiating call to ${recipientId}`);
       updateCallStatus(CallStatus.CONNECTING);
       
+      // Call the voice-call function to initiate the call
       const { data, error: callError } = await supabase.functions.invoke('voice-call', {
-        body: { from: userId, to: recipientId }
+        body: { 
+          from: userId, 
+          to: recipientId,
+          retryCount: 0 // Add retry count for the edge function
+        }
       });
 
       if (callError || !data?.success) {
