@@ -74,16 +74,24 @@ serve(async (req) => {
 
       // Generate the token string
       const tokenString = token.toJwt();
-      console.log('Token generated successfully');
-
-      const currentTime = Date.now();
-      const expiresAt = currentTime + (ttl * 1000);
-
-      // Verify the token is in valid JWT format
+      
+      // Basic validation check on the token format
       const jwtParts = tokenString.split('.');
       if (jwtParts.length !== 3) {
         throw new Error('Generated token has invalid JWT format');
       }
+      
+      try {
+        // Try to decode the payload to make sure it's valid base64
+        atob(jwtParts[1]);
+      } catch (e) {
+        throw new Error('Generated token has invalid base64 encoding');
+      }
+      
+      console.log('Token generated successfully');
+
+      const currentTime = Date.now();
+      const expiresAt = currentTime + (ttl * 1000);
 
       return new Response(
         JSON.stringify({ 

@@ -39,6 +39,18 @@ export function useCallInitialization({
       return;
     }
 
+    // Verify we have a valid token
+    if (!currentToken) {
+      const errorMsg = 'Missing authentication token. Please try again in a moment.';
+      toast.error(errorMsg);
+      updateState({ 
+        error: 'Missing token',
+        callStatus: CallStatus.FAILED 
+      });
+      console.error('No token available for call');
+      return;
+    }
+
     // If token validation function is available, verify token is still valid
     if (validateToken && currentToken) {
       try {

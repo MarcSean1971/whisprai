@@ -11,7 +11,7 @@ const MIN_TOKEN_REQUEST_INTERVAL = 5000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
 const TOKEN_ERROR_COOLDOWN_MS = 10000; // 10 second cooldown after token errors
-const TOKEN_VALIDATION_TIMEOUT = 10000; // 10 seconds timeout for token validation (reduced from 30s)
+const TOKEN_VALIDATION_TIMEOUT = 10000; // 10 seconds timeout for token validation
 
 export function useDeviceSetup() {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
@@ -25,27 +25,46 @@ export function useDeviceSetup() {
 
   // Lightweight token validation - just check basic JWT structure
   const isTokenFormatValid = (token: string): boolean => {
-    if (!token) return false;
+    if (!token) {
+      console.warn('Token is empty or null');
+      return false;
+    }
     
     // Basic JWT format check (header.payload.signature)
     const jwtParts = token.split('.');
     if (jwtParts.length !== 3) {
-      console.warn('Token has invalid JWT format');
+      console.warn('Token has invalid JWT format, expected 3 parts but got:', jwtParts.length);
       return false;
     }
     
     try {
       // Try to decode the payload
-      atob(jwtParts[1]);
+      const payload = atob(jwtParts[1]);
+      if (!payload || payload.length < 5) {
+        console.warn('Token payload is too short or invalid');
+        return false;
+      }
+      
+      // Try to parse the payload as JSON to verify it's properly formatted
+      try {
+        JSON.parse(payload);
+      } catch (e) {
+        console.warn('Token payload is not valid JSON');
+        return false;
+      }
+      
       return true;
     } catch (e) {
-      console.warn('Token payload is not valid base64');
+      console.warn('Token payload is not valid base64:', e);
       return false;
     }
   };
 
   const validateToken = async (token: string): Promise<boolean> => {
-    if (!token) return false;
+    if (!token) {
+      console.warn('Cannot validate null or empty token');
+      return false;
+    }
     
     // First do a simple format check
     if (!isTokenFormatValid(token)) {
@@ -88,6 +107,7 @@ export function useDeviceSetup() {
           // Check if error is related to JWT
           const isJwtError = err.message?.includes('JWT') || 
                            err.message?.includes('token') ||
+                           err.message?.includes('Invalid') ||
                            err.code === 31204 || 
                            err.code === 31205;
           
@@ -153,6 +173,7 @@ export function useDeviceSetup() {
       });
 
       if (tokenError || !tokenData?.token) {
+        console.error('Error fetching token from server:', tokenError);
         throw new Error(tokenError?.message || 'Failed to get access token');
       }
 
@@ -335,7 +356,7 @@ export function useDeviceSetup() {
     shouldRefreshToken,
     tokenExpiryTime,
     isDeviceRegistered: deviceRegistered,
-    validateToken, // Expose token validation function
-    currentToken  // Expose current token for recovery scenarios
+    validateToken,
+    currentToken
   };
 }

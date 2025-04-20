@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDeviceSetup } from './useDeviceSetup';
 import { useDeviceState } from './useDeviceState';
@@ -156,6 +157,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         console.log('Device initialized successfully');
         
         updateDevice(newDevice);
+        updateState({ isReady: true });
         setupCompleted.current = true;
         deviceRegistrationFailed.current = false;
         
@@ -165,7 +167,8 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         // Check if error is JWT/token related
         const isTokenError = err.message?.includes('JWT') || 
                             err.message?.includes('token') || 
-                            err.message?.includes('Invalid');
+                            err.message?.includes('Invalid') ||
+                            err.message?.includes('auth');
         
         let waitTime = Math.min(
           INIT_RETRY_DELAY_BASE_MS * Math.pow(2, initAttempts.current - 1),
@@ -176,6 +179,9 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         if (isTokenError) {
           waitTime = Math.min(waitTime * 2, 30000);
           console.warn(`Token error detected, using extended retry delay of ${waitTime}ms`);
+          
+          // Show a user-friendly error
+          toast.error('Authentication issue. Retrying in a moment...');
         }
         
         updateState({ 
