@@ -55,11 +55,14 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
+          // Fix: Don't reference conversation.name, use conditional for group chat name
+          const displayName = conversation.is_group 
+            ? `Group Chat (${conversation.conversation_participants.length} participants)`
+            : otherParticipants[0]?.name || 'Unknown User';
+
           return {
             id: conversation.id,
-            name: conversation.is_group 
-              ? conversation.name || `Group Chat (${conversation.conversation_participants.length} participants)`
-              : otherParticipants[0]?.name || 'Unknown User',
+            name: displayName, // Using the correctly defined displayName instead
             is_group: conversation.is_group,
             participants: otherParticipants,
             avatar: !conversation.is_group ? otherParticipants[0]?.avatar : null,
