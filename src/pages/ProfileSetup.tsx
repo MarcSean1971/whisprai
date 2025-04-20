@@ -113,7 +113,7 @@ export default function ProfileSetup() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-32">
+      <div className="container mx-auto px-4 py-6 flex-1 overflow-y-auto pb-20">
         <header className="flex items-center justify-center mb-6">
           <h1 className="text-xl font-semibold">Profile Setup</h1>
         </header>
@@ -125,7 +125,7 @@ export default function ProfileSetup() {
               form={form} 
               onEnhanceBio={handleEnhanceBio} 
             />
-            <div className="fixed bottom-20 left-0 right-0 p-4 bg-background border-t">
+            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t">
               <Button 
                 type="submit" 
                 className="w-full"
