@@ -50,18 +50,24 @@ serve(async (req) => {
 
     console.log('Creating Vonage Video API session...');
 
-    // Create Authorization header using API key and secret
+    // Fixed: Create Authorization header using Basic auth format
+    // Convert API key and secret to base64 - must use the correct format
     const authString = `${apiKey}:${apiSecret}`;
-    const base64Auth = btoa(authString);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(authString);
+    const base64Auth = btoa(String.fromCharCode(...new Uint8Array(data)));
 
-    // Create session
+    // Create session with the correct content type and auth header
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-OPENTOK-AUTH': `Basic ${base64Auth}`,
+        'Authorization': `Basic ${base64Auth}`,
         'Accept': 'application/json'
-      }
+      },
+      body: new URLSearchParams({
+        'p2p.preference': 'enabled'
+      }).toString()
     });
 
     if (!sessionResponse.ok) {
@@ -69,7 +75,11 @@ serve(async (req) => {
       console.error('Session creation failed:', {
         status: sessionResponse.status,
         error: errorText,
-        headers: Object.fromEntries(sessionResponse.headers)
+        headers: Object.fromEntries(sessionResponse.headers),
+        requestHeaders: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${base64Auth.substring(0, 10)}...` // Log part of the auth for debugging
+        }
       });
       throw new Error(`Failed to create session: ${sessionResponse.status} - ${errorText}`);
     }
@@ -77,20 +87,20 @@ serve(async (req) => {
     const sessionData = await sessionResponse.json();
     console.log('Session response:', sessionData);
 
-    if (!sessionData.session_id) {
+    if (!sessionData.sessions || !sessionData.sessions[0] || !sessionData.sessions[0].session_id) {
       console.error('Invalid session data:', sessionData);
       throw new Error('No session ID in response');
     }
 
-    const sessionId = sessionData.session_id;
+    const sessionId = sessionData.sessions[0].session_id;
     console.log('Session created:', { sessionId });
 
-    // Generate token
-    const tokenResponse = await fetch('https://api.opentok.com/v2/token', {
+    // Generate token with the correct content type and auth header
+    const tokenResponse = await fetch('https://api.opentok.com/v2/project/' + apiKey + '/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'X-OPENTOK-AUTH': `Basic ${base64Auth}`,
+        'Authorization': `Basic ${base64Auth}`,
         'Accept': 'application/json'
       },
       body: new URLSearchParams({
