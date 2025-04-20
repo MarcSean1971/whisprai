@@ -1,6 +1,4 @@
 
-import { useProfile } from "@/hooks/use-profile";
-import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { cn } from "@/lib/utils";
 
 interface MessageReactionsProps {
@@ -22,7 +20,7 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   }
 
   return (
-    <div className="w-full flex items-center justify-end gap-1">
+    <div className="w-full flex items-center justify-start gap-1">
       {Object.entries(reactionGroups).map(([emoji, count]) => (
         <span
           key={emoji}
