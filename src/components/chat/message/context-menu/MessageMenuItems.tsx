@@ -1,6 +1,7 @@
-
 import { Reply, Languages, Trash2 } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { EmojiPickerPopover } from "./EmojiPickerPopover";
+import { useMessageReactions } from "@/hooks/use-message-reactions";
 
 interface MessageMenuItemsProps {
   onReply: () => void;
@@ -9,6 +10,7 @@ interface MessageMenuItemsProps {
   onDelete?: () => void;
   canDelete?: boolean;
   isDeleting?: boolean;
+  messageId: string;
 }
 
 export function MessageMenuItems({
@@ -17,14 +19,27 @@ export function MessageMenuItems({
   showTranslationToggle,
   onDelete,
   canDelete,
-  isDeleting
+  isDeleting,
+  messageId
 }: MessageMenuItemsProps) {
+  const { addReaction } = useMessageReactions(messageId);
+  
+  const handleEmojiSelect = (emojiData: any) => {
+    addReaction({ emoji: emojiData.emoji });
+  };
+
   return (
     <>
       <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
         <Reply className="mr-2 h-4 w-4" />
         <span>Reply</span>
       </DropdownMenuItem>
+      
+      <EmojiPickerPopover 
+        onEmojiSelect={handleEmojiSelect}
+        side="right"
+        align="start"
+      />
       
       {showTranslationToggle && (
         <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>

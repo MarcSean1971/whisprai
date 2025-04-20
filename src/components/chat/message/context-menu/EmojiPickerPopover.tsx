@@ -2,11 +2,10 @@
 import { Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
-  isOpen: boolean;
-  onOpenChange: (open: boolean) => void;
   align?: "start" | "end";
   side?: "left" | "right";
 }
@@ -17,14 +16,10 @@ export function EmojiPickerPopover({
   side = "right"
 }: EmojiPickerPopoverProps) {
   const triggerButton = (
-    <Button
-      variant="ghost"
-      className="w-full justify-start p-2 text-sm cursor-pointer"
-      onClick={(e) => e.preventDefault()}
-    >
+    <DropdownMenuItem className="cursor-pointer" onSelect={(e) => e.preventDefault()}>
       <Smile className="mr-2 h-4 w-4" />
       <span>Add Reaction</span>
-    </Button>
+    </DropdownMenuItem>
   );
 
   return (

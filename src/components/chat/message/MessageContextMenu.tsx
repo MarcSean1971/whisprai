@@ -4,10 +4,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
 } from "@/components/ui/dropdown-menu";
-import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { MessageMenuButton } from "./context-menu/MessageMenuButton";
 import { MessageMenuItems } from "./context-menu/MessageMenuItems";
-import { EmojiPickerPopover } from "./context-menu/EmojiPickerPopover";
 
 interface MessageContextMenuProps {
   children: React.ReactNode;
@@ -32,14 +30,6 @@ export function MessageContextMenu({
   onDelete,
   isDeleting
 }: MessageContextMenuProps) {
-  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  const { addReaction } = useMessageReactions(messageId);
-
-  const handleEmojiSelect = (emojiData: any) => {
-    addReaction({ emoji: emojiData.emoji });
-    setIsEmojiPickerOpen(false);
-  };
-
   return (
     <div className="group flex flex-col gap-1">
       <div className="flex items-start gap-2">
@@ -59,13 +49,7 @@ export function MessageContextMenu({
                   onDelete={onDelete}
                   canDelete={canDelete}
                   isDeleting={isDeleting}
-                />
-                <EmojiPickerPopover
-                  onEmojiSelect={handleEmojiSelect}
-                  isOpen={isEmojiPickerOpen}
-                  onOpenChange={setIsEmojiPickerOpen}
-                  align="start"
-                  side="right"
+                  messageId={messageId}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
@@ -90,13 +74,7 @@ export function MessageContextMenu({
                   onDelete={onDelete}
                   canDelete={canDelete}
                   isDeleting={isDeleting}
-                />
-                <EmojiPickerPopover
-                  onEmojiSelect={handleEmojiSelect}
-                  isOpen={isEmojiPickerOpen}
-                  onOpenChange={setIsEmojiPickerOpen}
-                  align="end"
-                  side="left"
+                  messageId={messageId}
                 />
               </DropdownMenuContent>
             </DropdownMenu>
