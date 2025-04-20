@@ -14,4 +14,10 @@ interface Window {
     inherits: (ctor: any, superCtor: any) => void;
     [key: string]: any;
   };
+  Vonage?: any;
+  OT?: {
+    initSession: (apiKey: string, token: string) => any;
+    initPublisher: (targetElement: string, options: any) => any;
+    [key: string]: any;
+  };
 }

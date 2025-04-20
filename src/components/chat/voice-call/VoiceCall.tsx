@@ -13,6 +13,10 @@ interface VoiceCallProps {
 declare global {
   interface Window {
     Vonage: any;
+    OT: {
+      initSession: (apiKey: string, sessionId: string) => any;
+      initPublisher: (targetElement: string, options: any) => any;
+    };
   }
 }
 
@@ -49,7 +53,7 @@ export function VoiceCall({
       return
     }
 
-    if (scriptLoadedRef.current && window.Vonage) {
+    if (scriptLoadedRef.current && window.OT) {
       console.log('Script already loaded, skipping load')
       return
     }
@@ -147,12 +151,12 @@ export function VoiceCall({
       console.log('Initializing call...')
 
       // If SDK is not loaded yet, try loading it again
-      if (typeof window.OT === 'undefined') {
+      if (!window.OT) {
         console.log('Vonage SDK not loaded, attempting to load SDK again')
         await loadVonageSDK()
         
         // Double-check it's available after loading
-        if (typeof window.OT === 'undefined') {
+        if (!window.OT) {
           throw new Error('Voice call service not initialized. Please try again in a moment.')
         }
       }
