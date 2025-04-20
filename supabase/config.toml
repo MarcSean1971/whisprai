@@ -1,2 +1,8 @@
 
 project_id = "vmwiigfhjvwecnlwppnj"
+
+[functions.vonage-events]
+verify_jwt = false
+
+[functions.vonage-session]
+verify_jwt = true

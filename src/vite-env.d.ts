@@ -14,4 +14,9 @@ interface Window {
     inherits: (ctor: any, superCtor: any) => void;
     [key: string]: any;
   };
+  OT?: {
+    initSession: (apiKey: string, sessionId: string) => any;
+    initPublisher: (targetElement: string, options: any) => any;
+    [key: string]: any;
+  };
 }
