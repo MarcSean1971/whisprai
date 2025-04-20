@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,8 +62,8 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
         className={cn(
           "min-h-[36px] max-h-[150px] flex-1 py-2 px-3 text-sm resize-none overflow-hidden",
           "focus:ring-1 focus:ring-primary border-purple-200",
-          "bg-purple-50/50 hover:bg-purple-50",
-          isSaved && "bg-gray-100 text-gray-700 cursor-not-allowed border-gray-200"
+          "bg-gray-100 hover:bg-gray-50 text-gray-900",
+          isSaved && "bg-gray-200 text-gray-700 cursor-not-allowed border-gray-300"
         )}
       />
       {content.trim() && !isSaved && (

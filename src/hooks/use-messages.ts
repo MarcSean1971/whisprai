@@ -1,4 +1,3 @@
-
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -91,7 +90,15 @@ export function useMessages(conversationId: string) {
             id,
             content,
             created_at,
-            sender_id
+            sender:sender_id (
+              id,
+              profiles (
+                first_name,
+                last_name,
+                avatar_url,
+                language
+              )
+            )
           )
         `)
         .eq('conversation_id', conversationId)
@@ -108,22 +115,14 @@ export function useMessages(conversationId: string) {
       const senderIds = messages
         .map(msg => msg.sender_id)
         .filter((id): id is string => id !== null);
-      
-      // Extract parent sender IDs if any exist
-      const parentSenderIds = messages
-        .filter(msg => msg.parent && msg.parent.sender_id)
-        .map(msg => msg.parent.sender_id);
-        
-      // Combine all sender IDs for a single query
-      const uniqueSenderIds = [...new Set([...senderIds, ...parentSenderIds])];
 
       let profilesMap: Record<string, any> = {};
       
-      if (uniqueSenderIds.length > 0) {
+      if (senderIds.length > 0) {
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name, avatar_url, language')
-          .in('id', uniqueSenderIds);
+          .in('id', senderIds);
           
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
@@ -147,29 +146,17 @@ export function useMessages(conversationId: string) {
               avatar_url: profilesMap[message.sender_id].avatar_url,
               language: profilesMap[message.sender_id].language
             } : undefined
-          } : undefined
-        };
-
-        // Process parent information separately with proper type checking
-        if (message.parent && typeof message.parent === 'object') {
-          const parentMessage = message.parent as any;
-          const parentSenderId = parentMessage.sender_id;
-          
-          processedMessage.parent = {
-            id: parentMessage.id,
-            content: parentMessage.content,
-            created_at: parentMessage.created_at,
-            sender: parentSenderId ? {
-              id: parentSenderId,
-              profiles: profilesMap[parentSenderId] ? {
-                first_name: profilesMap[parentSenderId].first_name,
-                last_name: profilesMap[parentSenderId].last_name,
-                avatar_url: profilesMap[parentSenderId].avatar_url,
-                language: profilesMap[parentSenderId].language
-              } : null
+          } : undefined,
+          parent: message.parent ? {
+            id: message.parent.id,
+            content: message.parent.content,
+            created_at: message.parent.created_at,
+            sender: message.parent.sender ? {
+              id: message.parent.sender.id,
+              profiles: message.parent.sender.profiles
             } : null
-          };
-        }
+          } : null
+        };
 
         return processedMessage;
       });
