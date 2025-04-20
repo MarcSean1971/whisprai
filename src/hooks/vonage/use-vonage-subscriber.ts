@@ -1,11 +1,8 @@
 
 import { useRef, useCallback, useState } from "react";
+import { VonageSubscriberOptions } from "./types";
 
-interface UseVonageSubscriberProps {
-  subscriberElement: string;
-}
-
-export function useVonageSubscriber({ subscriberElement }: UseVonageSubscriberProps) {
+export function useVonageSubscriber({ subscriberElement }: VonageSubscriberOptions) {
   const subscriberRef = useRef<any>(null);
   const [hasRemoteParticipant, setHasRemoteParticipant] = useState(false);
 

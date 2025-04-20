@@ -1,21 +1,20 @@
 
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { VonageSessionOptions, VonageError, VonageSessionData } from "./types";
 
-interface UseVonageSessionProps {
-  conversationId?: string;
-  recipientId: string;
-}
-
-export function useVonageSession({ conversationId = 'default', recipientId }: UseVonageSessionProps) {
+export function useVonageSession({ conversationId = 'default', recipientId }: VonageSessionOptions) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<VonageError | null>(null);
   const sessionRef = useRef<any>(null);
 
   const initializeSession = useCallback(async () => {
     if (!conversationId || !recipientId) {
-      setError("Missing required parameters");
+      setError({
+        type: 'SESSION_ERROR',
+        message: "Missing required parameters"
+      });
       return null;
     }
 
@@ -28,7 +27,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Us
         throw new Error(sessionError?.message || "Failed to create session");
       }
 
-      const { sessionId, token, apiKey } = data;
+      const { sessionId, token, apiKey } = data as VonageSessionData;
 
       if (!sessionId || !token || !apiKey) {
         throw new Error("Invalid session data received");
@@ -37,7 +36,12 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Us
       sessionRef.current = window.OT.initSession(apiKey, sessionId);
       return { sessionId, token, apiKey };
     } catch (err: any) {
-      setError(err.message || "Failed to initialize session");
+      const vonageError: VonageError = {
+        type: 'INITIALIZATION_ERROR',
+        message: err.message || "Failed to initialize session",
+        originalError: err
+      };
+      setError(vonageError);
       return null;
     }
   }, [conversationId, recipientId]);
@@ -49,8 +53,13 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Us
         sessionRef.current = null;
         setIsConnected(false);
         setIsConnecting(false);
-      } catch (err) {
-        console.error("Error disconnecting from session:", err);
+      } catch (err: any) {
+        const vonageError: VonageError = {
+          type: 'CONNECTION_ERROR',
+          message: "Error disconnecting from session",
+          originalError: err
+        };
+        setError(vonageError);
       }
     }
   }, []);

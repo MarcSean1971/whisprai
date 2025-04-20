@@ -1,12 +1,8 @@
 
 import { useRef, useCallback } from "react";
+import { VonagePublisherOptions, VonageError } from "./types";
 
-interface UseVonagePublisherProps {
-  publisherElement: string;
-  onError: (error: string) => void;
-}
-
-export function useVonagePublisher({ publisherElement, onError }: UseVonagePublisherProps) {
+export function useVonagePublisher({ publisherElement, onError }: VonagePublisherOptions) {
   const publisherRef = useRef<any>(null);
 
   const initializePublisher = useCallback(() => {
@@ -24,8 +20,13 @@ export function useVonagePublisher({ publisherElement, onError }: UseVonagePubli
     );
 
     publisherRef.current.on('error', (error: any) => {
+      const vonageError: VonageError = {
+        type: 'MEDIA_ACCESS_ERROR',
+        message: "Could not access camera/microphone",
+        originalError: error
+      };
       console.error('Error initializing publisher:', error);
-      onError("Could not access camera/microphone");
+      onError(vonageError);
     });
 
     return publisherRef.current;

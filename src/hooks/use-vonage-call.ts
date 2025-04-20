@@ -4,20 +4,14 @@ import { loadVonageScript } from "@/lib/vonage-loader";
 import { useVonageSession } from "./vonage/use-vonage-session";
 import { useVonagePublisher } from "./vonage/use-vonage-publisher";
 import { useVonageSubscriber } from "./vonage/use-vonage-subscriber";
-
-interface UseVonageCallProps {
-  publisherElement: string;
-  subscriberElement: string;
-  recipientId: string;
-  conversationId?: string;
-}
+import { VonageCallOptions, VonageError } from "./vonage/types";
 
 export function useVonageCall({
   publisherElement,
   subscriberElement,
   recipientId,
   conversationId = 'default'
-}: UseVonageCallProps) {
+}: VonageCallOptions) {
   const scriptLoaded = useRef(false);
   
   const {
@@ -39,8 +33,8 @@ export function useVonageCall({
     toggleAudio,
     toggleVideo
   } = useVonagePublisher({ 
-    publisherElement, 
-    onError: setError 
+    publisherElement,
+    onError: setError
   });
 
   const {
@@ -56,7 +50,12 @@ export function useVonageCall({
           scriptLoaded.current = true;
         })
         .catch((err) => {
-          setError("Failed to load Vonage SDK: " + err.message);
+          const vonageError: VonageError = {
+            type: 'INITIALIZATION_ERROR',
+            message: "Failed to load Vonage SDK: " + err.message,
+            originalError: err
+          };
+          setError(vonageError);
         });
     }
     
@@ -73,7 +72,10 @@ export function useVonageCall({
 
   const connect = useCallback(async () => {
     if (!window.OT) {
-      setError("Vonage SDK not loaded");
+      setError({
+        type: 'INITIALIZATION_ERROR',
+        message: "Vonage SDK not loaded"
+      });
       return;
     }
 
@@ -99,7 +101,11 @@ export function useVonageCall({
       session.connect(sessionData.token, (error: any) => {
         if (error) {
           console.error('Error connecting to session:', error);
-          setError("Failed to connect to session");
+          setError({
+            type: 'CONNECTION_ERROR',
+            message: "Failed to connect to session",
+            originalError: error
+          });
           setIsConnecting(false);
           return;
         }
@@ -107,7 +113,11 @@ export function useVonageCall({
         session.publish(publisher, (pubError: any) => {
           if (pubError) {
             console.error('Error publishing stream:', pubError);
-            setError("Failed to publish your stream");
+            setError({
+              type: 'PUBLISH_ERROR',
+              message: "Failed to publish your stream",
+              originalError: pubError
+            });
             setIsConnecting(false);
             return;
           }
@@ -119,7 +129,11 @@ export function useVonageCall({
 
     } catch (err: any) {
       console.error("Error setting up call:", err);
-      setError(err.message || "Failed to set up call");
+      setError({
+        type: 'INITIALIZATION_ERROR',
+        message: err.message || "Failed to set up call",
+        originalError: err
+      });
       setIsConnecting(false);
     }
   }, [initializeSession, initializePublisher, handleStreamCreated]);
