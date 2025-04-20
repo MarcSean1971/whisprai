@@ -1,10 +1,11 @@
-
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "./MessageBubble";
 import { MessageControls } from "./MessageControls";
 import { MessageReplyButton } from "./MessageReplyButton";
 import { MessageReactions } from "./reactions/MessageReactions";
 import { MessageReactionButton } from "./reactions/MessageReactionButton";
+import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageContentProps {
   id: string;
@@ -45,6 +46,17 @@ export function MessageContent({
   onReply,
   attachments
 }: MessageContentProps) {
+  const [isReplying, setIsReplying] = useState(false);
+
+  const handleReplyClick = () => {
+    setIsReplying(true);
+  };
+
+  const handleReplySubmit = async (replyContent: string) => {
+    await onReply();
+    setIsReplying(false);
+  };
+
   return (
     <div className="flex flex-col gap-1">
       <div className="flex items-start gap-2">
@@ -75,10 +87,16 @@ export function MessageContent({
       </div>
       <div className={cn("flex flex-col gap-1", isOwn ? "items-end mr-8" : "items-start ml-1")}>
         <div className="opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
-          <MessageReplyButton onReply={onReply} isOwn={isOwn} />
+          <MessageReplyButton onReply={handleReplyClick} isOwn={isOwn} />
           <MessageReactionButton messageId={id} isOwn={isOwn} />
         </div>
       </div>
+      {isReplying && (
+        <MessageReplyInput
+          onSubmit={handleReplySubmit}
+          onCancel={() => setIsReplying(false)}
+        />
+      )}
     </div>
   );
 }
