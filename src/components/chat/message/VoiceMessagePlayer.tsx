@@ -33,19 +33,42 @@ export function VoiceMessagePlayer({
   } = useAudioPlayer(audioUrl);
 
   return (
-    <div className="flex items-center space-x-2 bg-secondary/20 rounded-full p-1">
+    <div className={cn(
+      "relative flex items-center space-x-2 p-3 rounded-2xl",
+      "bg-gradient-to-r from-whispr-purple-light to-whispr-purple",
+      "shadow-lg shadow-whispr-purple/20",
+      "backdrop-blur-sm border border-white/20",
+      "transition-all duration-300 hover:shadow-xl hover:scale-[1.02]",
+      "dark:from-whispr-purple-dark dark:to-whispr-purple",
+      "dark:border-white/10 dark:shadow-whispr-purple-dark/30",
+      "animate-scale-in"
+    )}>
       {error ? (
         <ErrorDisplay />
       ) : (
         <>
-          <AudioControls
-            isPlaying={isPlaying}
-            isLoading={isLoading}
-            isMuted={isMuted}
-            onPlayPause={handlePlayPause}
-            onToggleMute={toggleMute}
-            disabled={isLoading || !!error || isDeleting}
-          />
+          <div className="flex-1 flex items-center space-x-2">
+            <AudioControls
+              isPlaying={isPlaying}
+              isLoading={isLoading}
+              isMuted={isMuted}
+              onPlayPause={handlePlayPause}
+              onToggleMute={toggleMute}
+              disabled={isLoading || !!error || isDeleting}
+            />
+            
+            <div className={cn(
+              "h-0.5 flex-1 rounded-full bg-white/30",
+              "overflow-hidden transition-all duration-300",
+              isPlaying && "animate-pulse"
+            )}>
+              <div className={cn(
+                "h-full w-full bg-white/70",
+                "transform origin-left scale-x-0",
+                isPlaying && "animate-[progress_2.5s_ease-in-out_infinite]"
+              )} />
+            </div>
+          </div>
 
           {canDelete && (
             <DeleteButton 
@@ -67,3 +90,4 @@ export function VoiceMessagePlayer({
     </div>
   );
 }
+

@@ -139,6 +139,11 @@ export default {
 				'slide-in-bottom': {
 					'0%': { transform: 'translateY(100%)' },
 					'100%': { transform: 'translateY(0)' }
+				},
+				progress: {
+					'0%': { transform: 'scaleX(0)' },
+					'50%': { transform: 'scaleX(1)' },
+					'100%': { transform: 'scaleX(0)' }
 				}
 			},
 			animation: {
