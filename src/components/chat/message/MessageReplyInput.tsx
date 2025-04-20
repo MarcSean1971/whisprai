@@ -13,6 +13,7 @@ interface MessageReplyInputProps {
 export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps) {
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
       setIsSubmitting(true);
       try {
         await onSubmit(content);
-        setContent('');
+        setIsSaved(true);
       } finally {
         setIsSubmitting(false);
       }
@@ -44,7 +45,7 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isSaved) {
       e.preventDefault();
       handleSubmit();
     }
@@ -55,15 +56,17 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
       <Textarea
         ref={textareaRef}
         value={content}
-        onChange={(e) => setContent(e.target.value)}
+        onChange={(e) => !isSaved && setContent(e.target.value)}
         onKeyPress={handleKeyPress}
         placeholder="Type your reply..."
+        disabled={isSaved}
         className={cn(
           "min-h-[36px] max-h-[150px] flex-1 py-2 px-3 text-sm resize-none overflow-hidden",
-          "focus:ring-1 focus:ring-primary"
+          "focus:ring-1 focus:ring-primary",
+          isSaved && "bg-gray-50 text-gray-700 cursor-not-allowed"
         )}
       />
-      {content.trim() && (
+      {content.trim() && !isSaved && (
         <div className="flex gap-1 shrink-0">
           <Button 
             type="submit" 
