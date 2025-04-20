@@ -49,39 +49,51 @@ export function MessageControls({
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
+  const [lastToxicityScore, setLastToxicityScore] = useState(0);
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
 
   useEffect(() => {
     if (message.trim()) {
       analyzeToxicity(message);
-    } else {
-      analyzeToxicity('');
     }
   }, [message, analyzeToxicity]);
 
+  useEffect(() => {
+    if (!isAnalyzing && toxicityScore !== undefined) {
+      setLastToxicityScore(toxicityScore);
+    }
+  }, [toxicityScore, isAnalyzing]);
+
   const getButtonStyle = () => {
     if (!message.trim()) {
-      return "bg-gradient-to-r from-[#9b87f5] to-[#7C4DFF] text-white hover:opacity-90 transition-colors duration-200";
+      if (lastToxicityScore > 0) {
+        return getColorForScore(lastToxicityScore);
+      }
+      return "bg-gradient-to-r from-[#9b87f5] to-[#7C4DFF] text-white hover:opacity-90 transition-all duration-300";
     }
 
     if (isAnalyzing) {
-      return "bg-gray-200 hover:bg-gray-300 transition-colors duration-200";
+      return getColorForScore(lastToxicityScore);
     }
 
+    return getColorForScore(toxicityScore);
+  };
+
+  const getColorForScore = (score: number) => {
     let baseColor = "";
-    if (toxicityScore <= 20) {
+    if (score <= 20) {
       baseColor = "bg-gradient-to-r from-[#4ade80] to-[#10b981]";
-    } else if (toxicityScore <= 40) {
+    } else if (score <= 40) {
       baseColor = "bg-gradient-to-r from-[#fbbf24] to-[#f59e0b]";
-    } else if (toxicityScore <= 60) {
+    } else if (score <= 60) {
       baseColor = "bg-gradient-to-r from-[#fb923c] to-[#f97316]";
-    } else if (toxicityScore <= 80) {
+    } else if (score <= 80) {
       baseColor = "bg-gradient-to-r from-[#f87171] to-[#ef4444]";
     } else {
       baseColor = "bg-gradient-to-r from-[#dc2626] to-[#b91c1c]";
     }
-
-    return `${baseColor} text-white transition-all duration-200 ease-in-out hover:opacity-90`;
+    
+    return `${baseColor} text-white transition-all duration-300 ease-in-out hover:opacity-90`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -249,7 +261,7 @@ export function MessageControls({
           <Button
             type="button"
             size="icon"
-            className="rounded-full"
+            className={`rounded-full ${getButtonStyle()}`}
             onClick={onStartRecording}
             disabled={disabled}
           >
