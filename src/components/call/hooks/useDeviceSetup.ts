@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+
+import { useState, useCallback, useRef } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
 import { initializeTwilioEnvironment } from '@/lib/twilio/browser-adapter';
@@ -8,6 +9,7 @@ import { toast } from 'sonner';
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
 const MAX_TOKEN_RETRIES = 3;
+const TOKEN_ERROR_COOLDOWN_MS = 10000; // Cooldown to prevent spamming token requests
 
 interface UseDeviceSetupResult {
   setupBrowserEnvironment: () => void;
@@ -21,6 +23,8 @@ interface UseDeviceSetupResult {
 export function useDeviceSetup(): UseDeviceSetupResult {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
   const [deviceRegistered, setDeviceRegistered] = useState(false);
+  const tokenRequestInProgress = useRef(false);
+  const lastTokenError = useRef<number>(0);
   
   const setupBrowserEnvironment = () => {
     try {
@@ -44,14 +48,33 @@ export function useDeviceSetup(): UseDeviceSetupResult {
   };
 
   const fetchTwilioToken = async (userId: string, retryCount = 0): Promise<{ token: string, ttl: number }> => {
+    if (tokenRequestInProgress.current) {
+      console.log('Token request already in progress, waiting...');
+      // Wait for the existing request to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return fetchTwilioToken(userId, retryCount);
+    }
+
+    // Check for token request cooldown
+    const now = Date.now();
+    if (now - lastTokenError.current < TOKEN_ERROR_COOLDOWN_MS && retryCount > 0) {
+      console.log(`Token request in cooldown period, waiting ${Math.ceil((TOKEN_ERROR_COOLDOWN_MS - (now - lastTokenError.current)) / 1000)}s...`);
+      await new Promise(resolve => setTimeout(resolve, TOKEN_ERROR_COOLDOWN_MS - (now - lastTokenError.current)));
+    }
+
     console.log(`Fetching Twilio token for user: ${userId} (attempt ${retryCount + 1}/${MAX_TOKEN_RETRIES})`);
+    
+    tokenRequestInProgress.current = true;
     
     try {
       const { data: tokenData, error: tokenError } = await supabase.functions.invoke('twilio-token', {
         body: { identity: userId }
       });
 
+      tokenRequestInProgress.current = false;
+
       if (tokenError || !tokenData?.token) {
+        lastTokenError.current = Date.now();
         throw new Error(tokenError?.message || 'Failed to get access token');
       }
 
@@ -65,6 +88,9 @@ export function useDeviceSetup(): UseDeviceSetupResult {
         ttl: tokenData.ttl || 3600
       };
     } catch (err) {
+      tokenRequestInProgress.current = false;
+      console.error('Error fetching token:', err);
+      
       if (retryCount < MAX_TOKEN_RETRIES - 1) {
         console.log(`Token fetch failed, retrying in ${(retryCount + 1) * 1000}ms...`);
         await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 1000));
@@ -85,7 +111,22 @@ export function useDeviceSetup(): UseDeviceSetupResult {
       const { token } = await fetchTwilioToken(userId);
       console.log('Creating new Twilio device instance');
       
+      // Clean up any existing device before creating a new one
+      try {
+        const global = window as any;
+        if (global.twilioDevice) {
+          console.log('Destroying existing device before creating a new one');
+          global.twilioDevice.destroy();
+          global.twilioDevice = null;
+        }
+      } catch (e) {
+        console.warn('Error cleaning up existing device:', e);
+      }
+      
       const device = new Device();
+      
+      // Store reference to device globally for debugging
+      (window as any).twilioDevice = device;
       
       // Set up device ready event promise with timeout
       const deviceReadyPromise = new Promise<boolean>((resolve, reject) => {
@@ -107,6 +148,7 @@ export function useDeviceSetup(): UseDeviceSetupResult {
           
           if (err.code === 31204) { // Token error
             setDeviceRegistered(false);
+            lastTokenError.current = Date.now();
           }
           reject(err);
         });

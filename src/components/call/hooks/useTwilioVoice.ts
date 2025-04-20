@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useDeviceSetup } from './useDeviceSetup';
 import { useDeviceState } from './useDeviceState';
@@ -8,6 +9,8 @@ import { toast } from 'sonner';
 
 // Token refresh interval (every 3 minutes)
 const TOKEN_REFRESH_INTERVAL_MS = 3 * 60 * 1000;
+const MAX_INIT_ATTEMPTS = 5;
+const INIT_RETRY_DELAY_BASE_MS = 1000;
 
 export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const setupCompleted = useRef(false);
@@ -15,6 +18,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
   const initAttempts = useRef(0);
   const tokenRefreshIntervalRef = useRef<number | null>(null);
   const lastRefreshAttempt = useRef<number>(0);
+  const deviceRegistrationFailed = useRef(false);
   
   const { 
     setupBrowserEnvironment, 
@@ -33,6 +37,33 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
     isDeviceRegistered
   });
   const callActions = useCallActions({ state, updateState });
+
+  const reinitializeDevice = useCallback(async () => {
+    if (!userId || initInProgress.current) return;
+    
+    console.log('Reinitializing Twilio device');
+    
+    // Destroy the existing device if it exists
+    if (state.device) {
+      try {
+        console.log('Destroying existing device before reinitializing');
+        state.device.destroy();
+      } catch (err) {
+        console.error('Error destroying device during reinitialization:', err);
+      }
+    }
+    
+    // Reset device state before reinitializing
+    updateDevice(null);
+    updateState({ isReady: false });
+    
+    // Attempt to set up device again
+    setupCompleted.current = false;
+    initInProgress.current = false;
+    deviceRegistrationFailed.current = false;
+    
+    // We'll let the regular initialization effect take over
+  }, [userId, state.device, updateDevice, updateState]);
 
   const handleTokenRefresh = useCallback(async () => {
     // Prevent multiple simultaneous refresh attempts
@@ -53,6 +84,7 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       console.log('Attempting token refresh');
       await refreshToken(state.device, userId);
       console.log('Token refreshed successfully');
+      deviceRegistrationFailed.current = false;
     } catch (err) {
       console.error('Failed to refresh token:', err);
       updateState({ 
@@ -66,8 +98,10 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       // Try to reinitialize the device
       setupCompleted.current = false;
       initInProgress.current = false;
+      deviceRegistrationFailed.current = true;
+      setTimeout(() => reinitializeDevice(), 5000);
     }
-  }, [state.device, userId, refreshToken, updateState]);
+  }, [state.device, userId, refreshToken, updateState, reinitializeDevice]);
 
   // Setup token refresh interval
   useEffect(() => {
@@ -109,8 +143,20 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
         initInProgress.current = true;
         initAttempts.current += 1;
         
+        // If we've reached max attempts, back off and set a flag
+        if (initAttempts.current > MAX_INIT_ATTEMPTS) {
+          console.warn(`Max initialization attempts (${MAX_INIT_ATTEMPTS}) reached, backing off`);
+          deviceRegistrationFailed.current = true;
+          initInProgress.current = false;
+          updateState({ 
+            error: 'Failed to connect to call system after multiple attempts. Please reload the page.',
+            isReady: false 
+          });
+          return;
+        }
+        
         try {
-          console.log(`Setting up Twilio device (attempt ${initAttempts.current})`);
+          console.log(`Setting up Twilio device (attempt ${initAttempts.current}/${MAX_INIT_ATTEMPTS})`);
           updateCallStatus(CallStatus.IDLE);
           updateState({ error: null });
           
@@ -122,14 +168,39 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
           
           updateDevice(newDevice);
           setupCompleted.current = true;
+          deviceRegistrationFailed.current = false;
           
           console.log('Twilio device setup completed');
         } catch (err: any) {
           console.error('Error setting up Twilio device:', err);
+          
+          // Check for specific token errors
+          const isTokenError = err.code === 31204 || err.message?.includes('JWT is invalid');
+          
           updateState({ 
-            error: err.message,
+            error: isTokenError ? 'Authentication error with call system. Please try again later.' : err.message,
             isReady: false
           });
+          
+          // Exponential backoff for retries
+          const retryDelay = Math.min(
+            INIT_RETRY_DELAY_BASE_MS * Math.pow(2, initAttempts.current),
+            60000 // Max 1 minute
+          );
+          
+          console.log(`Will retry device setup in ${retryDelay}ms (attempt ${initAttempts.current}/${MAX_INIT_ATTEMPTS})`);
+          
+          // Schedule retry with exponential backoff
+          setTimeout(() => {
+            initInProgress.current = false;
+            // Only auto-retry for the first few attempts
+            if (initAttempts.current <= 3) {
+              setupDevice();
+            } else {
+              deviceRegistrationFailed.current = true;
+            }
+          }, retryDelay);
+          return;
         } finally {
           initInProgress.current = false;
         }
@@ -156,6 +227,20 @@ export function useTwilioVoice({ userId }: UseTwilioVoiceProps) {
       }
     };
   }, [userId, setupBrowserEnvironment, initializeDevice, state.device, updateState, updateDevice, updateCallStatus]);
+
+  // Add effect to retry initialization periodically if we've failed
+  useEffect(() => {
+    if (userId && deviceRegistrationFailed.current && !initInProgress.current && initAttempts.current <= MAX_INIT_ATTEMPTS) {
+      const retryTimer = setTimeout(() => {
+        console.log('Attempting to recover device registration');
+        setupCompleted.current = false;
+        initInProgress.current = false;
+        reinitializeDevice();
+      }, 30000); // Retry every 30 seconds
+      
+      return () => clearTimeout(retryTimer);
+    }
+  }, [userId, reinitializeDevice]);
 
   return {
     ...state,

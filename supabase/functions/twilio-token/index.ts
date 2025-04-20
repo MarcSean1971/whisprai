@@ -77,12 +77,15 @@ serve(async (req) => {
           token: tokenString,
           identity,
           accountSid: twilioAccountSid,
-          ttl: ttl
+          ttl: ttl,
+          timestamp: new Date().toISOString(),
+          expiresAt: new Date(Date.now() + (ttl * 1000)).toISOString()
         }),
         { 
           headers: { 
             ...corsHeaders, 
-            'Content-Type': 'application/json' 
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
           } 
         }
       );
@@ -97,11 +100,16 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'If this persists, please contact support.'
+        details: 'If this persists, please contact support.',
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate'
+        },
       }
     );
   }

@@ -20,6 +20,7 @@ export function CallInterface({ userId }: CallInterfaceProps) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const { setupBrowserEnvironment } = useDeviceSetup();
   const setupAttemptRef = useRef(false);
+  const recoveryTimerRef = useRef<number | null>(null);
   const maxRetries = 3;
 
   // Handle online/offline status
@@ -74,12 +75,17 @@ export function CallInterface({ userId }: CallInterfaceProps) {
     }
   }, [userId, isOnline, setupBrowserEnvironment]);
 
+  // Automatic retry logic
   useEffect(() => {
     if (hasError && retryCounter < maxRetries && isOnline) {
       const retryDelay = (2000 + (retryCounter * 1000)); // Incremental backoff
       console.log(`Scheduling retry attempt ${retryCounter + 1}/${maxRetries} in ${retryDelay}ms`);
       
-      const timer = setTimeout(() => {
+      if (recoveryTimerRef.current) {
+        window.clearTimeout(recoveryTimerRef.current);
+      }
+      
+      recoveryTimerRef.current = window.setTimeout(() => {
         console.log(`Attempting recovery (attempt ${retryCounter + 1}/${maxRetries})...`);
         
         try {
@@ -96,9 +102,24 @@ export function CallInterface({ userId }: CallInterfaceProps) {
         }
       }, retryDelay);
       
-      return () => clearTimeout(timer);
+      return () => {
+        if (recoveryTimerRef.current) {
+          window.clearTimeout(recoveryTimerRef.current);
+          recoveryTimerRef.current = null;
+        }
+      };
     }
   }, [hasError, retryCounter, isOnline, setupBrowserEnvironment, maxRetries]);
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (recoveryTimerRef.current) {
+        window.clearTimeout(recoveryTimerRef.current);
+        recoveryTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleManualRetry = () => {
     if (retryCounter >= maxRetries) {
