@@ -46,9 +46,7 @@ export function MessageContextMenu({
         {isOwn && (
           <div className="pt-2">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <MessageMenuButton />
-              </DropdownMenuTrigger>
+              <MessageMenuButton />
               <DropdownMenuContent
                 align="start"
                 side="bottom"
@@ -79,9 +77,7 @@ export function MessageContextMenu({
         {!isOwn && (
           <div className="pt-2">
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <MessageMenuButton />
-              </DropdownMenuTrigger>
+              <MessageMenuButton />
               <DropdownMenuContent
                 align="end"
                 side="bottom"
