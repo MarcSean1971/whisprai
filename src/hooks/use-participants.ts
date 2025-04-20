@@ -29,7 +29,7 @@ export function useParticipants(conversationId: string) {
       
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, first_name, last_name, avatar_url, tagline')
         .in('id', userIds);
       
       if (profilesError) {

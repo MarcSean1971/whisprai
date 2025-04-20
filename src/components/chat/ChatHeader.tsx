@@ -1,3 +1,4 @@
+
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
@@ -50,7 +51,7 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
               </div>
               <div className="text-xs text-muted-foreground truncate">
                 {participants.length === 1 
-                  ? `${participants[0].language || "Unknown language"}`
+                  ? `${participants[0].tagline || "No tagline set"}`
                   : `${participants.length} participants`
                 }
               </div>
