@@ -58,7 +58,8 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         .from('conversations')
         .insert({
           is_group: false,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          created_by: user.id  // Add this to explicitly set creator
         })
         .select()
         .single();
@@ -68,7 +69,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
 
       if (conversationError) {
         console.error("Failed to create conversation:", conversationError);
-        toast.error('Failed to create conversation');
+        toast.error(conversationError.message || 'Failed to create conversation');
         return null;
       }
 
@@ -94,7 +95,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         // Cleanup the conversation
         await supabase.from('conversations').delete().eq('id', conversation.id);
         
-        toast.error('Failed to add participants to the conversation');
+        toast.error(participantsError.message || 'Failed to add participants to the conversation');
         return null;
       }
 
@@ -110,7 +111,7 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       
     } catch (error) {
       console.error('Unexpected error in conversation creation:', error);
-      toast.error('An unexpected error occurred');
+      toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
       return null;
     } finally {
       setIsCreating(false);
@@ -122,3 +123,4 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
     createConversation
   };
 }
+
