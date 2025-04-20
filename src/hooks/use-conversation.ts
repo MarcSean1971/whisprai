@@ -1,12 +1,16 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Participant {
   id: string;
-  first_name?: string | null;
-  last_name?: string | null;
-  avatar_url?: string | null;
-  tagline?: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  avatar_url: string | null;
+  tagline: string | null;
+  bio: string | null;
+  birthdate: string | null;
+  email: string | null;
 }
 
 interface Conversation {
@@ -63,7 +67,24 @@ export function useConversation(conversationId: string) {
         throw profilesError;
       }
 
-      const formattedParticipants = profilesData || [];
+      // Get emails for each participant
+      const emailPromises = userIds.map(async (userId) => {
+        const { data, error } = await supabase.rpc('get_user_email', { user_id: userId });
+        if (error) {
+          console.error('Error fetching user email:', error);
+          return null;
+        }
+        return { userId, email: data };
+      });
+
+      const emailResults = await Promise.all(emailPromises);
+      const emailMap = new Map(emailResults.map(result => [result?.userId, result?.email]));
+
+      // Combine profile data with emails
+      const formattedParticipants = (profilesData || []).map(profile => ({
+        ...profile,
+        email: emailMap.get(profile.id) || null
+      }));
 
       return {
         id: conversationData.id,
