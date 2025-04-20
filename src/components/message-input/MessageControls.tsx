@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Mic, Send, Paperclip, Smile, Camera, X } from "lucide-react";
+import { Mic, Send, Paperclip, Smile, Camera, Sparkles, X } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useState } from "react";
 import { 
@@ -9,6 +9,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MessageControlsProps {
   message: string;
@@ -34,10 +36,36 @@ export function MessageControls({
   canAttach = true
 }: MessageControlsProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
   const handleEmojiSelect = (emojiData: EmojiClickData) => {
     onChange(message + emojiData.emoji);
     setIsEmojiPickerOpen(false);
+  };
+
+  const handleEnhanceMessage = async () => {
+    if (!message.trim()) {
+      toast.error("Please enter a message to enhance");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enhance-message', {
+        body: { message: message.trim() }
+      });
+
+      if (error) throw error;
+      if (!data?.enhancedMessage) throw new Error('No enhanced message received');
+
+      onChange(data.enhancedMessage);
+      toast.success("Message enhanced!");
+    } catch (error) {
+      console.error('Error enhancing message:', error);
+      toast.error("Failed to enhance message. Please try again.");
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   return (
@@ -66,6 +94,19 @@ export function MessageControls({
       >
         <Camera className="h-5 w-5" />
         <span className="sr-only">Use camera</span>
+      </Button>
+
+      <Button
+        type="button"
+        size="icon"
+        variant="ghost"
+        className="text-purple-600 hover:text-purple-700 hover:bg-purple-50 disabled:opacity-50"
+        onClick={handleEnhanceMessage}
+        disabled={disabled || isEnhancing || !message.trim()}
+        title="Enhance message with AI"
+      >
+        <Sparkles className={`h-5 w-5 ${isEnhancing ? 'animate-pulse' : ''}`} />
+        <span className="sr-only">Enhance message</span>
       </Button>
       
       <div className="relative flex-1">
