@@ -16,7 +16,6 @@ import {
 import { useState, useRef } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
-import { MessageReactions } from "./reactions/MessageReactions";
 
 interface MessageContextMenuProps {
   children: React.ReactNode;
@@ -146,11 +145,6 @@ export function MessageContextMenu({
             </DropdownMenu>
           </div>
         )}
-      </div>
-      
-      {/* Add reactions below the message bubble with compact styling */}
-      <div className="ml-1 -mt-1">
-        <MessageReactions messageId={messageId} isOwn={isOwn} />
       </div>
 
       <Popover 
