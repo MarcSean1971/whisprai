@@ -1,8 +1,14 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mic, Send, Paperclip, Smile, Camera } from "lucide-react";
 import EmojiPicker, { EmojiClickData } from 'emoji-picker-react';
 import { useState } from "react";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 interface MessageControlsProps {
   message: string;
@@ -27,11 +33,11 @@ export function MessageControls({
   inputRef,
   canAttach = true
 }: MessageControlsProps) {
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
 
-  const handleEmojiClick = (emojiData: EmojiClickData) => {
+  const handleEmojiSelect = (emojiData: EmojiClickData) => {
     onChange(message + emojiData.emoji);
-    setShowEmojiPicker(false);
+    setIsEmojiPickerOpen(false);
   };
 
   return (
@@ -71,27 +77,37 @@ export function MessageControls({
           className="pr-10 py-6 rounded-full"
           disabled={disabled}
         />
-        <Button
-          type="button"
-          size="icon"
-          variant="ghost"
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          disabled={disabled}
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-        >
-          <Smile className="h-5 w-5" />
-          <span className="sr-only">Add emoji</span>
-        </Button>
         
-        {showEmojiPicker && (
-          <div className="absolute right-0 bottom-full mb-2 z-50">
-            <EmojiPicker 
-              onEmojiClick={handleEmojiClick} 
-              height={350} 
-              width={300} 
+        <Popover 
+          open={isEmojiPickerOpen}
+          onOpenChange={setIsEmojiPickerOpen}
+        >
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={disabled}
+            >
+              <Smile className="h-5 w-5" />
+              <span className="sr-only">Add emoji</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-full p-0" 
+            align="end"
+            side="top"
+            sideOffset={5}
+          >
+            <EmojiPicker
+              width={300}
+              height={350}
+              onEmojiClick={handleEmojiSelect}
+              lazyLoadEmojis={true}
             />
-          </div>
-        )}
+          </PopoverContent>
+        </Popover>
       </div>
       
       {message.trim() ? (
