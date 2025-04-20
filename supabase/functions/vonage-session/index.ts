@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import OpenTok from "https://esm.sh/opentok@2.16.0";
+import OpenTokClass from "https://esm.sh/opentok@2.16.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,16 +46,13 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create a new session
+    // Create OpenTok instance
+    const OpenTok = OpenTokClass.default || OpenTokClass;
     const opentok = new OpenTok(apiKey, privateKey);
 
-    const sessionOptions = {
-      mediaMode: 'routed',
-      archiveMode: 'always'
-    };
-
+    // Create a new session with specific options
     const session = await new Promise((resolve, reject) => {
-      opentok.createSession(sessionOptions, (error, session) => {
+      opentok.createSession({ mediaMode: 'routed' }, (error: any, session: any) => {
         if (error) {
           console.error('Error creating session:', error);
           reject(error);
@@ -73,21 +70,19 @@ serve(async (req) => {
     });
 
     // Store session info in database
-    await supabaseClient
+    const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
+    const { error: insertError } = await supabaseClient
       .from('call_sessions')
-      .upsert({
-        session_key: `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`,
+      .insert({
+        session_key: sessionKey,
         session_id: session.sessionId,
         created_by: user.id,
-        conversation_id: conversationId,
-        created_at: new Date().toISOString()
+        conversation_id: conversationId
       });
 
-    console.log('Session created successfully:', {
-      sessionId: session.sessionId,
-      token: token,
-      apiKey: apiKey
-    });
+    if (insertError) {
+      throw new Error(`Failed to store session: ${insertError.message}`);
+    }
 
     return new Response(
       JSON.stringify({

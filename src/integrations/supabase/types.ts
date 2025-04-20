@@ -63,6 +63,41 @@ export type Database = {
         }
         Relationships: []
       }
+      call_sessions: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          created_by: string
+          id: string
+          session_id: string
+          session_key: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          session_id: string
+          session_key: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          session_id?: string
+          session_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_requests: {
         Row: {
           created_at: string
