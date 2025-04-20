@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +16,6 @@ import Admin from "./pages/Admin";
 import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import Contacts from "./pages/Contacts";
-import { CallInterface } from "@/components/call/CallInterface";
 import { toast } from "sonner";
 
 const queryClient = new QueryClient({
@@ -113,7 +113,7 @@ const App = () => {
                 } />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-              {userId && <CallInterface userId={userId} />}
+              {/* CallInterface component has been removed with Twilio */}
             </div>
           </TooltipProvider>
         </BrowserRouter>

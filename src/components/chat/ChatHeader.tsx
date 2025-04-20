@@ -1,7 +1,7 @@
+
 import { AvatarStack } from "@/components/home/AvatarStack";
 import { BackButton } from "@/components/ui/back-button";
 import { useParticipants } from "@/hooks/use-participants";
-import { CallButton } from "@/components/call/CallButton";
 import { Menu, Search, Video } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -92,13 +92,7 @@ export function ChatHeader({ conversationId }: { conversationId: string }) {
 
         {participants && participants.length === 1 && (
           <>
-            <CallButton 
-              recipientId={participants[0].id}
-              recipientName={participants[0].first_name && participants[0].last_name 
-                ? `${participants[0].first_name} ${participants[0].last_name}` 
-                : "Unknown User"
-              }
-            />
+            {/* CallButton has been removed with Twilio */}
             <Button variant="ghost" size="icon">
               <Video className="h-4 w-4" />
             </Button>
