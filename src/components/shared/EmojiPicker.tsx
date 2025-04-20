@@ -7,6 +7,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useState } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -23,6 +24,17 @@ export function EmojiPicker({
   align = "start",
   sideOffset = 5
 }: EmojiPickerProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const handleEmojiSelect = (emojiData: any) => {
+    onEmojiSelect(emojiData);
+    setIsOpen(false);
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+  };
+
   const defaultTrigger = (
     <Button
       type="button"
@@ -36,7 +48,7 @@ export function EmojiPicker({
   );
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         {triggerButton || defaultTrigger}
       </PopoverTrigger>
@@ -45,6 +57,7 @@ export function EmojiPicker({
         side={side}
         align={align}
         sideOffset={sideOffset}
+        hideWhenDetached={false}
       >
         <div className="bg-popover border rounded-md shadow-lg p-4">
           <div className="flex justify-between items-center mb-2">
@@ -53,6 +66,7 @@ export function EmojiPicker({
               size="icon"
               variant="ghost"
               className="h-8 w-8"
+              onClick={handleClose}
             >
               <X className="h-4 w-4" />
               <span className="sr-only">Close</span>
@@ -61,7 +75,7 @@ export function EmojiPicker({
           <EmojiPickerReact
             width={300}
             height={350}
-            onEmojiClick={onEmojiSelect}
+            onEmojiClick={handleEmojiSelect}
             lazyLoadEmojis={true}
           />
         </div>
