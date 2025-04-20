@@ -8,8 +8,7 @@ const corsHeaders = {
 };
 
 // Vonage Video API endpoints
-const API_BASE = "https://api.opentok.com/session";
-const TOKEN_ENDPOINT = "https://api.opentok.com/v2/project/";
+const API_BASE = "https://api.opentok.com/v2/project";
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -53,39 +52,50 @@ serve(async (req) => {
     }
 
     console.log('Creating Vonage Video API session...');
+
+    // Create Basic Auth token (base64 encoded API key:secret)
+    const encoder = new TextEncoder();
+    const credentials = encoder.encode(`${apiKey}:${apiSecret}`);
+    const basicAuth = btoa(String.fromCharCode(...credentials));
+
+    // Create session with Basic Auth
+    const sessionEndpoint = `${API_BASE}/${apiKey}/session`;
+    console.log('Calling session endpoint:', sessionEndpoint);
     
-    // Create Basic Auth token
-    const basicAuth = btoa(`${apiKey}:${apiSecret}`);
-    
-    // Create a session using Basic Auth
-    const createSessionResponse = await fetch(API_BASE, {
+    const createSessionResponse = await fetch(sessionEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Basic ${basicAuth}`
-      },
-      body: JSON.stringify({
-        mediaMode: 'relayed',
-      }),
+      }
     });
     
     if (!createSessionResponse.ok) {
       const errorDetails = await createSessionResponse.text();
-      console.error('Session creation failed:', errorDetails);
+      console.error('Session creation failed:', {
+        status: createSessionResponse.status,
+        details: errorDetails,
+        headers: Object.fromEntries(createSessionResponse.headers.entries())
+      });
       throw new Error(`Failed to create session: HTTP ${createSessionResponse.status}`);
     }
     
     const sessionData = await createSessionResponse.json();
-    const sessionId = sessionData.sessions?.[0]?.session_id;
+    console.log('Session response:', sessionData);
     
+    const sessionId = sessionData.sessions?.[0]?.session_id;
     if (!sessionId) {
+      console.error('Invalid session response:', sessionData);
       throw new Error('No session ID in response');
     }
     
     console.log('Session created successfully:', { sessionId });
 
     // Generate token with Basic Auth
-    const tokenResponse = await fetch(`${TOKEN_ENDPOINT}${apiKey}/token`, {
+    const tokenEndpoint = `${API_BASE}/${apiKey}/token`;
+    console.log('Generating token at:', tokenEndpoint);
+    
+    const tokenResponse = await fetch(tokenEndpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -101,12 +111,20 @@ serve(async (req) => {
     
     if (!tokenResponse.ok) {
       const errorDetails = await tokenResponse.text();
-      console.error('Token generation failed:', errorDetails);
+      console.error('Token generation failed:', {
+        status: tokenResponse.status,
+        details: errorDetails
+      });
       throw new Error(`Failed to generate token: HTTP ${tokenResponse.status}`);
     }
     
     const tokenData = await tokenResponse.json();
     const token = tokenData.token;
+    
+    if (!token) {
+      console.error('Invalid token response:', tokenData);
+      throw new Error('No token in response');
+    }
     
     console.log('Token generated successfully');
 
