@@ -81,6 +81,7 @@ export function MessageControls({
         <Popover 
           open={isEmojiPickerOpen}
           onOpenChange={setIsEmojiPickerOpen}
+          modal={true}
         >
           <PopoverTrigger asChild>
             <Button

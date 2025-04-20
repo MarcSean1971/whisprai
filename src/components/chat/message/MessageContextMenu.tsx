@@ -1,3 +1,4 @@
+
 import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,11 +37,12 @@ export function MessageContextMenu({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const dropdownTriggerRef = useRef<HTMLButtonElement>(null);
-  const { addReaction } = useMessageReactions(messageId);
+  const { addReaction, removeReaction } = useMessageReactions(messageId);
 
   const handleEmojiSelect = (emojiData: any) => {
     addReaction({ emoji: emojiData.emoji });
     setIsEmojiPickerOpen(false);
+    setIsDropdownOpen(false);
   };
 
   const handleAddReactionClick = (e: React.MouseEvent) => {
