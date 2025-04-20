@@ -47,8 +47,9 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
-          // Get all participants' info
-          const participants = conversation.conversation_participants
+          // Filter out current user and get other participants' info
+          const otherParticipants = conversation.conversation_participants
+            .filter(participant => participant.user_id !== user.id)
             .map(participant => {
               const profile = participant.profiles;
               return {
@@ -61,10 +62,10 @@ export function useUserConversations() {
 
           return {
             id: conversation.id,
-            name: participants.map(p => p.name).join(', '), // Join participant names
-            avatar: conversation.is_group ? null : participants[0]?.avatar || null,
+            name: otherParticipants.map(p => p.name).join(', '), // Join other participants' names
+            avatar: conversation.is_group ? null : otherParticipants[0]?.avatar || null,
             is_group: conversation.is_group,
-            participants: participants,
+            participants: otherParticipants,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,
