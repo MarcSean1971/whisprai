@@ -49,6 +49,9 @@ serve(async (req) => {
       const AccessToken = twilio.jwt.AccessToken;
       const VoiceGrant = AccessToken.VoiceGrant;
       
+      // Get current time for token creation
+      const now = Math.floor(Date.now() / 1000);
+      
       // Create an access token with the specified TTL
       const token = new AccessToken(
         twilioAccountSid,
@@ -57,7 +60,7 @@ serve(async (req) => {
         { 
           identity,
           ttl: ttl,
-          nbf: Math.floor(Date.now() / 1000) // Not Before - token becomes valid immediately
+          nbf: now // Not Before - token becomes valid immediately
         }
       );
 
@@ -73,8 +76,8 @@ serve(async (req) => {
       const tokenString = token.toJwt();
       console.log('Token generated successfully');
 
-      const now = Date.now();
-      const expiresAt = now + (ttl * 1000);
+      const currentTime = Date.now();
+      const expiresAt = currentTime + (ttl * 1000);
 
       return new Response(
         JSON.stringify({ 
@@ -82,9 +85,9 @@ serve(async (req) => {
           identity,
           accountSid: twilioAccountSid,
           ttl: ttl,
-          timestamp: new Date(now).toISOString(),
+          timestamp: new Date(currentTime).toISOString(),
           expiresAt: new Date(expiresAt).toISOString(),
-          validFrom: new Date(now).toISOString()
+          validFrom: new Date(currentTime).toISOString()
         }),
         { 
           headers: { 

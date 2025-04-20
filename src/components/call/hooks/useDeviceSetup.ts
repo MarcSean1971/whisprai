@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useRef } from 'react';
 import { Device } from 'twilio-client';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +11,7 @@ const MIN_TOKEN_REQUEST_INTERVAL = 5000;
 const TOKEN_REFRESH_BUFFER_MS = 5 * 60 * 1000;
 const DEVICE_INIT_TIMEOUT = 15000; // 15 seconds
 const TOKEN_ERROR_COOLDOWN_MS = 10000; // 10 second cooldown after token errors
+const TOKEN_VALIDATION_TIMEOUT = 30000; // 30 seconds timeout for token validation
 
 export function useDeviceSetup() {
   const [tokenExpiryTime, setTokenExpiryTime] = useState<number | null>(null);
@@ -18,6 +20,79 @@ export function useDeviceSetup() {
   const lastTokenRequest = useRef<number>(0);
   const deviceInitTimeout = useRef<number | null>(null);
   const recoveryTimerRef = useRef<number | null>(null);
+  const tokenValidationTimer = useRef<number | null>(null);
+  const currentToken = useRef<string | null>(null);
+
+  const validateToken = async (token: string): Promise<boolean> => {
+    if (!token) return false;
+    
+    try {
+      // Create a temporary device just to validate the token
+      const tempDevice = new Device();
+      
+      // Set up promise to track validation
+      const validationPromise = new Promise<boolean>((resolve) => {
+        // Set timeout to handle case where token is invalid but error isn't thrown
+        tokenValidationTimer.current = window.setTimeout(() => {
+          resolve(false);
+          console.warn('Token validation timed out');
+          try {
+            tempDevice.destroy();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        }, TOKEN_VALIDATION_TIMEOUT);
+        
+        // Listen for ready event which indicates token is valid
+        tempDevice.on('ready', () => {
+          if (tokenValidationTimer.current) {
+            clearTimeout(tokenValidationTimer.current);
+          }
+          resolve(true);
+          try {
+            tempDevice.destroy();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        });
+        
+        // Listen for error event which may indicate token is invalid
+        tempDevice.on('error', (err) => {
+          if (tokenValidationTimer.current) {
+            clearTimeout(tokenValidationTimer.current);
+          }
+          
+          // Check if error is related to JWT
+          const isJwtError = err.message?.includes('JWT') || 
+                           err.code === 31204 || 
+                           err.code === 31205;
+          
+          console.warn('Token validation error:', err);
+          resolve(false);
+          
+          try {
+            tempDevice.destroy();
+          } catch (e) {
+            // Ignore errors during cleanup
+          }
+        });
+      });
+      
+      // Setup the device with the token to test
+      tempDevice.setup(token, { debug: true });
+      
+      // Wait for validation result
+      return await validationPromise;
+    } catch (err) {
+      console.error('Error during token validation:', err);
+      return false;
+    } finally {
+      if (tokenValidationTimer.current) {
+        clearTimeout(tokenValidationTimer.current);
+        tokenValidationTimer.current = null;
+      }
+    }
+  };
 
   const fetchTwilioToken = async (userId: string): Promise<{ 
     token: string, 
@@ -54,13 +129,27 @@ export function useDeviceSetup() {
       }
 
       console.log('Token received, expires:', tokenData.expiresAt);
+      
+      // Validate the token before using it
+      const isValid = await validateToken(tokenData.token);
+      
+      if (!isValid) {
+        console.error('Received invalid token from server');
+        throw new Error('Invalid Twilio token received');
+      }
+      
       setTokenExpiryTime(new Date(tokenData.expiresAt).getTime());
+      currentToken.current = tokenData.token;
 
       return {
         token: tokenData.token,
         ttl: tokenData.ttl,
         expiresAt: tokenData.expiresAt
       };
+    } catch (error) {
+      console.error('Error fetching Twilio token:', error);
+      currentToken.current = null;
+      throw error;
     } finally {
       tokenRequestInProgress.current = false;
     }
@@ -132,6 +221,13 @@ export function useDeviceSetup() {
             clearTimeout(deviceInitTimeout.current);
           }
           console.error('Device error:', err);
+          
+          // Check if error is related to JWT
+          if (err.message?.includes('JWT') || err.code === 31204 || err.code === 31205) {
+            // Invalidate current token
+            currentToken.current = null;
+          }
+          
           reject(err);
         });
       });
@@ -163,9 +259,15 @@ export function useDeviceSetup() {
       console.log('Refreshing Twilio token');
       const { token } = await fetchTwilioToken(userId);
       
-      device.updateToken(token);
-      setDeviceRegistered(true);
-      console.log('Device token refreshed successfully');
+      // Only update if device is still valid
+      if (device && typeof device.updateToken === 'function') {
+        device.updateToken(token);
+        setDeviceRegistered(true);
+        console.log('Device token refreshed successfully');
+      } else {
+        console.warn('Device no longer valid during token refresh');
+        throw new Error('Device is no longer valid');
+      }
     } catch (err) {
       console.error('Failed to refresh token:', err);
       setDeviceRegistered(false);
