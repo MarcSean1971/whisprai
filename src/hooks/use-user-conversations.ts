@@ -26,10 +26,14 @@ export function useUserConversations() {
               sender_id
             ),
             conversation_participants!inner (
-              user_id
+              user_id,
+              profiles (
+                first_name,
+                last_name
+              )
             )
           `)
-          .eq('conversation_participants.user_id', user.id);
+          .order('updated_at', { ascending: false });
 
         if (conversationsError) {
           console.error('Error fetching conversations:', conversationsError);
@@ -42,10 +46,20 @@ export function useUserConversations() {
           );
           const lastMessage = sortedMessages[0];
 
+          // Get all participants' names
+          const participantNames = conversation.conversation_participants
+            .map(participant => {
+              const profile = participant.profiles;
+              if (profile?.first_name || profile?.last_name) {
+                return `${profile.first_name || ''} ${profile.last_name || ''}`.trim();
+              }
+              return 'Unknown User';
+            });
+
           return {
             id: conversation.id,
-            name: "Conversation", // Default placeholder name
-            avatar: null, // Default placeholder avatar
+            name: participantNames.join(', '), // Join all participant names with commas
+            avatar: null,
             is_group: conversation.is_group,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
