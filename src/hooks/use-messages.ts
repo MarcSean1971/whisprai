@@ -91,15 +91,7 @@ export function useMessages(conversationId: string) {
             id,
             content,
             created_at,
-            sender:sender_id (
-              id,
-              profiles:profiles (
-                first_name,
-                last_name,
-                avatar_url,
-                language
-              )
-            )
+            sender_id
           )
         `)
         .eq('conversation_id', conversationId)
@@ -116,7 +108,13 @@ export function useMessages(conversationId: string) {
         .map(msg => msg.sender_id)
         .filter((id): id is string => id !== null);
       
-      const uniqueSenderIds = [...new Set(senderIds)];
+      // Extract parent sender IDs if any exist
+      const parentSenderIds = messages
+        .filter(msg => msg.parent && msg.parent.sender_id)
+        .map(msg => msg.parent.sender_id);
+        
+      // Combine all sender IDs for a single query
+      const uniqueSenderIds = [...new Set([...senderIds, ...parentSenderIds])];
 
       let profilesMap: Record<string, any> = {};
       
@@ -138,7 +136,6 @@ export function useMessages(conversationId: string) {
 
       // Process the messages to have the correct type structure
       const messagesWithProfiles = messages.map(message => {
-        // Process sender information
         let processedMessage: Message = {
           ...message,
           sender: message.sender_id ? {
@@ -152,22 +149,23 @@ export function useMessages(conversationId: string) {
           } : undefined
         };
 
-        // Ensure parent message has the right structure if it exists
+        // Process parent information separately with proper type checking
         if (message.parent && typeof message.parent === 'object') {
           const parentMessage = message.parent as any;
+          const parentSenderId = parentMessage.sender_id;
           
-          // Check if parentMessage.sender exists and is not an error object
-          const hasSender = parentMessage.sender && 
-                           typeof parentMessage.sender === 'object' && 
-                           !parentMessage.sender.error;
-
           processedMessage.parent = {
             id: parentMessage.id,
             content: parentMessage.content,
             created_at: parentMessage.created_at,
-            sender: hasSender ? {
-              id: parentMessage.sender.id,
-              profiles: parentMessage.sender.profiles || null
+            sender: parentSenderId ? {
+              id: parentSenderId,
+              profiles: profilesMap[parentSenderId] ? {
+                first_name: profilesMap[parentSenderId].first_name,
+                last_name: profilesMap[parentSenderId].last_name,
+                avatar_url: profilesMap[parentSenderId].avatar_url,
+                language: profilesMap[parentSenderId].language
+              } : null
             } : null
           };
         }
