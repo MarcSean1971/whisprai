@@ -1,4 +1,3 @@
-
 import { MoreVertical } from "lucide-react";
 import { Reply, Languages, Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,16 +43,74 @@ export function MessageContextMenu({
     setIsDropdownOpen(false);
   };
 
+  const handleDropdownChange = (open: boolean) => {
+    setIsDropdownOpen(open);
+    if (!open && !isEmojiPickerOpen) {
+      setIsDropdownOpen(false);
+    }
+  };
+
+  const handleEmojiPickerChange = (open: boolean) => {
+    setIsEmojiPickerOpen(open);
+    if (open) {
+      setIsDropdownOpen(true);
+    }
+  };
+
   const handleAddReactionClick = (e: Event) => {
     e.preventDefault();
     setIsEmojiPickerOpen(true);
   };
 
+  const renderMenuContent = () => (
+    <DropdownMenuContent
+      align="start"
+      side="bottom"
+      className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
+    >
+      <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
+        <Reply className="mr-2 h-4 w-4" />
+        <span>Reply</span>
+      </DropdownMenuItem>
+      {showTranslationToggle && (
+        <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
+          <Languages className="mr-2 h-4 w-4" />
+          <span>Toggle Translation</span>
+        </DropdownMenuItem>
+      )}
+      <Popover open={isEmojiPickerOpen} onOpenChange={handleEmojiPickerChange}>
+        <PopoverTrigger asChild>
+          <DropdownMenuItem 
+            className="cursor-pointer" 
+            onSelect={handleAddReactionClick}
+          >
+            <Smile className="mr-2 h-4 w-4" />
+            <span>Add Reaction</span>
+          </DropdownMenuItem>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-full p-0" 
+          align={isOwn ? "start" : "end"}
+          sideOffset={5}
+        >
+          <div className="z-[100]">
+            <EmojiPicker
+              width={300}
+              height={350}
+              onEmojiClick={handleEmojiSelect}
+              lazyLoadEmojis={true}
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
+    </DropdownMenuContent>
+  );
+
   return (
     <div className="group flex items-start gap-2">
       {isOwn && (
         <div className="pt-2">
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownChange}>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -63,45 +120,7 @@ export function MessageContextMenu({
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="start"
-              side="bottom"
-              className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
-            >
-              <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
-                <Reply className="mr-2 h-4 w-4" />
-                <span>Reply</span>
-              </DropdownMenuItem>
-              {showTranslationToggle && (
-                <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
-                  <Languages className="mr-2 h-4 w-4" />
-                  <span>Toggle Translation</span>
-                </DropdownMenuItem>
-              )}
-              <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
-                <PopoverTrigger asChild>
-                  <DropdownMenuItem 
-                    className="cursor-pointer" 
-                    onSelect={handleAddReactionClick}
-                  >
-                    <Smile className="mr-2 h-4 w-4" />
-                    <span>Add Reaction</span>
-                  </DropdownMenuItem>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-full p-0" 
-                  align={isOwn ? "start" : "end"}
-                  sideOffset={5}
-                >
-                  <EmojiPicker
-                    width={300}
-                    height={350}
-                    onEmojiClick={handleEmojiSelect}
-                    lazyLoadEmojis={true}
-                  />
-                </PopoverContent>
-              </Popover>
-            </DropdownMenuContent>
+            {renderMenuContent()}
           </DropdownMenu>
         </div>
       )}
@@ -112,7 +131,7 @@ export function MessageContextMenu({
 
       {!isOwn && (
         <div className="pt-2">
-          <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+          <DropdownMenu open={isDropdownOpen} onOpenChange={handleDropdownChange}>
             <DropdownMenuTrigger asChild>
               <Button 
                 variant="ghost" 
@@ -122,45 +141,7 @@ export function MessageContextMenu({
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent
-              align="end"
-              side="bottom"
-              className="min-w-[160px] overflow-hidden bg-popover border rounded-md shadow-md"
-            >
-              <DropdownMenuItem className="cursor-pointer" onClick={onReply}>
-                <Reply className="mr-2 h-4 w-4" />
-                <span>Reply</span>
-              </DropdownMenuItem>
-              {showTranslationToggle && (
-                <DropdownMenuItem className="cursor-pointer" onClick={onToggleTranslation}>
-                  <Languages className="mr-2 h-4 w-4" />
-                  <span>Toggle Translation</span>
-                </DropdownMenuItem>
-              )}
-              <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
-                <PopoverTrigger asChild>
-                  <DropdownMenuItem 
-                    className="cursor-pointer" 
-                    onSelect={handleAddReactionClick}
-                  >
-                    <Smile className="mr-2 h-4 w-4" />
-                    <span>Add Reaction</span>
-                  </DropdownMenuItem>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-full p-0" 
-                  align={isOwn ? "start" : "end"}
-                  sideOffset={5}
-                >
-                  <EmojiPicker
-                    width={300}
-                    height={350}
-                    onEmojiClick={handleEmojiSelect}
-                    lazyLoadEmojis={true}
-                  />
-                </PopoverContent>
-              </Popover>
-            </DropdownMenuContent>
+            {renderMenuContent()}
           </DropdownMenu>
         </div>
       )}
