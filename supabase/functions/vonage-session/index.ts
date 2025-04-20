@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+import OpenTok from "https://esm.sh/opentok@2.16.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,80 +48,50 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    console.log('Using Vonage credentials for session creation');
+    console.log('Using Vonage credentials with OpenTok SDK');
     
-    // Generate API URL with key and secret as query parameters
-    // This is one of the authentication methods supported by OpenTok REST API
-    const sessionUrl = new URL('https://api.opentok.com/session/create');
-    sessionUrl.searchParams.append('api_key', apiKey);
-    sessionUrl.searchParams.append('api_secret', apiSecret);
+    // Initialize the OpenTok SDK
+    const openTok = new OpenTok(apiKey, apiSecret);
     
-    console.log('Creating OpenTok session with URL params authentication');
+    // Create a session using the SDK
+    const createSession = () => {
+      return new Promise((resolve, reject) => {
+        openTok.createSession({ mediaMode: 'relayed' }, (error, session) => {
+          if (error) {
+            console.error('Error creating session:', error);
+            reject(error);
+          } else {
+            resolve(session);
+          }
+        });
+      });
+    };
 
-    // Create session
-    const sessionResponse = await fetch(sessionUrl.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
-      },
-      body: 'p2p.preference=enabled'
-    });
-
-    console.log('Session response status:', sessionResponse.status);
-    console.log('Session response headers:', Object.fromEntries(sessionResponse.headers));
+    console.log('Creating session with OpenTok SDK');
+    const session = await createSession();
     
-    if (!sessionResponse.ok) {
-      const errorText = await sessionResponse.text();
-      console.error('Session creation failed:', errorText);
-      throw new Error(`OpenTok API error (${sessionResponse.status}): ${errorText}`);
+    if (!session || !session.sessionId) {
+      throw new Error('Failed to create session');
     }
 
-    const sessionData = await sessionResponse.json();
+    const sessionId = session.sessionId;
+    console.log('Session created successfully:', { sessionId });
+
+    // Generate a token using the SDK
+    const tokenOptions = {
+      role: 'publisher',
+      data: JSON.stringify({ userId: user.id }),
+      expireTime: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+    };
+
+    console.log('Generating token with options:', { ...tokenOptions, data: '(redacted)' });
+    const token = openTok.generateToken(sessionId, tokenOptions);
     
-    if (!sessionData.sessions || !sessionData.sessions[0].session_id) {
-      console.error('Invalid session data:', sessionData);
-      throw new Error('Missing session_id in OpenTok API response');
+    if (!token) {
+      throw new Error('Failed to generate token');
     }
 
-    const sessionId = sessionData.sessions[0].session_id;
-    console.log('Session created:', { sessionId });
-
-    // Generate token URL with key and secret as query parameters
-    const tokenUrl = new URL('https://api.opentok.com/v2/project/' + apiKey + '/token');
-    tokenUrl.searchParams.append('api_key', apiKey);
-    tokenUrl.searchParams.append('api_secret', apiSecret);
-
-    // Generate token
-    const tokenResponse = await fetch(tokenUrl.toString(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        session_id: sessionId,
-        data: JSON.stringify({ userId: user.id }),
-        role: 'publisher',
-        expire_time: Math.floor(Date.now() / 1000) + 3600 // 1 hour
-      })
-    });
-
-    console.log('Token response status:', tokenResponse.status);
-    console.log('Token response headers:', Object.fromEntries(tokenResponse.headers));
-    
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      console.error('Token generation failed:', errorText);
-      throw new Error(`OpenTok API error (${tokenResponse.status}): ${errorText}`);
-    }
-
-    const tokenData = await tokenResponse.json();
-    
-    if (!tokenData.token) {
-      console.error('Invalid token data:', tokenData);
-      throw new Error('Missing token in OpenTok API response');
-    }
+    console.log('Token generated successfully');
 
     // Store session info in database
     const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join('-')}`;
@@ -143,7 +114,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         sessionId,
-        token: tokenData.token,
+        token,
         apiKey
       }),
       { 
