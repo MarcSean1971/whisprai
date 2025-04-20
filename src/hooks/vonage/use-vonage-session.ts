@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VonageSessionOptions, VonageError, VonageSessionData } from "./types";
@@ -11,6 +10,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
 
   const initializeSession = useCallback(async () => {
     if (!conversationId || !recipientId) {
+      console.error('Missing required parameters:', { conversationId, recipientId });
       setError({
         type: 'SESSION_ERROR',
         message: "Missing required parameters"
@@ -41,8 +41,11 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
         hasApiKey: !!data.apiKey 
       });
 
-      sessionRef.current = window.OT.initSession(data.apiKey, data.sessionId);
-      return { sessionId: data.sessionId, token: data.token, apiKey: data.apiKey };
+      return { 
+        sessionId: data.sessionId, 
+        token: data.token, 
+        apiKey: data.apiKey 
+      };
 
     } catch (err: any) {
       const vonageError: VonageError = {

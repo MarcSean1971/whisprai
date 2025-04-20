@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import OpenTokClass from "https://esm.sh/opentok@2.16.0";
+import OpenTok from "https://esm.sh/opentok@2.16.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -9,6 +9,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,6 +29,7 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     
     if (userError || !user) {
+      console.error('Authentication error:', userError);
       throw new Error('Not authenticated');
     }
 
@@ -38,17 +40,25 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
+    console.log('Creating Vonage session for:', { conversationId, recipientId });
+
     // Initialize OpenTok with API key and private key
     const apiKey = Deno.env.get('VONAGE_API_KEY');
     const privateKey = Deno.env.get('VONAGE_PRIVATE_KEY');
     
     if (!apiKey || !privateKey) {
+      console.error('Missing Vonage credentials');
       throw new Error('Vonage API credentials not configured');
     }
 
-    // Create OpenTok instance
-    const OpenTok = OpenTokClass.default || OpenTokClass;
+    // Create OpenTok instance with proper error handling
     const opentok = new OpenTok(apiKey, privateKey);
+    if (!opentok) {
+      console.error('Failed to initialize OpenTok');
+      throw new Error('Failed to initialize OpenTok SDK');
+    }
+
+    console.log('OpenTok initialized successfully');
 
     // Create a new session with specific options
     const session = await new Promise((resolve, reject) => {
@@ -61,6 +71,8 @@ serve(async (req) => {
         }
       });
     });
+
+    console.log('Session created:', { sessionId: session.sessionId });
 
     // Generate token for the user
     const token = opentok.generateToken(session.sessionId, {
@@ -81,8 +93,11 @@ serve(async (req) => {
       });
 
     if (insertError) {
+      console.error('Failed to store session:', insertError);
       throw new Error(`Failed to store session: ${insertError.message}`);
     }
+
+    console.log('Session stored successfully');
 
     return new Response(
       JSON.stringify({
@@ -106,7 +121,7 @@ serve(async (req) => {
         error: error instanceof Error ? error.message : 'An unexpected error occurred' 
       }),
       { 
-        status: 400,
+        status: 500,
         headers: { 
           ...corsHeaders,
           'Content-Type': 'application/json' 
