@@ -4,6 +4,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 
@@ -20,8 +23,9 @@ export function ChatHeader({
 }: ChatHeaderProps) {
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Find the other participant in the conversation
   const participant = conversation?.participants?.find(p => {
     if (profile && 'id' in profile) {
       return p.id !== profile.id;
@@ -46,6 +50,37 @@ export function ChatHeader({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isSearching ? (
+            <div className="flex items-center relative">
+              <Input
+                placeholder="Search messages..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px] h-9"
+                autoFocus
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 h-9 w-9"
+                onClick={() => {
+                  setSearchQuery("");
+                  setIsSearching(false);
+                }}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setIsSearching(true)}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
           {replyToMessageId && onCancelReply && (
             <Button 
               variant="ghost" 
