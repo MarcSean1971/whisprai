@@ -46,13 +46,16 @@ serve(async (req) => {
       throw new Error('Vonage API credentials not configured');
     }
 
-    console.log('Using Vonage credentials with API Key:', apiKey);
+    // Create base64 encoded auth header
+    const authHeader = btoa(`${apiKey}:${apiSecret}`);
+    console.log('Attempting to create session with Vonage');
 
-    // Create session using Vonage Video API with API Key and Secret
+    // Create session using Vonage Video API
     const sessionResponse = await fetch('https://api.opentok.com/session/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': `${apiKey}:${apiSecret}`,
+        'X-OPENTOK-AUTH': `Basic ${authHeader}`,
+        'X-TB-VERSION': '1.0',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
@@ -65,24 +68,22 @@ serve(async (req) => {
       throw new Error(`Failed to create Vonage session: ${errorText}`);
     }
 
-    // Parse XML response
-    const responseText = await sessionResponse.text();
-    console.log('Session response:', responseText);
+    const sessionData = await sessionResponse.json();
+    console.log('Session response:', sessionData);
     
-    // Extract session ID from XML response
-    const sessionId = responseText.match(/<session_id>(.*?)<\/session_id>/)?.[1];
-
-    if (!sessionId) {
+    if (!sessionData.session_id) {
       throw new Error('Invalid session response from Vonage');
     }
 
+    const sessionId = sessionData.session_id;
     console.log('Session created:', { sessionId });
 
     // Generate token using API Key and Secret
-    const tokenResponse = await fetch(`https://api.opentok.com/token/create`, {
+    const tokenResponse = await fetch('https://api.opentok.com/token/create', {
       method: 'POST',
       headers: {
-        'X-OPENTOK-AUTH': `${apiKey}:${apiSecret}`,
+        'X-OPENTOK-AUTH': `Basic ${authHeader}`,
+        'X-TB-VERSION': '1.0',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json'
       },
@@ -100,14 +101,10 @@ serve(async (req) => {
       throw new Error(`Failed to generate Vonage token: ${errorText}`);
     }
 
-    // Parse token from response
-    const tokenText = await tokenResponse.text();
-    console.log('Token response:', tokenText);
+    const tokenData = await tokenResponse.json();
+    console.log('Token response:', tokenData);
     
-    // Extract token from XML response
-    const token = tokenText.match(/<token>(.*?)<\/token>/)?.[1];
-    
-    if (!token) {
+    if (!tokenData.token) {
       throw new Error('Invalid token response from Vonage');
     }
 
@@ -132,7 +129,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         sessionId,
-        token,
+        token: tokenData.token,
         apiKey
       }),
       { 
