@@ -8,14 +8,18 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log('Processing Vonage session request')
+    
     const { recipientId } = await req.json()
     
     if (!recipientId) {
+      console.error('Missing recipientId in request')
       throw new Error('Recipient ID is required')
     }
 
@@ -23,8 +27,11 @@ serve(async (req) => {
     const applicationId = Deno.env.get('VONAGE_APPLICATION_ID')
 
     if (!privateKey || !applicationId) {
+      console.error('Missing Vonage credentials')
       throw new Error('Vonage credentials not configured')
     }
+
+    console.log('Generating JWT token for applicationId:', applicationId)
 
     // Generate a JWT token for the client SDK
     const token = createJWT(
@@ -42,6 +49,8 @@ serve(async (req) => {
         }
       }
     )
+
+    console.log('JWT token generated successfully')
 
     return new Response(
       JSON.stringify({ 
@@ -61,3 +70,4 @@ serve(async (req) => {
     )
   }
 })
+
