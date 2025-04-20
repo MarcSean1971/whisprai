@@ -13,11 +13,10 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
   const [isCreating, setIsCreating] = useState(false);
 
   const createConversation = async (contactId: string) => {
-    console.log("Starting conversation creation process");
-    console.log("Contact ID:", contactId);
+    console.log("Starting conversation creation with contact ID:", contactId);
     
     if (isCreating) {
-      console.log("Conversation creation already in progress");
+      console.log("Creation already in progress");
       return null;
     }
     
@@ -26,8 +25,6 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      console.log("Current user:", user);
       
       if (userError || !user) {
         console.error("Authentication error:", userError);
@@ -42,7 +39,6 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
         { user1_id: user.id, user2_id: contactId }
       );
 
-      console.log("Existing conversation check result:", existingConversation);
       if (existingError) {
         console.error("Error checking existing conversation:", existingError);
       }
@@ -67,7 +63,6 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
 
       if (conversationError) {
         console.error("Failed to create conversation:", conversationError);
-        console.error("Error details:", JSON.stringify(conversationError, null, 2));
         toast.error(conversationError.message || 'Failed to create conversation');
         return null;
       }
@@ -91,10 +86,8 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
 
       if (participantsError) {
         console.error("Failed to add participants:", participantsError);
-        console.error("Participants error details:", JSON.stringify(participantsError, null, 2));
         
-        // Cleanup the conversation
-        console.log("Cleaning up the failed conversation");
+        // Clean up the conversation
         const { error: deleteError } = await supabase
           .from('conversations')
           .delete()
@@ -104,11 +97,11 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
           console.error("Error cleaning up conversation:", deleteError);
         }
         
-        toast.error(participantsError.message || 'Failed to add participants to the conversation');
+        toast.error(participantsError.message || 'Failed to add participants');
         return null;
       }
 
-      console.log("Conversation created successfully with ID:", conversation.id);
+      console.log("Conversation creation complete, ID:", conversation.id);
       toast.success("Conversation started");
       
       if (onSuccess) {
@@ -120,7 +113,6 @@ export function useCreateConversation({ onSuccess }: UseCreateConversationOption
       
     } catch (error) {
       console.error('Unexpected error in conversation creation:', error);
-      console.error('Error details:', JSON.stringify(error, null, 2));
       toast.error(error instanceof Error ? error.message : 'An unexpected error occurred');
       return null;
     } finally {
