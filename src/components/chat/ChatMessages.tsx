@@ -13,6 +13,9 @@ interface ChatMessagesProps {
   onTranslation?: (messageId: string, translatedContent: string) => void;
   onReply: (messageId: string) => void;
   replyToMessageId?: string | null;
+  sendReply?: (content: string) => Promise<boolean>;
+  cancelReply?: () => void;
+  refetch?: () => void;
 }
 
 export function ChatMessages({ 
@@ -21,7 +24,10 @@ export function ChatMessages({
   onNewReceivedMessage,
   onTranslation,
   onReply,
-  replyToMessageId
+  replyToMessageId,
+  sendReply,
+  cancelReply,
+  refetch
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -66,6 +72,9 @@ export function ChatMessages({
           onTranslation={onTranslation}
           onReply={onReply}
           replyToMessageId={replyToMessageId}
+          sendReply={sendReply}
+          cancelReply={cancelReply}
+          refetch={refetch}
         />
         <div ref={messagesEndRef} />
       </div>
@@ -81,7 +90,10 @@ function TranslationConsumer({
   onNewReceivedMessage,
   onTranslation,
   onReply,
-  replyToMessageId
+  replyToMessageId,
+  sendReply,
+  cancelReply,
+  refetch
 }: {
   messages: any[];
   currentUserId: string | null;
@@ -90,6 +102,9 @@ function TranslationConsumer({
   onTranslation?: (messageId: string, translatedContent: string) => void;
   onReply: (messageId: string) => void;
   replyToMessageId?: string | null;
+  sendReply?: (content: string) => Promise<boolean>;
+  cancelReply?: () => void;
+  refetch?: () => void;
 }) {
   // Now this hook is used inside the TranslationProvider
   const { translatedContents } = useMessageProcessor(
@@ -100,14 +115,37 @@ function TranslationConsumer({
     onTranslation
   );
 
+  // Inline replying input logic (always show for the active replyToMessageId)
   return (
-    <MessageList
-      messages={messages}
-      currentUserId={currentUserId}
-      profile={{ language: userLanguage }}
-      translatedContents={translatedContents}
-      onReply={onReply}
-      replyToMessageId={replyToMessageId}
-    />
+    <>
+      {messages.map((message, idx) => (
+        <div key={message.id}>
+          <MessageList
+            messages={[message]}
+            currentUserId={currentUserId}
+            profile={{ language: userLanguage }}
+            translatedContents={translatedContents}
+            onReply={onReply}
+            replyToMessageId={replyToMessageId}
+          />
+          {replyToMessageId === message.id && sendReply && cancelReply && (
+            <div className="ml-10 mb-4">
+              {/* MessageReplyInput must take sendReply as onSubmit, clear input after success */}
+              <import('@/components/chat/message/MessageReplyInput').then(({ MessageReplyInput }) =>
+                <MessageReplyInput
+                  onSubmit={async (content: string) => {
+                    const sent = await sendReply(content);
+                    if (sent && refetch) {
+                      refetch();
+                    }
+                  }}
+                  onCancel={cancelReply}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      ))}
+    </>
   );
 }

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -18,7 +17,6 @@ interface ChatInputProps {
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
-  replyMode?: boolean;
 }
 
 export function ChatInput({ 
@@ -26,7 +24,6 @@ export function ChatInput({
   onSendMessage, 
   suggestions = [],
   isLoadingSuggestions = false,
-  replyMode = false
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);

@@ -14,10 +14,11 @@ export function useMessageReply(conversationId: string) {
     setReplyToMessageId(null);
   };
 
+  // Now returns a Promise that resolves on complete, lets UI clear inline input etc.
   const sendReply = async (content: string) => {
     if (!replyToMessageId) {
       toast.error("No message selected to reply to");
-      return;
+      return false;
     }
 
     try {
@@ -25,7 +26,7 @@ export function useMessageReply(conversationId: string) {
       
       if (!user) {
         toast.error("You must be logged in to send a reply");
-        return;
+        return false;
       }
 
       const { error } = await supabase.from('messages').insert({
@@ -38,12 +39,14 @@ export function useMessageReply(conversationId: string) {
 
       if (error) throw error;
 
-      // Reset reply state after successful send
+      // Reset reply state after successful send (parent component should clear input too)
       cancelReply();
       toast.success("Reply sent successfully");
+      return true;
     } catch (error) {
       console.error('Error sending reply:', error);
       toast.error("Failed to send reply");
+      return false;
     }
   };
 

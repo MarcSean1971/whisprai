@@ -28,17 +28,15 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!, translatedContents);
   
+  // Only use sendMessage from here. sendReply is now only used in inline inputs.
   const handleSendMessage = async (
     content: string, 
     voiceMessageData?: { base64Audio: string; audioPath?: string }, 
     location?: { latitude: number; longitude: number; accuracy: number },
     attachments?: { url: string; name: string; type: string }[]
   ) => {
-    if (replyToMessageId) {
-      await sendReply(content);
-    } else {
-      await sendMessage(content, voiceMessageData, location, attachments);
-    }
+    // Never handle replies in main input, let inline reply input handle those.
+    await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
     refetch();
   };
@@ -87,6 +85,9 @@ export default function Chat() {
             onTranslation={handleTranslation}
             onReply={startReply}
             replyToMessageId={replyToMessageId}
+            sendReply={sendReply}
+            cancelReply={cancelReply}
+            refetch={refetch}
           />
         </Suspense>
       </div>
@@ -96,7 +97,7 @@ export default function Chat() {
           onSendMessage={handleSendMessage}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
-          replyMode={!!replyToMessageId}
+          // remove replyMode
         />
       </div>
     </div>
