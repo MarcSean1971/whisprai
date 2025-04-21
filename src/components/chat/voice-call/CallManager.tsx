@@ -16,6 +16,7 @@ export function CallManager() {
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [currentCall, setCurrentCall] = useState<ActiveCall | null>(null);
   const [isOutgoing, setIsOutgoing] = useState(false);
+  const [showIncomingDialog, setShowIncomingDialog] = useState(false);
 
   // Extra call debugging
   useEffect(() => {
@@ -46,28 +47,37 @@ export function CallManager() {
     if (outgoingCall) fetchProfileName(outgoingCall.recipient_id, setRecipientName);
   }, [incomingCall, outgoingCall]);
 
-  // CRITICAL CALL DIALOG LOGIC
+  // Logic to control which dialog is shown based on call state
   useEffect(() => {
-    // Important: outgoingCall.status 'pending' or 'accepted' should always show call dialog!
-    // Priority: show dialog for outgoing, unless there is a connected incoming
+    // Show incoming dialog if there's a pending incoming call and no call dialog is open
+    if (incomingCall && incomingCall.status === 'pending') {
+      setShowIncomingDialog(true);
+      setShowCallDialog(false);
+      setCurrentCall(null);
+      setIsOutgoing(false);
+      return;
+    }
+    // Incoming call has been accepted: show the actual voice call dialog for recipient
     if (incomingCall && incomingCall.status === 'accepted') {
       setCurrentCall(incomingCall);
       setShowCallDialog(true);
+      setShowIncomingDialog(false); // hide incoming as we move to call dialog
       setIsOutgoing(false);
-      console.debug("[CallManager][DEBUG] Showing dialog for accepted incoming call");
       return;
     }
+    // Outgoing call created: show the call dialog for caller
     if (outgoingCall && (outgoingCall.status === 'pending' || outgoingCall.status === 'accepted')) {
       setCurrentCall(outgoingCall);
       setShowCallDialog(true);
+      setShowIncomingDialog(false);
       setIsOutgoing(true);
-      console.debug("[CallManager][DEBUG] Showing dialog for outgoing call (pending/accepted)", outgoingCall);
       return;
     }
-    // Handle the case where call ends (reset all state)
+    // If all calls ended/rejected/etc.: clean up
     setShowCallDialog(false);
     setCurrentCall(null);
     setIsOutgoing(false);
+    setShowIncomingDialog(false);
     if (!incomingCall && !outgoingCall) {
       setActiveSessionId(null);
       setCallerName("Someone");
@@ -76,8 +86,15 @@ export function CallManager() {
   }, [incomingCall, outgoingCall]);
 
   const handleAcceptCall = async (callId: string) => {
+    setShowIncomingDialog(false); // hide as soon as accepted, let call dialog show up
     const success = await acceptCall(callId);
     return success;
+  };
+
+  const handleRejectCall = async (callId: string) => {
+    // If user hits reject, hide incoming dialog directly
+    setShowIncomingDialog(false);
+    await rejectCall(callId);
   };
 
   // This will be triggered BOTH when user closes dialog and when call ends
@@ -92,11 +109,11 @@ export function CallManager() {
 
   return (
     <>
-      {/* Incoming call dialog */}
+      {/* Incoming call dialog: displayed only during "pending" */}
       <IncomingCallDialog
-        call={incomingCall?.status === 'pending' ? incomingCall : null}
+        call={showIncomingDialog ? incomingCall : null}
         onAccept={handleAcceptCall}
-        onReject={rejectCall}
+        onReject={handleRejectCall}
         callerName={callerName}
       />
 
@@ -114,3 +131,4 @@ export function CallManager() {
     </>
   );
 }
+
