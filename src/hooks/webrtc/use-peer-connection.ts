@@ -1,4 +1,3 @@
-
 import { useRef, useCallback, useState, useEffect } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
@@ -23,6 +22,16 @@ interface IceConnectionStats {
   signalingState: RTCSignalingState | null;
   iceCandidates: number;
   lastActivity: number;
+}
+
+interface IceCandidateSignal {
+  candidate: string;
+  sdpMLineIndex?: number;
+  sdpMid?: string;
+}
+
+function isIceCandidateSignal(signal: any): signal is IceCandidateSignal {
+  return signal && 'candidate' in signal;
 }
 
 export function usePeerConnection({
@@ -55,7 +64,6 @@ export function usePeerConnection({
 
     console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     
-    // Clear any existing connection timeout
     if (connectionTimeoutRef.current) {
       window.clearTimeout(connectionTimeoutRef.current);
     }
@@ -90,7 +98,6 @@ export function usePeerConnection({
     const p = new Peer(peerOptions);
     peerRef.current = p;
     
-    // Reset ICE stats
     connectionStatsRef.current = {
       connectionState: null,
       iceConnectionState: null,
@@ -105,8 +112,7 @@ export function usePeerConnection({
       console.log("[WebRTC] Generated signal:", data.type || "ICE candidate");
       onSignal(data);
       
-      // Monitor ICE candidate gathering
-      if (data.candidate) {
+      if (isIceCandidateSignal(data)) {
         connectionStatsRef.current.iceCandidates++;
         connectionStatsRef.current.lastActivity = Date.now();
         setIceCandidate(prev => prev + 1);
@@ -118,7 +124,6 @@ export function usePeerConnection({
       setConnectionStatus("connected");
       onConnect();
       
-      // Clear connection timeout if set
       if (connectionTimeoutRef.current) {
         window.clearTimeout(connectionTimeoutRef.current);
         connectionTimeoutRef.current = null;
@@ -145,7 +150,6 @@ export function usePeerConnection({
       onClose();
     });
     
-    // Access the internal RTCPeerConnection to monitor connection states
     const rtcPeerConnection = (p as any)._pc;
     if (rtcPeerConnection) {
       setIsIceGathering(true);
@@ -194,7 +198,6 @@ export function usePeerConnection({
         if (rtcPeerConnection.connectionState === 'connected') {
           console.log("[WebRTC] Successfully connected!");
           
-          // Clear connection timeout if set
           if (connectionTimeoutRef.current) {
             window.clearTimeout(connectionTimeoutRef.current);
             connectionTimeoutRef.current = null;
@@ -213,7 +216,6 @@ export function usePeerConnection({
       }
     }
     
-    // Set a connection timeout (15 seconds)
     connectionTimeoutRef.current = window.setTimeout(() => {
       if (peerRef.current && connectionStatsRef.current.connectionState !== 'connected') {
         console.warn("[WebRTC] Connection timeout after 15 seconds");
@@ -230,7 +232,6 @@ export function usePeerConnection({
         
         toast.error("Call connection timed out. Please try again.");
         
-        // Close the peer connection
         try {
           p.destroy();
           setConnectionStatus("error");
@@ -241,7 +242,6 @@ export function usePeerConnection({
     }, 15000);
 
     return () => {
-      // Clear timeout on cleanup
       if (connectionTimeoutRef.current) {
         window.clearTimeout(connectionTimeoutRef.current);
       }
@@ -267,7 +267,6 @@ export function usePeerConnection({
   }, []);
 
   const destroyPeer = useCallback(() => {
-    // Clear timeout 
     if (connectionTimeoutRef.current) {
       window.clearTimeout(connectionTimeoutRef.current);
       connectionTimeoutRef.current = null;
@@ -282,7 +281,6 @@ export function usePeerConnection({
     }
   }, []);
 
-  // Return connection state for UI feedback
   const getConnectionState = useCallback(() => {
     return {
       isIceGathering,
