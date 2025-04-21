@@ -4,17 +4,17 @@ import { useVonageSession } from "./vonage/use-vonage-session";
 import { useVonagePublisher } from "./vonage/use-vonage-publisher";
 import { useVonageSubscriber } from "./vonage/use-vonage-subscriber";
 import { VonageCallOptions, VonageError } from "./vonage/types";
+import { useVonageCallSession } from "./vonage/useVonageCallSession";
+import { useVonageLocalMedia } from "./vonage/useVonageLocalMedia";
 
 export function useVonageCall({
   publisherRef,
   subscriberRef,
   recipientId,
   conversationId = 'default'
-}: VonageCallOptions) {
+}) {
   const scriptLoaded = useRef(false);
-  const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const maxReconnectAttempts = 3;
-  
+
   const {
     session,
     isConnecting,
@@ -45,196 +45,50 @@ export function useVonageCall({
     destroySubscriber
   } = useVonageSubscriber({ subscriberRef });
 
+  const { connectSession, disconnectAll } = useVonageCallSession({
+    conversationId,
+    recipientId,
+    initializePublisher,
+    handleStreamCreated,
+    destroyPublisher,
+    destroySubscriber,
+    setSession,
+    setError,
+    setIsConnecting,
+    setIsConnected
+  });
+
+  const {
+    isMicActive,
+    isVideoActive,
+    handleToggleAudio,
+    handleToggleVideo
+  } = useVonageLocalMedia(toggleAudio, toggleVideo);
+
   useEffect(() => {
     if (!scriptLoaded.current) {
-      console.log('[Vonage Call] Loading Vonage script');
       loadVonageScript()
-        .then(() => {
-          console.log('[Vonage Call] Vonage script loaded successfully');
-          scriptLoaded.current = true;
-        })
+        .then(() => { scriptLoaded.current = true; })
         .catch((err) => {
-          console.error('[Vonage Call] Failed to load Vonage SDK:', err);
-          const vonageError: VonageError = {
+          setError({
             type: 'INITIALIZATION_ERROR',
             message: "Failed to load Vonage SDK: " + err.message,
             originalError: err
-          };
-          setError(vonageError);
+          });
         });
     }
-    
     return () => {
-      console.log('[Vonage Call] Cleaning up on unmount');
-      disconnect();
+      disconnectAll();
     };
   }, []);
-
-  const disconnect = useCallback(() => {
-    console.log('[Vonage Call] Disconnecting call');
-    destroyPublisher();
-    destroySubscriber();
-    disconnectSession();
-    setConnectionAttempts(0);
-  }, [destroyPublisher, destroySubscriber, disconnectSession]);
-
-  const connect = useCallback(async () => {
-    if (!window.OT) {
-      console.error('[Vonage Call] Vonage SDK not loaded');
-      setError({
-        type: 'INITIALIZATION_ERROR',
-        message: "Vonage SDK not loaded"
-      });
-      return;
-    }
-
-    if (isConnected) {
-      console.log('[Vonage Call] Already connected');
-      return;
-    }
-
-    if (connectionAttempts >= maxReconnectAttempts) {
-      setError({
-        type: 'INITIALIZATION_ERROR',
-        message: `Failed to connect after ${maxReconnectAttempts} attempts`,
-      });
-      setIsConnecting(false);
-      return;
-    }
-
-    try {
-      console.log(`[Vonage Call] Connecting to call... Attempt #${connectionAttempts + 1}`);
-      setIsConnecting(true);
-      setError(null);
-
-      const sessionData = await initializeSession();
-      if (!sessionData) {
-        console.error('[Vonage Call] No session data returned');
-        setIsConnecting(false);
-        setConnectionAttempts(prev => prev + 1); // failed attempt
-        return;
-      }
-
-      console.log('[Vonage Call] Creating OT session with:', {
-        apiKey: sessionData.apiKey,
-        sessionId: sessionData.sessionId
-      });
-      
-      const otSession = window.OT.initSession(sessionData.apiKey, sessionData.sessionId);
-      setSession(otSession);
-
-      otSession.on('streamCreated', (event: any) => {
-        console.log('[Vonage Call] Remote stream created:', event);
-        handleStreamCreated(otSession, event);
-      });
-
-      otSession.on('streamDestroyed', (event: any) => {
-        console.log('[Vonage Call] Remote stream destroyed:', event);
-        destroySubscriber();
-      });
-
-      otSession.on('sessionDisconnected', (event: any) => {
-        console.log('[Vonage Call] Session disconnected:', event);
-        setIsConnected(false);
-        destroySubscriber();
-      });
-
-      otSession.on('connectionCreated', (event: any) => {
-        console.log('[Vonage Call] New connection created:', event);
-      });
-
-      otSession.on('connectionDestroyed', (event: any) => {
-        console.log('[Vonage Call] Connection destroyed:', event);
-      });
-
-      console.log('[Vonage Call] Initializing publisher');
-      const pub = initializePublisher();
-      if (!pub) {
-        setIsConnecting(false);
-        setConnectionAttempts(prev => prev + 1);
-        throw new Error('Failed to initialize publisher');
-      }
-
-      console.log('[Vonage Call] Connecting to session with token');
-      otSession.connect(sessionData.token, (error: any) => {
-        if (error) {
-          console.error('[Vonage Call] Error connecting to session:', error);
-          setError({
-            type: 'CONNECTION_ERROR',
-            message: "Failed to connect to session: " + error.message,
-            originalError: error
-          });
-          setIsConnecting(false);
-          setConnectionAttempts(prev => prev + 1);
-          return;
-        }
-
-        console.log('[Vonage Call] Connected to session, publishing stream');
-        otSession.publish(pub, (pubError: any) => {
-          if (pubError) {
-            console.error('[Vonage Call] Error publishing stream:', pubError);
-            setError({
-              type: 'PUBLISH_ERROR',
-              message: "Failed to publish your stream: " + pubError.message,
-              originalError: pubError
-            });
-            setIsConnecting(false);
-            setConnectionAttempts(prev => prev + 1);
-            return;
-          }
-
-          console.log('[Vonage Call] Stream published successfully');
-          setIsConnected(true);
-          setIsConnecting(false);
-          setConnectionAttempts(0); // Reset counter on success
-        });
-      });
-
-    } catch (err: any) {
-      console.error("[Vonage Call] Error setting up call:", err);
-      setError({
-        type: 'INITIALIZATION_ERROR',
-        message: err.message || "Failed to set up call",
-        originalError: err
-      });
-      setIsConnecting(false);
-      setConnectionAttempts(prev => prev + 1); // count only *actual* errors
-    }
-  }, [
-    initializeSession, 
-    initializePublisher, 
-    handleStreamCreated, 
-    setSession,
-    isConnected,
-    connectionAttempts,
-    setError, 
-    setIsConnecting, 
-    setIsConnected, 
-    destroySubscriber
-  ]);
-
-  const [isMicActive, setIsMicActive] = useState(true);
-  const [isVideoActive, setIsVideoActive] = useState(false);
-
-  const handleToggleAudio = useCallback(() => {
-    const newState = toggleAudio();
-    setIsMicActive(newState);
-    return newState;
-  }, [toggleAudio]);
-
-  const handleToggleVideo = useCallback(() => {
-    const newState = toggleVideo();
-    setIsVideoActive(newState);
-    return newState;
-  }, [toggleVideo]);
 
   return {
     isConnecting,
     isConnected,
     hasRemoteParticipant,
     error,
-    connect,
-    disconnect,
+    connect: connectSession,
+    disconnect: disconnectAll,
     toggleAudio: handleToggleAudio,
     toggleVideo: handleToggleVideo,
     isMicActive,
