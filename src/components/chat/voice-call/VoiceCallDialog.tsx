@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -46,6 +45,7 @@ export function VoiceCallDialog({
   const [manualPresenceChecked, setManualPresenceChecked] = useState(false);
   const [recipientConfirmedOffline, setRecipientConfirmedOffline] = useState(false);
 
+  // ENHANCED: Add explicit logs and error details for Vonage session/publisher
   const {
     isConnecting,
     isConnected,
@@ -114,26 +114,24 @@ export function VoiceCallDialog({
   }, [errorMsg, isOpen]);
 
   useEffect(() => {
+    // LOG connection attempt clearly
     if (isOpen && conversationId && !internalError && !callInitiated) {
-      // First perform a manual presence check before deciding if user is offline
       const performManualPresenceCheck = async () => {
         if (!manualPresenceChecked) {
           const isRecipientOnlineDirectly = await checkRecipientPresenceDirectly();
           setManualPresenceChecked(true);
           
-          // If they're actually online despite what isOnline hook says
           if (isRecipientOnlineDirectly) {
             console.log("[VoiceCallDialog] Manual check shows recipient is online, proceeding with call");
             setCallInitiated(true);
             callAttempts.current += 1;
+            console.log("[VoiceCallDialog] ATTEMPT Vonage connect() - manual presence:true");
             connect();
           } else if (isOnline || callStatus === 'accepted') {
-            console.log("[VoiceCallDialog] Initiating call:", { 
-              callStatus, isOnline, recipientId, conversationId 
-            });
-            
+            console.log("[VoiceCallDialog] Initiating call (auto presence/accepted)", {isOnline, callStatus});
             setCallInitiated(true);
             callAttempts.current += 1;
+            console.log("[VoiceCallDialog] ATTEMPT Vonage connect() - presence or accepted true");
             connect();
           } else {
             console.log("[VoiceCallDialog] Both checks indicate recipient is offline:", { isOnline, callStatus });
@@ -147,26 +145,26 @@ export function VoiceCallDialog({
           }
         }
       };
-      
       performManualPresenceCheck();
     }
-  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus, internalError, recipientName, onClose, manualPresenceChecked]);
+  }, [
+    isOpen, conversationId, connect, isOnline, callInitiated,
+    recipientId, callStatus, internalError, recipientName, onClose, manualPresenceChecked
+  ]);
 
   useEffect(() => {
     if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
       if (callAttempts.current < maxCallAttempts) {
-        console.log("[VoiceCallDialog] Retrying call, attempt:", callAttempts.current);
+        console.warn("[VoiceCallDialog] Will retry call, attempt:", callAttempts.current);
         disconnect();
         const timer = setTimeout(async () => {
-          // Before retrying, check presence again
           const isRecipientOnlineDirectly = await checkRecipientPresenceDirectly();
-          
           if (isRecipientOnlineDirectly || callStatus === 'accepted') {
-            console.log("[VoiceCallDialog] Recipient appears online on retry, continuing call");
+            console.log("[VoiceCallDialog] RETRY connect() - recipient online/accepted");
             callAttempts.current += 1;
             connect();
           } else {
-            console.log("[VoiceCallDialog] Recipient still offline, retry attempt:", callAttempts.current);
+            console.warn("[VoiceCallDialog] Recipient still offline RETRY connect() anyway");
             callAttempts.current += 1;
             connect();
           }
@@ -184,7 +182,10 @@ export function VoiceCallDialog({
         }, 3000);
       }
     }
-  }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose, callStatus, connect]);
+  }, [
+    callInitiated, isOnline, hasRemoteParticipant, isConnecting,
+    recipientName, disconnect, onClose, callStatus, connect
+  ]);
 
   useEffect(() => {
     if (!isOpen && (isConnected || isConnecting)) {
@@ -210,20 +211,19 @@ export function VoiceCallDialog({
     };
   }, [isOpen, disconnect, isConnected, isConnecting]);
 
+  // Enhanced: Show Vonage/connection errors with details
   useEffect(() => {
     if (vonageError) {
       console.error("[VoiceCallDialog] Vonage error:", vonageError);
-      
-      const errorMessage = vonageError.type === 'MEDIA_ACCESS_ERROR' 
+      const errorMessage = vonageError.type === 'MEDIA_ACCESS_ERROR'
         ? 'Microphone or camera access denied. Please check permissions.'
-        : vonageError.message || "An error occurred during the call";
-      
-      setInternalError(errorMessage);
+        : vonageError.message || "An error occurred during the call (Vonage failure)";
+      setInternalError(`[Vonage Error] ${errorMessage}`);
       toast.error(errorMessage);
-      
+
       setShowEndBanner(true);
       setCallInitiated(false);
-      
+
       setTimeout(() => {
         setShowEndBanner(false);
         onClose();
