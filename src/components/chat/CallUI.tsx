@@ -91,6 +91,13 @@ export function CallUI({
       onEndCall();
     }
   };
+  
+  // Function to handle accepting the call
+  const handleAcceptCall = () => {
+    if (onAcceptCall && callStatus === "incoming") {
+      onAcceptCall();
+    }
+  };
 
   return (
     <Dialog open={true} modal={true}>
@@ -127,7 +134,7 @@ export function CallUI({
 
           <CallStatus
             callStatus={callStatus}
-            onAcceptCall={onAcceptCall}
+            onAcceptCall={handleAcceptCall}
             onRejectCall={handleCloseCall}
           />
 
