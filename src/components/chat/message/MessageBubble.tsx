@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
@@ -151,26 +152,36 @@ export function MessageBubble({
     return null;
   };
 
+  // ---- NEW: parent reply rendering ----
   const renderParentMessage = () => {
     if (!parent) return null;
 
-    const senderName = parent.sender?.profiles ? 
-      `${parent.sender.profiles.first_name || ''} ${parent.sender.profiles.last_name || ''}`.trim() :
-      'Unknown User';
+    const senderName = parent.sender?.profiles
+      ? `${parent.sender.profiles.first_name || ''} ${parent.sender.profiles.last_name || ''}`.trim()
+      : 'Unknown User';
 
     return (
-      <div className={cn(
-        "mb-1 text-xs border-l-2 pl-2",
-        isOwn ? "border-primary/50" : isAIMessage ? "border-violet-500/50" : "border-secondary/50"
-      )}>
+      <div
+        className={cn(
+          "mb-1 text-xs border-l-2 pl-2 py-1 bg-muted/40 rounded-sm cursor-pointer hover:bg-muted transition",
+          isOwn
+            ? "border-primary/40"
+            : isAIMessage
+            ? "border-violet-500/40"
+            : "border-secondary/40"
+        )}
+        title="Replied message"
+        tabIndex={0}
+      >
         <div className="flex items-center gap-1 text-muted-foreground">
           <Reply className="h-3 w-3" />
           <span className="font-medium">{senderName}</span>
         </div>
-        <p className="line-clamp-1 text-muted-foreground">{parent.content}</p>
+        <p className="line-clamp-1 text-muted-foreground break-words whitespace-pre-wrap">{parent.content}</p>
       </div>
     );
   };
+  // ---- END NEW ----
 
   return (
     <div className="space-y-2">
@@ -196,3 +207,4 @@ export function MessageBubble({
     </div>
   );
 }
+
