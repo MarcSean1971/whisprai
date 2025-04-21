@@ -1,8 +1,8 @@
 
 import { Smile } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { EmojiPicker } from "@/components/shared/EmojiPicker";
 import { useState } from "react";
+import { EmojiPicker } from "@/components/shared/EmojiPicker";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -13,29 +13,14 @@ interface EmojiPickerPopoverProps {
 
 export function EmojiPickerPopover({
   onEmojiSelect,
-  align = "start",
-  side = "right",
   onAfterClose,
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // When emoji is chosen, call parent handler. Picker will close via onOpenChange.
-  const handleEmojiSelect = (emojiData: any) => {
-    onEmojiSelect(emojiData);
-    // Picker will call onOpenChange(false) afterwards
-  };
-
-  // Ensures dropdown closes immediately after picker closes.
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-    if (!open && onAfterClose) {
-      onAfterClose();
-    }
-  };
-
+  // The trigger button for the popover, styled as a dropdown item.
   const triggerButton = (
     <DropdownMenuItem
-      className="cursor-pointer"
+      className="cursor-pointer flex items-center"
       onSelect={(e) => {
         e.preventDefault();
         setIsOpen(true);
@@ -46,15 +31,24 @@ export function EmojiPickerPopover({
     </DropdownMenuItem>
   );
 
+  // This closes both the popover and the parent dropdown menu.
+  const handleEmojiSelect = (emojiData: any) => {
+    onEmojiSelect(emojiData);
+    setIsOpen(false);
+    if (onAfterClose) onAfterClose();
+  };
+
   return (
     <EmojiPicker
       onEmojiSelect={handleEmojiSelect}
       triggerButton={triggerButton}
-      side={side}
-      align={align}
-      sideOffset={5}
       open={isOpen}
-      onOpenChange={handleOpenChange}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+        if (!open && onAfterClose) onAfterClose();
+      }}
+      width={300}
+      height={350}
     />
   );
 }

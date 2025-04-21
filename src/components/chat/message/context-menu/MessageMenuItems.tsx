@@ -28,18 +28,14 @@ export function MessageMenuItems({
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
 
-  // Don't call onCloseMenu here; instead, let EmojiPickerPopover handle it after dialog close
+  // Handle emoji select and close menu
   const handleEmojiSelect = (emojiData: any) => {
     try {
       addReaction({ emoji: emojiData.emoji });
     } catch (error) {
-      console.error('Error adding reaction:', error);
-      toast.error('Failed to add reaction');
+      console.error("Error adding reaction:", error);
+      toast.error("Failed to add reaction");
     }
-  };
-
-  // New: callback once picker is closed, then close dropdown menu
-  const handleAfterEmojiPickerClose = () => {
     onCloseMenu();
   };
 
@@ -54,9 +50,7 @@ export function MessageMenuItems({
       </DropdownMenuItem>
       <EmojiPickerPopover
         onEmojiSelect={handleEmojiSelect}
-        side="right"
-        align="start"
-        onAfterClose={handleAfterEmojiPickerClose}
+        onAfterClose={onCloseMenu}
       />
       {showTranslationToggle && (
         <DropdownMenuItem className="cursor-pointer" onClick={() => {
@@ -77,7 +71,7 @@ export function MessageMenuItems({
           disabled={isDeleting}
         >
           <Trash2 className="mr-2 h-4 w-4" />
-          <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
+          <span>{isDeleting ? "Deleting..." : "Delete"}</span>
         </DropdownMenuItem>
       )}
     </>
