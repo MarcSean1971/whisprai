@@ -1,18 +1,16 @@
-
-import { useRef, useState, useCallback, useEffect } from "react";
-import Peer from "simple-peer";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { WebRTCPeerOptions, UseWebRTCPeerReturn, ConnectionStatus } from "./webrtc/types";
 import { useMediaStream } from "./webrtc/use-media-stream";
 import { useScreenSharing } from "./webrtc/use-screen-sharing";
 import { useCallDuration } from "./webrtc/use-call-duration";
+import { usePeerConnection } from "./webrtc/use-peer-connection";
 
 export function useWebRTCPeer({
   initiator,
   onSignal,
   remoteSignal,
 }: WebRTCPeerOptions): UseWebRTCPeerReturn {
-  const peerRef = useRef<Peer.Instance | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
@@ -23,88 +21,39 @@ export function useWebRTCPeer({
   const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
   const { callDuration, durationTimerRef, setCallDuration } = useCallDuration(connectionStatus === "connected");
 
+  const handleConnect = useCallback(() => {
+    setIsConnecting(false);
+  }, []);
+
+  const { setupPeerConnection, signalPeer } = usePeerConnection({
+    initiator,
+    localStream,
+    onSignal,
+    remoteSignal,
+    onConnect: handleConnect,
+    onStream: setRemoteStream,
+    onClose: () => setConnectionStatus("ended"),
+    onError: () => {},
+    setConnectionStatus,
+  });
+
   useEffect(() => {
     if (!localStream) return;
     
-    console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     setConnectionStatus(initiator ? "calling" : "incoming");
     setIsConnecting(true);
 
-    const peerOptions: Peer.Options = {
-      initiator,
-      trickle: true,
-      stream: localStream,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' }
-        ]
-      }
-    };
-    
-    const p = new Peer(peerOptions);
-    peerRef.current = p;
-
-    p.on("signal", data => {
-      console.log("[WebRTC] Generated signal");
-      onSignal(data);
-    });
-
-    p.on("connect", () => {
-      console.log("[WebRTC] Peer connection established!");
-      setIsConnecting(false);
-      setConnectionStatus("connected");
-      toast.success("Call connected");
-    });
-
-    p.on("stream", remote => {
-      console.log("[WebRTC] Received remote stream");
-      setRemoteStream(remote);
-    });
-
-    p.on("error", err => {
-      console.error("[WebRTC] Peer connection error:", err);
-      toast.error(`Connection error: ${err.message}`);
-      setConnectionStatus("error");
-    });
-
-    p.on("close", () => {
-      console.log("[WebRTC] Peer connection closed");
-      setConnectionStatus("ended");
-    });
-
-    if (remoteSignal) {
-      try {
-        console.log("[WebRTC] Applying remote signal");
-        p.signal(remoteSignal);
-        setConnectionStatus("connecting");
-      } catch (e) {
-        console.error("[WebRTC] Error applying remote signal:", e);
-      }
-    }
-
-    return () => {
-      try {
-        p.destroy();
-      } catch (e) {
-        console.error("[WebRTC] Error destroying peer:", e);
-      }
-    };
-  }, [initiator, localStream, onSignal]);
+    return setupPeerConnection();
+  }, [initiator, localStream, setupPeerConnection]);
 
   useEffect(() => {
-    if (peerRef.current && remoteSignal) {
-      try {
-        console.log("[WebRTC] Applying new remote signal");
-        peerRef.current.signal(remoteSignal);
-        if (connectionStatus === "incoming") {
-          setConnectionStatus("connecting");
-        }
-      } catch (e) {
-        console.error("[WebRTC] Error applying remote signal:", e);
+    if (remoteSignal) {
+      signalPeer(remoteSignal);
+      if (connectionStatus === "incoming") {
+        setConnectionStatus("connecting");
       }
     }
-  }, [remoteSignal, connectionStatus]);
+  }, [remoteSignal, connectionStatus, signalPeer]);
 
   const toggleAudio = useCallback(() => {
     if (!localStream) return;
