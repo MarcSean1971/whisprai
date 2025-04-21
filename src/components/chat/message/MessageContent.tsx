@@ -1,7 +1,7 @@
+
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
-import { MessageReactions } from "@/components/chat/message/reactions/MessageReactions";
 
 interface MessageContentProps {
   id: string;
@@ -68,20 +68,19 @@ export function MessageContent({
       onDelete={onDelete}
       isDeleting={isDeleting}
     >
-      <div>
-        <MessageBubble
-          id={id}
-          content={content}
-          timestamp={timestamp}
-          isOwn={isOwn}
-          isAIMessage={isAIMessage}
-          attachments={attachments}
-          onReply={onReply}
-          parent={parent}
-        />
-        {/* Show emoji reactions below the bubble */}
-        <MessageReactions messageId={id} isOwn={isOwn} />
-      </div>
+      {/* No MessageReactions here; it's inside MessageBubble */}
+      <MessageBubble
+        id={id}
+        content={content}
+        timestamp={timestamp}
+        isOwn={isOwn}
+        isAIMessage={isAIMessage}
+        attachments={attachments}
+        onReply={onReply}
+        parent={parent}
+        scrollToMessage={scrollToMessage}
+      />
     </MessageContextMenu>
   );
 }
+

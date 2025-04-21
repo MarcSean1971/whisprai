@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
@@ -204,9 +205,11 @@ export function MessageBubble({
         {renderParentMessage()}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
+        {/* Emoji reactions should appear inside the bubble, just below content/attachments */}
+        <MessageReactions messageId={id} isOwn={isOwn} />
         {children}
         <div className="flex justify-between items-center mt-1">
-          <MessageReactions messageId={id} isOwn={isOwn} />
+          {/* REMOVE the MessageReactions here (now above) */}
           <span className="text-[10px] opacity-70">
             {timestamp}
           </span>
@@ -215,3 +218,4 @@ export function MessageBubble({
     </div>
   );
 }
+
