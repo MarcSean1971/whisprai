@@ -1,101 +1,28 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+
+import { useRef, useState, useCallback } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
-
-interface UseWebRTCPeerOptions {
-  initiator: boolean;
-  onSignal: (data: any) => void;
-  remoteSignal?: any;
-}
+import { WebRTCPeerOptions, UseWebRTCPeerReturn } from "./webrtc/types";
+import { useMediaStream } from "./webrtc/use-media-stream";
+import { useScreenSharing } from "./webrtc/use-screen-sharing";
+import { useCallDuration } from "./webrtc/use-call-duration";
 
 export function useWebRTCPeer({
   initiator,
   onSignal,
   remoteSignal,
-}: UseWebRTCPeerOptions) {
+}: WebRTCPeerOptions): UseWebRTCPeerReturn {
   const peerRef = useRef<Peer.Instance | null>(null);
-  const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
-  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<string>(initiator ? "calling" : "incoming");
-  const [callDuration, setCallDuration] = useState(0);
-  const durationTimerRef = useRef<number | null>(null);
-  const screenStreamRef = useRef<MediaStream | null>(null);
-  const originalStreamRef = useRef<MediaStream | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState(initiator ? "calling" : "incoming");
 
-  // Start call duration timer
-  useEffect(() => {
-    if (connectionStatus === "connected") {
-      console.log("[WebRTC] Starting call duration timer");
-      durationTimerRef.current = window.setInterval(() => {
-        setCallDuration(prev => prev + 1);
-      }, 1000);
-    }
-    
-    return () => {
-      if (durationTimerRef.current) {
-        clearInterval(durationTimerRef.current);
-      }
-    };
-  }, [connectionStatus]);
+  const { localStream, originalStreamRef } = useMediaStream();
+  const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
+  const { callDuration, durationTimerRef } = useCallDuration(connectionStatus === "connected");
 
-  // Start local media
-  useEffect(() => {
-    let stopped = false;
-    
-    async function getMedia() {
-      try {
-        const constraints = {
-          audio: true,
-          video: true
-        };
-        
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        if (!stopped) {
-          console.log("[WebRTC] Got local media stream");
-          setLocalStream(stream);
-          originalStreamRef.current = stream;
-        }
-      } catch (e: any) {
-        if (!stopped) {
-          console.error("[WebRTC] Media error:", e);
-          
-          if (e.name === "NotAllowedError") {
-            toast.error("Camera and microphone access denied. Please check your permissions.");
-          } else if (e.name === "NotFoundError") {
-            toast.error("No camera or microphone found. Trying audio only...");
-            try {
-              const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-              setLocalStream(audioOnlyStream);
-              originalStreamRef.current = audioOnlyStream;
-              setIsVideoMuted(true);
-            } catch (audioErr) {
-              toast.error("Could not access microphone. Call cannot proceed.");
-            }
-          } else {
-            toast.error(`Media error: ${e.message}`);
-          }
-        }
-      }
-    }
-    
-    getMedia();
-    
-    return () => {
-      stopped = true;
-      if (localStream) {
-        localStream.getTracks().forEach((t) => t.stop());
-      }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((t) => t.stop());
-      }
-    };
-  }, []);
-
-  // When we have the local stream, set up peer
   useEffect(() => {
     if (!localStream) return;
     
@@ -165,7 +92,6 @@ export function useWebRTCPeer({
     };
   }, [initiator, localStream, onSignal]);
 
-  // Dynamically signal remote offer/answer
   useEffect(() => {
     if (peerRef.current && remoteSignal) {
       try {
@@ -180,10 +106,8 @@ export function useWebRTCPeer({
     }
   }, [remoteSignal, connectionStatus]);
 
-  // Media controls
   const toggleAudio = useCallback(() => {
     if (!localStream) return;
-    
     localStream.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
       setIsAudioMuted(!track.enabled);
@@ -192,39 +116,28 @@ export function useWebRTCPeer({
 
   const toggleVideo = useCallback(() => {
     if (!localStream) return;
-    
     localStream.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
       setIsVideoMuted(!track.enabled);
     });
   }, [localStream]);
 
-  // Screen sharing
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
-      // Revert to camera
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach(track => {
-          track.stop();
-        });
-      }
+      cleanupScreenShare();
       
       if (originalStreamRef.current && peerRef.current) {
-        // Replace the current stream with the original camera stream
         const videoTrack = originalStreamRef.current.getVideoTracks()[0];
         
         if (videoTrack && peerRef.current) {
           try {
-            // Access the native RTCPeerConnection inside simple-peer
             const pc = (peerRef.current as any)._pc;
-            if (pc && pc.getSenders) {
+            if (pc?.getSenders) {
               const senders = pc.getSenders();
               const videoSender = senders.find((s: RTCRtpSender) => s.track?.kind === 'video');
               
               if (videoSender) {
-                videoSender.replaceTrack(videoTrack).catch(e => {
-                  console.error("Error replacing track:", e);
-                });
+                await videoSender.replaceTrack(videoTrack);
               }
             }
           } catch (e) {
@@ -238,33 +151,24 @@ export function useWebRTCPeer({
       setIsScreenSharing(false);
     } else {
       try {
-        // Start screen sharing
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({ 
-          video: true 
-        });
-        
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         screenStreamRef.current = screenStream;
         
-        // Replace video track with screen sharing track
         if (peerRef.current) {
           const screenTrack = screenStream.getVideoTracks()[0];
           
           if (screenTrack) {
             try {
-              // Access the native RTCPeerConnection inside simple-peer
               const pc = (peerRef.current as any)._pc;
-              if (pc && pc.getSenders) {
+              if (pc?.getSenders) {
                 const senders = pc.getSenders();
                 const videoSender = senders.find((s: RTCRtpSender) => s.track?.kind === 'video');
                 
                 if (videoSender) {
-                  videoSender.replaceTrack(screenTrack).catch(e => {
-                    console.error("Error replacing track:", e);
-                  });
+                  await videoSender.replaceTrack(screenTrack);
                 }
               }
               
-              // Handle the screen sharing being stopped by the user via the browser UI
               screenTrack.onended = () => {
                 toggleScreenShare();
               };
@@ -273,21 +177,16 @@ export function useWebRTCPeer({
             }
           }
           
-          // Create a new combined stream with audio from original and video from screen
-          const combinedStream = new MediaStream();
-          
-          // Add the audio from the original stream
           if (localStream) {
+            const combinedStream = new MediaStream();
             const audioTracks = localStream.getAudioTracks();
             if (audioTracks.length > 0) {
               combinedStream.addTrack(audioTracks[0]);
             }
+            combinedStream.addTrack(screenTrack);
+            setLocalStream(combinedStream);
           }
           
-          // Add video from screen share
-          combinedStream.addTrack(screenTrack);
-          
-          setLocalStream(combinedStream);
           setIsScreenSharing(true);
         }
       } catch (err) {
@@ -311,14 +210,11 @@ export function useWebRTCPeer({
       }
     }
     
-    // Stop all tracks
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
     }
     
-    if (screenStreamRef.current) {
-      screenStreamRef.current.getTracks().forEach((t) => t.stop());
-    }
+    cleanupScreenShare();
     
     setLocalStream(null);
     setRemoteStream(null);
