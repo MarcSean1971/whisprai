@@ -3,43 +3,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { toast } from "sonner";
+import { fetchMessages } from "./use-messages/fetchMessages";
+import type { Message } from "./use-messages/types";
 
-export interface Message {
-  id: string;
-  content: string;
-  created_at: string;
-  conversation_id: string;
-  sender_id: string | null;
-  status: string;
-  original_language?: string | null;
-  metadata?: any;
-  private_room?: string | null;
-  private_recipient?: string | null;
-  sender?: {
-    id: string;
-    profiles?: {
-      first_name?: string | null;
-      last_name?: string | null;
-      avatar_url?: string | null;
-      language?: string;
-    }
-  };
-  parent?: {
-    id: string;
-    content: string;
-    created_at: string;
-    sender: {
-      id: string;
-      profiles?: {
-        first_name?: string | null;
-        last_name?: string | null;
-        avatar_url?: string | null;
-        language?: string;
-      } | null;
-    } | null;
-  } | null;
-}
-
+/**
+ * Fetches messages for a conversationId using react-query and real-time subscription.
+ */
 export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
 
@@ -71,135 +40,8 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId, queryClient]);
 
-  return useQuery({
+  return useQuery<Message[]>({
     queryKey: ['messages', conversationId],
-    queryFn: async () => {
-      if (!conversationId) {
-        throw new Error('No conversation ID provided');
-      }
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Switch to a simpler approach without explicit joins
-      const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('*, parent_id')
-        .eq('conversation_id', conversationId)
-        .or(`private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`)
-        .order('created_at', { ascending: true });
-
-      if (messagesError) {
-        console.error('Error fetching messages:', messagesError);
-        toast.error('Failed to load messages');
-        throw messagesError;
-      }
-
-      if (!messages) {
-        console.warn('No messages returned from query');
-        return [];
-      }
-
-      // Fetch user profiles for sender_ids
-      const senderIds = messages
-        .map(m => m.sender_id)
-        .filter(Boolean)
-        .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
-
-      let profiles: Record<string, any> = {};
-      if (senderIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name, avatar_url, language')
-          .in('id', senderIds);
-          
-        if (profilesData) {
-          profiles = profilesData.reduce((acc, profile) => {
-            acc[profile.id] = profile;
-            return acc;
-          }, {} as Record<string, any>);
-        }
-      }
-
-      // Fetch parent messages if needed
-      const parentIds = messages
-        .map(m => m.parent_id)
-        .filter(Boolean)
-        .filter((v, i, a) => a.indexOf(v) === i); // Remove duplicates
-
-      let parentMessages: Record<string, any> = {};
-      if (parentIds.length > 0) {
-        const { data: parentsData } = await supabase
-          .from('messages')
-          .select('id, content, created_at, sender_id')
-          .in('id', parentIds);
-          
-        if (parentsData) {
-          // Get sender profiles for parent messages
-          const parentSenderIds = parentsData
-            .map(m => m.sender_id)
-            .filter(Boolean)
-            .filter((v, i, a) => a.indexOf(v) === i);
-            
-          let parentProfiles: Record<string, any> = {};
-          if (parentSenderIds.length > 0) {
-            const { data: parentProfilesData } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, avatar_url, language')
-              .in('id', parentSenderIds);
-              
-            if (parentProfilesData) {
-              parentProfiles = parentProfilesData.reduce((acc, profile) => {
-                acc[profile.id] = profile;
-                return acc;
-              }, {} as Record<string, any>);
-            }
-          }
-          
-          parentMessages = parentsData.reduce((acc, parent) => {
-            acc[parent.id] = {
-              ...parent,
-              sender: parent.sender_id ? {
-                id: parent.sender_id,
-                profiles: parentProfiles[parent.sender_id] || null
-              } : null
-            };
-            return acc;
-          }, {} as Record<string, any>);
-        }
-      }
-
-      return messages.map(message => {
-        if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
-          console.error('Invalid message structure:', message);
-          return null;
-        }
-
-        return {
-          id: message.id,
-          content: message.content,
-          created_at: message.created_at,
-          conversation_id: message.conversation_id,
-          sender_id: message.sender_id,
-          status: message.status || 'sent',
-          original_language: message.original_language,
-          metadata: message.metadata,
-          private_room: message.private_room,
-          private_recipient: message.private_recipient,
-          sender: message.sender_id ? {
-            id: message.sender_id,
-            profiles: profiles[message.sender_id] || {}
-          } : undefined,
-          parent: message.parent_id && parentMessages[message.parent_id] ? {
-            id: parentMessages[message.parent_id].id,
-            content: parentMessages[message.parent_id].content,
-            created_at: parentMessages[message.parent_id].created_at,
-            sender: parentMessages[message.parent_id].sender
-          } : null
-        };
-      }).filter(Boolean);
-    }
+    queryFn: () => fetchMessages(conversationId)
   });
 }
