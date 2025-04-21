@@ -60,12 +60,18 @@ export function VoiceCallDialog({
 
   // LABEL: -- Connection establishment and call error handling --
   useEffect(() => {
-    if (errorMsg) setInternalError(errorMsg);
+    if (errorMsg) {
+      setInternalError(errorMsg);
+      console.log("[VoiceCallDialog] External error received:", errorMsg);
+    }
     else setInternalError(null);
   }, [errorMsg]);
 
   useEffect(() => {
     if (isOpen && conversationId && !internalError && (isOnline || callStatus === 'accepted') && !callInitiated) {
+      console.log("[VoiceCallDialog] Starting call connection", {
+        isOpen, conversationId, isOnline, callStatus, callInitiated
+      });
       const timer = setTimeout(() => {
         setCallInitiated(true);
         connect();
@@ -76,6 +82,7 @@ export function VoiceCallDialog({
 
   useEffect(() => {
     if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
+      console.log("[VoiceCallDialog] Recipient appears offline");
       setInternalError(`${recipientName} appears to be offline.`);
       disconnect();
       setCallInitiated(false);
@@ -89,12 +96,14 @@ export function VoiceCallDialog({
 
   useEffect(() => {
     if (!isOpen && isConnected) {
+      console.log("[VoiceCallDialog] Dialog closed while connected, cleaning up");
       disconnect();
       setCallInitiated(false);
       setShowEndBanner(false);
     }
     return () => {
       if (isConnected) {
+        console.log("[VoiceCallDialog] Component unmounting while connected, cleaning up");
         disconnect();
         setCallInitiated(false);
         setShowEndBanner(false);
@@ -104,6 +113,7 @@ export function VoiceCallDialog({
 
   useEffect(() => {
     if (error) {
+      console.error("[VoiceCallDialog] Call error received:", error);
       setInternalError(error.message || "An error occurred during the call");
       setShowEndBanner(true);
       setCallInitiated(false);
@@ -118,6 +128,7 @@ export function VoiceCallDialog({
   const handleToggleVideo = () => { toggleVideo(); };
 
   const handleEndCall = () => {
+    console.log("[VoiceCallDialog] User ended call");
     disconnect();
     setCallInitiated(false);
     setInternalError("Call ended.");
@@ -229,5 +240,3 @@ export function VoiceCallDialog({
     </Dialog>
   );
 }
-
-// NOTE: This file is now over 250 lines. Consider splitting into smaller focused components after testing.

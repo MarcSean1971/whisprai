@@ -68,23 +68,14 @@ serve(async (req) => {
     try {
       const { jwt, payload } = await generateJwtToken(apiKey, apiSecret);
 
-      // Log JWT and its decoded payload prior to sending to Vonage
-      console.log("[Vonage] Outgoing JWT", jwt);
-      console.log("[Vonage] JWT payload (decoded, should match expectations)", payload);
-
-      // --- Optionally, decode and validate JWT structure ---
-      // Deno doesn't have a built-in jwt.decode, so we decode manually for logs:
-      function tryDecodePart(part: string) {
-        try { return JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/"))); }
-        catch { return null; }
+      // Validate JWT structure
+      if (!jwt || typeof jwt !== 'string' || jwt.split('.').length !== 3) {
+        console.error("[Vonage] Generated JWT has invalid format:", jwt);
+        throw new Error("Failed to generate valid JWT token");
       }
-      const [hPart, pPart, sPart] = jwt.split(".");
-      const decodedHeader = tryDecodePart(hPart);
-      const decodedPayload = tryDecodePart(pPart);
 
-      console.log("[Vonage] Decoded JWT header (pre-check)", decodedHeader);
-      console.log("[Vonage] Decoded JWT payload (pre-check)", decodedPayload);
-      // (not verifying signature here; upstream already generated it)
+      console.log("[Vonage] Outgoing JWT (validated) looks good:", jwt.substring(0, 20) + "...");
+      console.log("[Vonage] JWT payload:", payload);
 
       // Session creation with application ID
       let sessionId: string;
@@ -101,14 +92,16 @@ serve(async (req) => {
       // Token generation (adds logging)
       let tokenResult;
       try {
+        console.log("[Vonage] Generating token for session:", sessionId);
+        
         const tokenResponse = await fetch(
           `https://api.opentok.com/v2/project/${apiKey}/token`,
           {
             method: "POST",
             headers: {
               "Content-Type": "application/x-www-form-urlencoded",
-              "X-OPENTOK-AUTH": jwt,
-              Accept: "application/json",
+              "X-TB-AUTH-TOKEN": jwt, // Changed from X-OPENTOK-AUTH to X-TB-AUTH-TOKEN
+              "Accept": "application/json",
             },
             body: new URLSearchParams({
               session_id: sessionId,
@@ -123,7 +116,10 @@ serve(async (req) => {
 
         // Log details of Vonage response for debugging
         console.log("[Vonage] Token response status", tokenResponse.status);
+        console.log("[Vonage] Response headers:", Object.fromEntries([...tokenResponse.headers.entries()]));
+        
         const tokenRespText = await tokenResponse.text();
+        console.log("[Vonage] Token response body (first 100 chars):", tokenRespText.substring(0, 100));
 
         try {
           tokenResult = JSON.parse(tokenRespText);

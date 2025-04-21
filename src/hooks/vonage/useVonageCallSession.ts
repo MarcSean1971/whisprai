@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { VonageSessionData, VonageError } from "./types";
 import { useVonageSession } from "./use-vonage-session";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface VonageCallSessionProps {
   conversationId?: string;
@@ -93,12 +94,14 @@ export function useVonageCallSession({
 
       console.log("[VonageCallSession] Initializing OT session with:", {
         apiKey: sessionData.apiKey,
-        sessionId: sessionData.sessionId
+        sessionId: sessionData.sessionId,
+        hasToken: !!sessionData.token
       });
 
       const otSession = window.OT.initSession(sessionData.apiKey, sessionData.sessionId);
       setSession(otSession);
 
+      // Set up event handlers
       otSession.on('streamCreated', (event: any) => handleStreamCreated(otSession, event));
       otSession.on('streamDestroyed', (event: any) => destroySubscriber());
       otSession.on('sessionDisconnected', (event: any) => {
@@ -112,6 +115,10 @@ export function useVonageCallSession({
       otSession.on('connectionDestroyed', (event: any) => {
         console.log("[VonageCallSession] Connection destroyed:", event);
       });
+      otSession.on('exception', (event: any) => {
+        console.error("[VonageCallSession] Session exception:", event);
+        toast.error("Call error: " + (event.message || "Unknown error"));
+      });
 
       console.log("[VonageCallSession] Initializing publisher");
       const pub = initializePublisher();
@@ -123,7 +130,7 @@ export function useVonageCallSession({
         throw new Error('Failed to initialize publisher');
       }
 
-      console.log("[VonageCallSession] Connecting to session with token");
+      console.log("[VonageCallSession] Connecting to session with token (length:", sessionData.token.length, ")");
       otSession.connect(sessionData.token, (error: any) => {
         if (error) {
           console.error("[VonageCallSession] Connection error:", error);
@@ -135,6 +142,7 @@ export function useVonageCallSession({
           setIsConnecting(false);
           setConnectionAttempts(c => c + 1);
           clearSessionCache();
+          toast.error("Failed to connect: " + error.message);
           return;
         }
 
@@ -150,12 +158,14 @@ export function useVonageCallSession({
             setIsConnecting(false);
             setConnectionAttempts(c => c + 1);
             clearSessionCache();
+            toast.error("Failed to publish stream: " + pubError.message);
             return;
           }
           console.log("[VonageCallSession] Successfully published stream");
           setIsConnected(true);
           setIsConnecting(false);
           setConnectionAttempts(0);
+          toast.success("Connected to call");
         });
       });
     } catch (err: any) {
@@ -168,6 +178,7 @@ export function useVonageCallSession({
       setIsConnecting(false);
       setConnectionAttempts(c => c + 1);
       clearSessionCache();
+      toast.error("Call setup failed: " + (err.message || "Unknown error"));
     }
   }, [
     conversationId, recipientId, initializeSession, initializePublisher, handleStreamCreated, 

@@ -3,6 +3,11 @@
  * Helper to generate Vonage (OpenTok) JWT token using HS256 (for REST API).
  */
 export async function generateJwtToken(apiKey: string, apiSecret: string) {
+  if (!apiKey || !apiSecret) {
+    console.error("[Vonage] [JWT] Missing credentials:", { hasApiKey: !!apiKey, hasApiSecret: !!apiSecret });
+    throw new Error("Missing Vonage API credentials");
+  }
+
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iss: apiKey,
@@ -36,24 +41,36 @@ export async function generateJwtToken(apiKey: string, apiSecret: string) {
   const key = encoder.encode(apiSecret);
 
   // sign with WebCrypto API
-  const cryptoKey = await crypto.subtle.importKey(
-    "raw",
-    key,
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["sign"]
-  );
-  const signatureBuffer = await crypto.subtle.sign(
-    { name: "HMAC", hash: "SHA-256" },
-    cryptoKey,
-    toSign
-  );
-  const signature = base64url(String.fromCharCode(...new Uint8Array(signatureBuffer)));
+  try {
+    const cryptoKey = await crypto.subtle.importKey(
+      "raw",
+      key,
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["sign"]
+    );
+    const signatureBuffer = await crypto.subtle.sign(
+      { name: "HMAC", hash: "SHA-256" },
+      cryptoKey,
+      toSign
+    );
+    const signature = base64url(String.fromCharCode(...new Uint8Array(signatureBuffer)));
 
-  const jwt = `${encodedHeader}.${encodedPayload}.${signature}`;
-  // Log the entire JWT for inspection (can use jwt.io to verify/debug)
-  console.log("[Vonage] [JWT] Generated JWT", jwt);
+    const jwt = `${encodedHeader}.${encodedPayload}.${signature}`;
+    
+    // Validate the JWT format
+    if (!jwt || typeof jwt !== 'string' || jwt.split('.').length !== 3) {
+      console.error("[Vonage] [JWT] Generated invalid JWT:", jwt);
+      throw new Error("Generated JWT has invalid format");
+    }
+    
+    // Log the entire JWT for inspection (can use jwt.io to verify/debug)
+    console.log("[Vonage] [JWT] Generated JWT", jwt);
 
-  // Return both JWT and decoded payload for debugging upstream
-  return { jwt, payload };
+    // Return both JWT and decoded payload for debugging upstream
+    return { jwt, payload };
+  } catch (error) {
+    console.error("[Vonage] [JWT] Error generating JWT:", error);
+    throw new Error("Failed to generate JWT: " + (error instanceof Error ? error.message : "Unknown error"));
+  }
 }
