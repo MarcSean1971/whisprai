@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { fetchMessages } from "./use-messages/fetchMessages";
 import type { Message } from "./use-messages/types";
 
+// Re-export the Message type for other components to use
+export type { Message } from "./use-messages/types";
+
 /**
  * Fetches messages for a conversationId using react-query and real-time subscription.
  */

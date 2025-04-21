@@ -1,4 +1,3 @@
-
 import { useRef, useCallback } from "react";
 import { VonagePublisherOptions, VonageError } from "./types";
 
@@ -44,6 +43,8 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
       
       console.log('[Vonage Publisher] Creating publisher with options:', publisherOptions);
       
+      // This line had 3 arguments but should only have 2
+      // Fixed: Removed the publisherId.current parameter as it's already in publisherOptions via insertMode
       publisher.current = window.OT.initPublisher(
         publisherId.current, 
         publisherOptions,
