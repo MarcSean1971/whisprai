@@ -51,18 +51,11 @@ export function EmojiPickerPopover({
     <>
       <DropdownMenuSub>
         <DropdownMenuSubTrigger
-          asChild
-          inset
+          className="flex items-center px-2 py-1.5 rounded-sm cursor-pointer gap-2 w-full outline-none focus:bg-accent"
+          onClick={handleTriggerClick}
         >
-          <div
-            ref={buttonRef}
-            className="flex items-center px-2 py-1.5 rounded-sm cursor-pointer gap-2 w-full outline-none focus:bg-accent"
-            onClick={handleTriggerClick}
-            tabIndex={0}
-          >
-            <Smile className="mr-2 h-4 w-4" />
-            <span>Add Reaction</span>
-          </div>
+          <Smile className="mr-2 h-4 w-4" />
+          <span>Add Reaction</span>
         </DropdownMenuSubTrigger>
         {/* Don't render submenu content—picker is rendered in portal as panel */}
       </DropdownMenuSub>

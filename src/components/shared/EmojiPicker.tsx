@@ -13,7 +13,7 @@ interface EmojiPickerProps {
   align?: "center" | "start" | "end";
   side?: "top" | "bottom" | "left" | "right";
   sideOffset?: number;
-  hideOverlay?: boolean; // NEW: when rendering inside a dropdown-menu, hide overlay
+  hideOverlay?: boolean;
 }
 
 export function EmojiPicker({
@@ -46,6 +46,23 @@ export function EmojiPicker({
     onEmojiSelect(emojiData);
     onOpenChange(false);
   };
+
+  // If triggerButton is null, render only the picker content (for use in floating panel)
+  if (triggerButton === null) {
+    return (
+      <div className="bg-popover rounded-md">
+        <EmojiPickerReact
+          width={width}
+          height={height}
+          onEmojiClick={handleEmojiSelect}
+          lazyLoadEmojis={true}
+          skinTonesDisabled={false}
+          searchDisabled={false}
+          previewConfig={{ showPreview: false }}
+        />
+      </div>
+    );
+  }
 
   return (
     <>
