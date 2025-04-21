@@ -31,6 +31,19 @@ function forceBlurActiveElement() {
   }
 }
 
+// NEW: Utility to forcibly remove ALL dialog overlays if present (fixes stuck overlays)
+function forceRemoveAllDialogOverlays() {
+  if (typeof window !== "undefined" && typeof document !== "undefined") {
+    const overlays = document.querySelectorAll('.radix-dialog-overlay,[data-radix-dialog-overlay],[data-state="open"].fixed.bg-black\\/80');
+    overlays.forEach(overlay => {
+      // Remove from DOM if possible
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    });
+  }
+}
+
 export function EmojiPicker({
   onEmojiSelect,
   triggerButton,
@@ -43,6 +56,10 @@ export function EmojiPicker({
     if (!justClosedRef.current) {
       justClosedRef.current = true;
       onOpenChange(false);
+      // After dialog attempts to close, forcibly remove overlays
+      setTimeout(() => {
+        forceRemoveAllDialogOverlays();
+      }, 10);
       console.log("[EmojiPicker] Dialog closed");
     }
   };
@@ -51,6 +68,9 @@ export function EmojiPicker({
     if (!open) {
       justClosedRef.current = false;
       forceBlurActiveElement();
+      setTimeout(() => {
+        forceRemoveAllDialogOverlays();
+      }, 10);
     } else {
       console.log("[EmojiPicker] Dialog opened");
     }
@@ -62,9 +82,10 @@ export function EmojiPicker({
     // (Make sure no modal overlay blocks remain before fulfilling side effects)
     setTimeout(() => {
       forceBlurActiveElement();
+      forceRemoveAllDialogOverlays();
       onEmojiSelect(emojiData);
       console.log('[EmojiPicker] Emoji selected in picker:', emojiData);
-    }, 10); // Tiny delay to let dialog state propagate!
+    }, 10);
   };
 
   const handleClose = () => {
