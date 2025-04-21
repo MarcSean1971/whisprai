@@ -1,4 +1,3 @@
-
 import EmojiPickerReact from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import React, { useRef } from "react";
@@ -49,6 +48,7 @@ export function EmojiPicker({
 
   // If triggerButton is null, render only the picker content (for use in floating panel)
   if (triggerButton === null) {
+    // NO overlay or background for floating panel!
     return (
       <div
         className="bg-popover rounded-md"
@@ -69,6 +69,7 @@ export function EmojiPicker({
     );
   }
 
+  // overlays only for .popover version, not floating panel
   return (
     <>
       {/* ONLY render overlay unless we're inside dropdown (hideOverlay=true) */}
@@ -110,4 +111,3 @@ export function EmojiPicker({
     </>
   );
 }
-
