@@ -1,6 +1,7 @@
 
 import EmojiPickerReact from "emoji-picker-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import React, { useRef } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -25,14 +26,33 @@ export function EmojiPicker({
   side = "bottom",
   sideOffset = 4
 }: EmojiPickerProps) {
-  // Render overlay only if picker is open
+  // To prevent overlay click from triggering when click is inside popover
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Overlay click handler: only closes if click is outside emoji picker
+  const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    // If the click was outside the popover, close it
+    if (
+      popoverRef.current &&
+      !popoverRef.current.contains(event.target as Node)
+    ) {
+      onOpenChange(false);
+    }
+  };
+
+  // When an emoji is picked, immediately close
+  const handleEmojiSelect = (emojiData: any) => {
+    onEmojiSelect(emojiData);
+    onOpenChange(false);
+  };
+
   return (
     <>
       {open && (
         <div
           aria-label="Emoji picker overlay"
           className="fixed inset-0 bg-black/40 z-[9998]"
-          onClick={() => onOpenChange(false)}
+          onMouseDown={handleOverlayClick}
           tabIndex={-1}
         />
       )}
@@ -41,17 +61,19 @@ export function EmojiPicker({
           {triggerButton}
         </PopoverTrigger>
         <PopoverContent
+          ref={popoverRef}
           align={align}
           side={side}
           sideOffset={sideOffset}
           className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
           style={{ minWidth: width, minHeight: height }}
+          onMouseDown={e => e.stopPropagation()} // Prevent overlay mousedown bubbling in
         >
           <div className="bg-popover rounded-md p-2">
             <EmojiPickerReact
               width={width}
               height={height}
-              onEmojiClick={onEmojiSelect}
+              onEmojiClick={handleEmojiSelect}
               lazyLoadEmojis={true}
               skinTonesDisabled={false}
               searchDisabled={false}
@@ -63,4 +85,3 @@ export function EmojiPicker({
     </>
   );
 }
-
