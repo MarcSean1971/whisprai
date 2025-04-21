@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useActiveCallSubscriptions } from "./active-calls/useActiveCallSubscriptions";
 import { useActiveCallActions } from "./active-calls/useActiveCallActions";
@@ -11,6 +12,11 @@ export interface ActiveCall {
   session_id: string | null;
   created_at: string;
   updated_at: string;
+  call_type: 'vonage' | 'p2p';
+  signaling_data?: {
+    offer?: string;
+    answer?: string;
+  };
 }
 
 export function useActiveCalls() {
@@ -27,16 +33,14 @@ export function useActiveCalls() {
     timeoutCall
   } = useActiveCallActions(setIncomingCall, setOutgoingCall);
 
-  // `isLoading` is still updated in createCall only for outgoing case, but could be improved in future.
-
   return {
     incomingCall,
     outgoingCall,
     isLoading,
-    createCall: async (...args: Parameters<typeof createCall>) => {
+    createCall: async (conversationId: string, recipientId: string, callType: 'vonage' | 'p2p' = 'vonage') => {
       setIsLoading(true);
       try {
-        return await createCall(...args);
+        return await createCall(conversationId, recipientId, callType);
       } finally {
         setIsLoading(false);
       }
@@ -47,4 +51,3 @@ export function useActiveCalls() {
     timeoutCall,
   };
 }
-// This file is now small. The subscriptions, actions, and call status update logic are all delegated to focused files.

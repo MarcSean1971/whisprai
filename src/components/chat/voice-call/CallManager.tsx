@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useActiveCalls, ActiveCall } from "@/hooks/use-active-calls";
 import { IncomingCallDialog } from "./IncomingCallDialog";
 import { VoiceCallDialog } from "./VoiceCallDialog";
+import { SimplePeerCallDialog } from "./SimplePeerCallDialog";
 import { useCallTimeouts } from "./hooks/useCallTimeouts";
 import { useCallDialogState } from "./hooks/useCallDialogState";
 import { useCallParticipantNames } from "./hooks/useCallParticipantNames";
@@ -107,6 +108,40 @@ export function CallManager() {
     currentCall,
   });
 
+  const renderCallDialog = () => {
+    if (!currentCall && !callError) return null;
+
+    const isP2PCall = currentCall?.call_type === 'p2p';
+    const partnerId = isOutgoing && currentCall ? currentCall.recipient_id : currentCall ? currentCall.caller_id : "";
+    const partnerName = isOutgoing ? recipientName : callerName;
+
+    if (isP2PCall) {
+      return (
+        <SimplePeerCallDialog
+          isOpen={!!(showCallDialog || callError)}
+          onClose={handleCloseCallDialog}
+          callId={currentCall?.id || ''}
+          recipientName={partnerName}
+          isInitiator={isOutgoing}
+          timeoutSecs={outgoingTimeout}
+        />
+      );
+    } else {
+      return (
+        <VoiceCallDialog
+          isOpen={!!(showCallDialog || callError)}
+          onClose={handleCloseCallDialog}
+          recipientId={partnerId}
+          recipientName={partnerName}
+          conversationId={currentCall?.conversation_id}
+          callStatus={currentCall?.status}
+          errorMsg={callError}
+          timeoutSecs={outgoingTimeout}
+        />
+      );
+    }
+  };
+
   return (
     <>
       <IncomingCallDialog
@@ -116,18 +151,7 @@ export function CallManager() {
         callerName={callerName}
         timeoutSecs={incomingTimeout}
       />
-      {((currentCall && showCallDialog) || callError) && (
-        <VoiceCallDialog
-          isOpen={!!(showCallDialog || callError)}
-          onClose={handleCloseCallDialog}
-          recipientId={isOutgoing && currentCall ? currentCall.recipient_id : currentCall ? currentCall.caller_id : ""}
-          recipientName={isOutgoing ? recipientName : callerName}
-          conversationId={currentCall?.conversation_id}
-          callStatus={currentCall?.status}
-          errorMsg={callError}
-          timeoutSecs={outgoingTimeout}
-        />
-      )}
+      {renderCallDialog()}
     </>
   );
 }

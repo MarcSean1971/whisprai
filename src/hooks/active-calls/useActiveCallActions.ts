@@ -23,7 +23,7 @@ export function useActiveCallActions(setIncomingCall: (call: ActiveCall | null) 
     }
   };
 
-  const createCall = async (conversationId: string, recipientId: string) => {
+  const createCall = async (conversationId: string, recipientId: string, callType: 'vonage' | 'p2p' = 'vonage') => {
     try {
       const { data: user } = await supabase.auth.getUser();
       const callerId = user?.user?.id;
@@ -35,7 +35,8 @@ export function useActiveCallActions(setIncomingCall: (call: ActiveCall | null) 
           conversation_id: conversationId,
           caller_id: callerId,
           recipient_id: recipientId,
-          status: 'pending'
+          status: 'pending',
+          call_type: callType
         })
         .select()
         .single();
@@ -109,4 +110,3 @@ export function useActiveCallActions(setIncomingCall: (call: ActiveCall | null) 
     timeoutCall,
   };
 }
-
