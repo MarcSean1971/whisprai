@@ -17,8 +17,8 @@ export function useUserPresence(userId?: string) {
   useEffect(() => {
     if (!userId) return;
 
-    // 1. Check initial status via Supabase client
-    const checkInitialStatus = async () => {
+    // 1. Check initial status via Supabase client, and upsert immediately for own user
+    const checkAndUpsertPresence = async () => {
       try {
         const { data, error } = await supabase
           .from('user_presence')
@@ -41,13 +41,33 @@ export function useUserPresence(userId?: string) {
           setIsOnline(false);
           console.log("[Presence] No presence info found for user", userId);
         }
+
+        // If this is ourselves, and there's no row, upsert presence now (so a row always exists)
+        // (This is safe even if it exists, thanks to upsert)
+        if (profile && profile.id === userId) {
+          const { error: upsertError } = await supabase
+            .from("user_presence")
+            .upsert(
+              {
+                user_id: profile.id,
+                last_seen_at: new Date().toISOString(),
+                created_at: new Date().toISOString(),
+              },
+              { onConflict: "user_id" }
+            );
+          if (upsertError) {
+            console.error("[Presence] Immediate upsert failed", upsertError);
+          } else {
+            console.log("[Presence] Initial upsert after mount for", userId);
+          }
+        }
       } catch (err) {
         console.error("[Presence] Failed to fetch initial presence", err);
         setIsOnline(false);
       }
     };
 
-    checkInitialStatus();
+    checkAndUpsertPresence();
 
     return () => {
       // Clean up: clear any presence interval when userId changes/unmounts
@@ -57,11 +77,10 @@ export function useUserPresence(userId?: string) {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]); // Only on userId change; presence updater is handled below
+  }, [userId, profile?.id]); // re-run if user or profile changes
 
-  // 2. Handle presence update loop ONLY if this is our own profile
+  // Handle regular presence heartbeat ONLY if this is our own profile
   useEffect(() => {
-    // Only run if both loaded and id matches
     if (!userId || !profile || profile.id !== userId) {
       // Clean up any previous interval if we're switching away
       if (intervalRef.current) {
@@ -89,17 +108,16 @@ export function useUserPresence(userId?: string) {
         if (error) {
           console.error("[Presence] Failed to update my presence", error);
         } else {
-          console.log("[Presence] Updated my presence for user", profile.id);
+          // Only log occasionally to avoid spam. Remove/comment as desired.
+          // console.log("[Presence] Updated my presence for user", profile.id);
         }
       } catch (err) {
         console.error("[Presence] Failed to update my presence", err);
       }
     };
 
-    // Immediately update once
-    updateMyPresence();
+    updateMyPresence(); // Immediately update once on load
 
-    // Then set interval
     intervalRef.current = setInterval(updateMyPresence, 30_000);
 
     // Clean up on unmount/profile change
@@ -142,3 +160,4 @@ export function useUserPresence(userId?: string) {
 
   return { isOnline };
 }
+
