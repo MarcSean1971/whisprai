@@ -1,8 +1,7 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Phone, PhoneOff } from "lucide-react";
-
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,22 +14,27 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { ActiveCall } from "@/hooks/use-active-calls";
-import { useProfile } from "@/hooks/use-profile";
 
 interface IncomingCallDialogProps {
   call: ActiveCall | null;
   onAccept: (callId: string) => Promise<boolean>;
   onReject: (callId: string) => Promise<boolean>;
   callerName: string;
+  timeoutSecs?: number;
 }
 
 export function IncomingCallDialog({
   call,
   onAccept,
   onReject,
-  callerName
+  callerName,
+  timeoutSecs = 0
 }: IncomingCallDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    setIsLoading(false);
+  }, [call]);
 
   const handleAcceptCall = async () => {
     if (!call) return;
@@ -41,7 +45,6 @@ export function IncomingCallDialog({
         toast.error("Failed to accept call");
       }
     } catch (error) {
-      console.error("Error accepting call:", error);
       toast.error("Failed to accept call");
     } finally {
       setIsLoading(false);
@@ -54,24 +57,28 @@ export function IncomingCallDialog({
     try {
       await onReject(call.id);
     } catch (error) {
-      console.error("Error rejecting call:", error);
+      //
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Add audio element for ringtone
   const ringtoneSrc = "/sounds/ringtone.mp3";
 
   return (
     <AlertDialog open={!!call}>
-      <AlertDialogContent className="max-w-md animate-pulse">
+      <AlertDialogContent className="max-w-md animate-fade-in">
         <AlertDialogHeader>
           <AlertDialogTitle className="text-center">
             Incoming Call
           </AlertDialogTitle>
           <AlertDialogDescription className="text-center">
             {callerName} is calling you
+            {timeoutSecs > 0 && (
+              <span className="block mt-2 text-sm text-muted-foreground">
+                Answer within {timeoutSecs}s...
+              </span>
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
 

@@ -1,6 +1,7 @@
+
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
-import { Loader2, Mic, MicOff, PhoneOff, Video, VideoOff } from "lucide-react";
+import { Loader2, Mic, MicOff, PhoneOff, Video, VideoOff, AlertCircle } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,8 @@ interface VoiceCallDialogProps {
   recipientName: string;
   conversationId?: string;
   callStatus?: string;
+  errorMsg?: string | null;
+  timeoutSecs?: number;
 }
 
 export function VoiceCallDialog({
@@ -27,11 +30,15 @@ export function VoiceCallDialog({
   recipientName,
   conversationId,
   callStatus,
+  errorMsg,
+  timeoutSecs = 0
 }: VoiceCallDialogProps) {
   const publisherRef = useRef<HTMLDivElement>(null);
   const subscriberRef = useRef<HTMLDivElement>(null);
   const { isOnline } = useUserPresence(recipientId);
   const [callInitiated, setCallInitiated] = useState(false);
+  const [internalError, setInternalError] = useState<string | null>(null);
+  const [showEndBanner, setShowEndBanner] = useState(false);
   
   const {
     isConnecting,
@@ -51,91 +58,80 @@ export function VoiceCallDialog({
     conversationId
   });
 
+  // LABEL: -- Connection establishment and call error handling --
   useEffect(() => {
-    if (isConnecting) {
-      console.info("[VoiceCallDialog][Vonage] Attempting connection: isConnecting");
-    }
-    if (isConnected) {
-      console.info("[VoiceCallDialog][Vonage] Connection established: isConnected");
-    }
-    if (hasRemoteParticipant) {
-      console.info("[VoiceCallDialog][Vonage] Remote participant joined");
-    }
-    if (!isConnecting && !isConnected) {
-      console.info("[VoiceCallDialog][Vonage] No active connection");
-    }
-  }, [isConnecting, isConnected, hasRemoteParticipant]);
+    if (errorMsg) setInternalError(errorMsg);
+    else setInternalError(null);
+  }, [errorMsg]);
 
   useEffect(() => {
-    if (isOpen && conversationId && (isOnline || callStatus === 'accepted') && !callInitiated) {
-      console.log("[VoiceCall] Initiating call to user:", recipientId, "Status:", callStatus);
+    if (isOpen && conversationId && !internalError && (isOnline || callStatus === 'accepted') && !callInitiated) {
       const timer = setTimeout(() => {
         setCallInitiated(true);
         connect();
       }, 500);
-      return () => {
-        clearTimeout(timer);
-      };
+      return () => clearTimeout(timer);
     }
-  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus]);
-  
+  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus, internalError]);
+
   useEffect(() => {
     if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
-      toast.error(`${recipientName} appears to be offline.`);
+      setInternalError(`${recipientName} appears to be offline.`);
       disconnect();
-      onClose();
+      setCallInitiated(false);
+      setShowEndBanner(true);
+      setTimeout(() => {
+        setShowEndBanner(false);
+        onClose();
+      }, 2000);
     }
   }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose, callStatus]);
-  
+
   useEffect(() => {
     if (!isOpen && isConnected) {
       disconnect();
       setCallInitiated(false);
+      setShowEndBanner(false);
     }
     return () => {
       if (isConnected) {
         disconnect();
         setCallInitiated(false);
+        setShowEndBanner(false);
       }
     };
   }, [isOpen, disconnect, isConnected]);
 
   useEffect(() => {
-    if (isOpen) {
-      console.debug("[VoiceCallDialog][DEBUG] Dialog opened", {
-        recipientId, recipientName, conversationId, callStatus, isOnline,
-        isConnecting, isConnected, hasRemoteParticipant, error,
-      });
-    }
-  }, [isOpen, recipientId, recipientName, conversationId, callStatus, isOnline, isConnecting, isConnected, hasRemoteParticipant, error]);
-
-  useEffect(() => {
     if (error) {
-      console.error('Call error:', error);
-      toast.error(error.message || "An error occurred during the call");
+      setInternalError(error.message || "An error occurred during the call");
+      setShowEndBanner(true);
       setCallInitiated(false);
-      const timer = setTimeout(() => {
+      setTimeout(() => {
+        setShowEndBanner(false);
         onClose();
       }, 2000);
-      return () => clearTimeout(timer);
     }
   }, [error, onClose]);
 
-  const handleToggleAudio = () => {
-    toggleAudio();
-  };
-
-  const handleToggleVideo = () => {
-    toggleVideo();
-  };
+  const handleToggleAudio = () => { toggleAudio(); };
+  const handleToggleVideo = () => { toggleVideo(); };
 
   const handleEndCall = () => {
     disconnect();
     setCallInitiated(false);
-    onClose();
+    setInternalError("Call ended.");
+    setShowEndBanner(true);
+    setTimeout(() => {
+      setShowEndBanner(false);
+      onClose();
+    }, 2000);
   };
 
   const getDialogTitle = () => {
+    if (internalError) {
+      return `Call Ended`;
+    }
     if (callStatus === 'pending' && isConnecting && !isConnected) {
       return `Calling ${recipientName}...`;
     } else if (isConnected) {
@@ -155,12 +151,23 @@ export function VoiceCallDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col space-y-4 h-96">
-          {isConnecting && !isConnected && (
+          {internalError && (
+            <div className="flex flex-col items-center justify-center h-full gap-2">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+              <div className="font-semibold">{internalError}</div>
+              <div className="text-muted-foreground text-sm">Call could not start. Please try again.</div>
+            </div>
+          )}
+          {isConnecting && !isConnected && !internalError && (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="h-10 w-10 animate-spin mb-4" />
               <p>Connecting to call...</p>
+              {timeoutSecs > 0 && (
+                <span className="mt-2 text-sm text-muted-foreground">Will time out in {timeoutSecs}s</span>
+              )}
             </div>
           )}
+          {!internalError && (
           <div className="relative h-full flex flex-col">
             <div 
               ref={subscriberRef}
@@ -178,6 +185,8 @@ export function VoiceCallDialog({
               </div>
             )}
           </div>
+          )}
+          {!internalError && (
           <div className="flex justify-center space-x-4">
             <Button
               variant="outline"
@@ -209,12 +218,16 @@ export function VoiceCallDialog({
               variant="destructive"
               size="icon"
               onClick={handleEndCall}
+              disabled={!!internalError}
             >
               <PhoneOff className="h-4 w-4" />
             </Button>
           </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
+
+// NOTE: This file is now over 250 lines. Consider splitting into smaller focused components after testing.
