@@ -9,44 +9,6 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      active_calls: {
-        Row: {
-          caller_id: string
-          conversation_id: string
-          created_at: string
-          id: string
-          recipient_id: string
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          caller_id: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          recipient_id: string
-          status?: string
-          updated_at?: string
-        }
-        Update: {
-          caller_id?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          recipient_id?: string
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "active_calls_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       admin_settings: {
         Row: {
           created_at: string | null
@@ -100,6 +62,50 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      call_sessions: {
+        Row: {
+          call_type: string
+          caller_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          recipient_id: string
+          signaling_data: Json | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          call_type?: string
+          caller_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          signaling_data?: Json | null
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          call_type?: string
+          caller_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          signaling_data?: Json | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_sessions_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contact_requests: {
         Row: {

@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -11,6 +10,10 @@ import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { useUserPresence } from "@/hooks/use-user-presence";
+import { Phone } from "lucide-react";
+import { useEffect } from "react";
+import { useWebRTCCalls } from "@/hooks/use-webrtc-calls";
+import { toast } from "sonner";
 
 interface Participant {
   id: string;
@@ -50,19 +53,36 @@ export function ChatHeader({
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
     onClick: () => handleParticipantClick(p)
   }));
-
   const participantDetails = otherParticipants.map(p => ({
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
     tagline: p.tagline || ''
   }));
-
   const handleParticipantClick = (participant: any) => {
     setSelectedParticipant(participant);
     setShowProfile(true);
   };
-
   const recipient = otherParticipants[0];
   const { isOnline } = useUserPresence(recipient?.id);
+
+  // Add call hook logic
+  const {
+    isCalling, callSession, startCall, incomingCall, acceptCall, rejectCall, status
+  } = useWebRTCCalls(conversationId, profile?.id, recipient?.id);
+
+  useEffect(() => {
+    if (status === "pending") {
+      toast.info("Calling...");
+    }
+    if (status === "incoming") {
+      toast.info("Incoming call. Accept or Reject.");
+    }
+    if (status === "connected") {
+      toast.success("Call connected!");
+    }
+    if (status === "rejected") {
+      toast.error("Call rejected.");
+    }
+  }, [status]);
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
@@ -87,8 +107,37 @@ export function ChatHeader({
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
+          {recipient && (
+            <>
+              {/* Call button */}
+              <Button
+                variant="outline"
+                size="icon"
+                className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
+                disabled={isCalling}
+                title={`Call ${participantDetails[0]?.name || "participant"}`}
+                onClick={() => {
+                  if (!isOnline) {
+                    toast.error("Recipient is offline");
+                    return;
+                  }
+                  startCall("audio");
+                }}
+              >
+                <Phone className="h-5 w-5" />
+                <span className="sr-only">Call</span>
+              </Button>
+              {/* Basic incoming call dialog */}
+              {incomingCall && status === "incoming" && (
+                <div className="flex gap-2 items-center ml-4">
+                  <span className="text-green-700 font-bold">Incoming call...</span>
+                  <Button size="sm" variant="secondary" onClick={acceptCall}>Accept</Button>
+                  <Button size="sm" variant="destructive" onClick={rejectCall}>Reject</Button>
+                </div>
+              )}
+            </>
+          )}
           {isSearching ? (
             <div className="flex items-center relative">
               <Input
