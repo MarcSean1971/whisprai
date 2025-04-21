@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VonageSessionOptions, VonageError, VonageSessionData } from "./types";
@@ -7,6 +8,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<VonageError | null>(null);
   const sessionRef = useRef<any>(null);
+  const sessionDataRef = useRef<VonageSessionData | null>(null);
 
   const initializeSession = useCallback(async () => {
     if (!conversationId || !recipientId) {
@@ -20,6 +22,12 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
 
     try {
       console.log('[Vonage Session] Initializing session...', { conversationId, recipientId });
+      
+      // Check if we already have session data
+      if (sessionDataRef.current) {
+        console.log('[Vonage Session] Using existing session data');
+        return sessionDataRef.current;
+      }
       
       const { data: sessionData, error: sessionError } = await supabase.functions.invoke('vonage-session', {
         body: { conversationId, recipientId }
@@ -43,6 +51,8 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
         hasApiKey: !!apiKey 
       });
 
+      // Store session data for reuse
+      sessionDataRef.current = { sessionId, token, apiKey };
       return { sessionId, token, apiKey };
 
     } catch (err: any) {
@@ -60,11 +70,13 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
   const disconnect = useCallback(() => {
     if (sessionRef.current) {
       try {
+        console.log('[Vonage Session] Disconnecting session');
         sessionRef.current.disconnect();
         sessionRef.current = null;
         setIsConnected(false);
         setIsConnecting(false);
       } catch (err: any) {
+        console.error('[Vonage Session] Error disconnecting:', err);
         const vonageError: VonageError = {
           type: 'CONNECTION_ERROR',
           message: "Error disconnecting from session",
@@ -83,6 +95,9 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
     setIsConnecting,
     setIsConnected,
     setError,
+    setSession: (session: any) => {
+      sessionRef.current = session;
+    },
     initializeSession,
     disconnect
   };

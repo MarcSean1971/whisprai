@@ -26,8 +26,6 @@ export function VoiceCallDialog({
   recipientName,
   conversationId,
 }: VoiceCallDialogProps) {
-  const [isMicActive, setIsMicActive] = useState(true);
-  const [isVideoActive, setIsVideoActive] = useState(false);
   const publisherRef = useRef<HTMLDivElement>(null);
   const subscriberRef = useRef<HTMLDivElement>(null);
   
@@ -36,10 +34,12 @@ export function VoiceCallDialog({
     isConnected,
     connect,
     disconnect,
-    toggleVideo,
     toggleAudio,
+    toggleVideo,
     hasRemoteParticipant,
-    error
+    error,
+    isMicActive,
+    isVideoActive
   } = useVonageCall({
     publisherRef,
     subscriberRef,
@@ -47,9 +47,24 @@ export function VoiceCallDialog({
     conversationId
   });
 
+  // Effect to connect when dialog opens
   useEffect(() => {
     if (isOpen && conversationId) {
-      connect();
+      // Small delay to ensure DOM elements are ready
+      const timer = setTimeout(() => {
+        connect();
+      }, 500);
+      
+      return () => {
+        clearTimeout(timer);
+      };
+    }
+  }, [isOpen, conversationId, connect]);
+  
+  // Cleanup effect when dialog closes
+  useEffect(() => {
+    if (!isOpen && isConnected) {
+      disconnect();
     }
     
     return () => {
@@ -57,29 +72,35 @@ export function VoiceCallDialog({
         disconnect();
       }
     };
-  }, [isOpen, conversationId, connect, disconnect, isConnected]);
+  }, [isOpen, disconnect, isConnected]);
+
+  // Error handling
+  useEffect(() => {
+    if (error) {
+      console.error('Call error:', error);
+      toast.error(error.message || "An error occurred during the call");
+      
+      // Auto-close dialog on error after a short delay
+      const timer = setTimeout(() => {
+        onClose();
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, onClose]);
 
   const handleToggleAudio = () => {
     toggleAudio();
-    setIsMicActive(!isMicActive);
   };
 
   const handleToggleVideo = () => {
     toggleVideo();
-    setIsVideoActive(!isVideoActive);
   };
 
   const handleEndCall = () => {
     disconnect();
     onClose();
   };
-
-  useEffect(() => {
-    if (error) {
-      toast.error(error.message || "An error occurred during the call");
-      onClose();
-    }
-  }, [error, onClose]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleEndCall()}>
@@ -91,42 +112,51 @@ export function VoiceCallDialog({
         </DialogHeader>
         
         <div className="flex flex-col space-y-4 h-96">
-          {isConnecting && !isConnected ? (
+          {/* Call status indicators */}
+          {isConnecting && !isConnected && (
             <div className="flex flex-col items-center justify-center h-full">
               <Loader2 className="h-10 w-10 animate-spin mb-4" />
               <p>Connecting to call...</p>
             </div>
-          ) : (
-            <div className="relative h-full flex flex-col">
-              <div 
-                ref={subscriberRef}
-                className={`bg-muted rounded-md w-full h-full ${!hasRemoteParticipant ? 'hidden' : ''}`}
-              />
-              
-              <div 
-                ref={publisherRef}
-                className={`bg-primary-foreground rounded-md ${hasRemoteParticipant ? 'absolute top-2 right-2 w-1/4 h-1/4' : 'w-full h-full'}`}
-              />
-              
-              {!hasRemoteParticipant && isConnected && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <p className="text-muted-foreground">Waiting for {recipientName} to join...</p>
-                </div>
-              )}
-            </div>
           )}
           
+          {/* Video containers */}
+          <div className="relative h-full flex flex-col">
+            {/* Remote video (subscriber) */}
+            <div 
+              ref={subscriberRef}
+              id="subscriber-container"
+              className={`bg-muted rounded-md w-full h-full ${!hasRemoteParticipant ? 'hidden' : ''}`}
+            />
+            
+            {/* Local video (publisher) */}
+            <div 
+              ref={publisherRef}
+              id="publisher-container"
+              className={`bg-primary-foreground rounded-md ${hasRemoteParticipant ? 'absolute top-2 right-2 w-1/4 h-1/4 z-10' : 'w-full h-full'}`}
+            />
+            
+            {/* Waiting for participant message */}
+            {!hasRemoteParticipant && isConnected && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-muted-foreground">Waiting for {recipientName} to join...</p>
+              </div>
+            )}
+          </div>
+          
+          {/* Call controls */}
           <div className="flex justify-center space-x-4">
             <Button
               variant="outline"
               size="icon"
               onClick={handleToggleAudio}
               disabled={isConnecting}
+              className={!isMicActive ? "bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50" : ""}
             >
               {isMicActive ? (
                 <Mic className="h-4 w-4" />
               ) : (
-                <MicOff className="h-4 w-4" />
+                <MicOff className="h-4 w-4 text-red-500" />
               )}
             </Button>
             
@@ -135,9 +165,10 @@ export function VoiceCallDialog({
               size="icon"
               onClick={handleToggleVideo}
               disabled={isConnecting}
+              className={isVideoActive ? "bg-green-100 hover:bg-green-200 dark:bg-green-900/30 dark:hover:bg-green-900/50" : ""}
             >
               {isVideoActive ? (
-                <Video className="h-4 w-4" />
+                <Video className="h-4 w-4 text-green-500" />
               ) : (
                 <VideoOff className="h-4 w-4" />
               )}

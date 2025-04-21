@@ -4,6 +4,7 @@ import { VonagePublisherOptions, VonageError } from "./types";
 
 export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOptions) {
   const publisher = useRef<any>(null);
+  const publisherId = useRef<string>(`vonage-publisher-${Date.now()}`);
 
   const initializePublisher = useCallback(() => {
     console.log('[Vonage Publisher] Initializing publisher...', { publisherRef: publisherRef.current });
@@ -13,25 +14,55 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
       return null;
     }
 
-    const publisherOptions = {
-      insertMode: 'append',
-      width: '100%',
-      height: '100%',
-      publishAudio: true,
-      publishVideo: false,
-    };
+    if (publisher.current) {
+      console.log('[Vonage Publisher] Reusing existing publisher');
+      return publisher.current;
+    }
 
     try {
-      // Fix: We need to assign a unique ID to the element and use that
-      // The Vonage SDK expects a string element ID
-      const publisherId = 'vonage-publisher-' + Date.now();
-      publisherRef.current.id = publisherId;
+      // Clean up any existing publisher element
+      while (publisherRef.current.firstChild) {
+        publisherRef.current.removeChild(publisherRef.current.firstChild);
+      }
+      
+      // Set a unique ID for the publisher element
+      publisherRef.current.id = publisherId.current;
+      
+      const publisherOptions = {
+        insertMode: 'append',
+        width: '100%',
+        height: '100%',
+        publishAudio: true,
+        publishVideo: false,
+        audioSource: true, // explicitly enable audio
+        videoSource: null, // initially no video
+        style: {
+          buttonDisplayMode: 'off', // Hide OpenTok's default UI controls
+          nameDisplayMode: 'off'
+        }
+      };
+      
+      console.log('[Vonage Publisher] Creating publisher with options:', publisherOptions);
       
       publisher.current = window.OT.initPublisher(
-        publisherId, 
-        publisherOptions
+        publisherId.current, 
+        publisherOptions,
+        (error: any) => {
+          if (error) {
+            console.error('[Vonage Publisher] Initialization callback error:', error);
+            const vonageError: VonageError = {
+              type: 'PUBLISH_ERROR',
+              message: "Failed to initialize publisher: " + error.message,
+              originalError: error
+            };
+            onError(vonageError);
+            return null;
+          }
+          console.log('[Vonage Publisher] Publisher initialized successfully');
+        }
       );
 
+      // Set up event listeners
       publisher.current.on('streamCreated', (event: any) => {
         console.log('[Vonage Publisher] Local stream created:', event);
       });
@@ -40,12 +71,25 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
         console.log('[Vonage Publisher] Local stream destroyed:', event);
       });
 
-      // Separate error handling
+      publisher.current.on('accessAllowed', () => {
+        console.log('[Vonage Publisher] Media access allowed');
+      });
+
+      publisher.current.on('accessDenied', (error: any) => {
+        console.error('[Vonage Publisher] Media access denied:', error);
+        const vonageError: VonageError = {
+          type: 'MEDIA_ACCESS_ERROR',
+          message: "Media access denied: " + error.message,
+          originalError: error
+        };
+        onError(vonageError);
+      });
+
       publisher.current.on('error', (error: any) => {
-        console.error('[Vonage Publisher] Initialization error:', error);
+        console.error('[Vonage Publisher] Publisher error:', error);
         const vonageError: VonageError = {
           type: 'PUBLISH_ERROR',
-          message: "Failed to initialize publisher: " + error.message,
+          message: "Error in publisher: " + error.message,
           originalError: error
         };
         onError(vonageError);
@@ -55,7 +99,7 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
     } catch (error: any) {
       const vonageError: VonageError = {
         type: 'PUBLISH_ERROR',
-        message: "Failed to initialize publisher",
+        message: "Failed to initialize publisher: " + error.message,
         originalError: error
       };
       console.error('[Vonage Publisher] Setup error:', vonageError);
@@ -67,25 +111,44 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
   const destroyPublisher = useCallback(() => {
     if (publisher.current) {
       console.log('[Vonage Publisher] Destroying publisher');
-      publisher.current.destroy();
-      publisher.current = null;
+      try {
+        publisher.current.destroy();
+      } catch (error) {
+        console.error('[Vonage Publisher] Error destroying publisher:', error);
+      } finally {
+        publisher.current = null;
+      }
     }
   }, []);
 
   const toggleAudio = useCallback(() => {
     if (publisher.current) {
-      const hasAudio = publisher.current.getSettings().audioSource !== null;
-      console.log('[Vonage Publisher] Toggling audio:', { currentState: hasAudio, newState: !hasAudio });
-      publisher.current.publishAudio(!hasAudio);
+      try {
+        const hasAudio = publisher.current.getAudioSource() !== null;
+        console.log('[Vonage Publisher] Toggling audio:', { currentState: hasAudio, newState: !hasAudio });
+        publisher.current.publishAudio(!hasAudio);
+        return !hasAudio;
+      } catch (error) {
+        console.error('[Vonage Publisher] Error toggling audio:', error);
+        return false;
+      }
     }
+    return false;
   }, []);
 
   const toggleVideo = useCallback(() => {
     if (publisher.current) {
-      const hasVideo = publisher.current.getSettings().videoSource !== null;
-      console.log('[Vonage Publisher] Toggling video:', { currentState: hasVideo, newState: !hasVideo });
-      publisher.current.publishVideo(!hasVideo);
+      try {
+        const hasVideo = publisher.current.getVideoSource() !== null;
+        console.log('[Vonage Publisher] Toggling video:', { currentState: hasVideo, newState: !hasVideo });
+        publisher.current.publishVideo(!hasVideo);
+        return !hasVideo;
+      } catch (error) {
+        console.error('[Vonage Publisher] Error toggling video:', error);
+        return false;
+      }
     }
+    return false;
   }, []);
 
   return {
