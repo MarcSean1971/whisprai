@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useRef, useState } from "react";
 import { loadVonageScript } from "@/lib/vonage-loader";
 import { useVonageSession } from "./vonage/use-vonage-session";
@@ -94,22 +93,25 @@ export function useVonageCall({
       return;
     }
 
+    if (connectionAttempts >= maxReconnectAttempts) {
+      setError({
+        type: 'INITIALIZATION_ERROR',
+        message: `Failed to connect after ${maxReconnectAttempts} attempts`,
+      });
+      setIsConnecting(false);
+      return;
+    }
+
     try {
-      console.log('[Vonage Call] Connecting to call...');
+      console.log(`[Vonage Call] Connecting to call... Attempt #${connectionAttempts + 1}`);
       setIsConnecting(true);
       setError(null);
-      
-      // Increment connection attempts
-      setConnectionAttempts(prev => prev + 1);
-      
-      if (connectionAttempts >= maxReconnectAttempts) {
-        throw new Error(`Failed to connect after ${maxReconnectAttempts} attempts`);
-      }
 
       const sessionData = await initializeSession();
       if (!sessionData) {
         console.error('[Vonage Call] No session data returned');
         setIsConnecting(false);
+        setConnectionAttempts(prev => prev + 1); // failed attempt
         return;
       }
 
@@ -121,7 +123,6 @@ export function useVonageCall({
       const otSession = window.OT.initSession(sessionData.apiKey, sessionData.sessionId);
       setSession(otSession);
 
-      // Set up event handlers first
       otSession.on('streamCreated', (event: any) => {
         console.log('[Vonage Call] Remote stream created:', event);
         handleStreamCreated(otSession, event);
@@ -146,14 +147,14 @@ export function useVonageCall({
         console.log('[Vonage Call] Connection destroyed:', event);
       });
 
-      // Initialize the publisher (camera/mic)
       console.log('[Vonage Call] Initializing publisher');
       const pub = initializePublisher();
       if (!pub) {
+        setIsConnecting(false);
+        setConnectionAttempts(prev => prev + 1);
         throw new Error('Failed to initialize publisher');
       }
 
-      // Connect to the session
       console.log('[Vonage Call] Connecting to session with token');
       otSession.connect(sessionData.token, (error: any) => {
         if (error) {
@@ -164,11 +165,11 @@ export function useVonageCall({
             originalError: error
           });
           setIsConnecting(false);
+          setConnectionAttempts(prev => prev + 1);
           return;
         }
 
         console.log('[Vonage Call] Connected to session, publishing stream');
-        // Now publish our stream
         otSession.publish(pub, (pubError: any) => {
           if (pubError) {
             console.error('[Vonage Call] Error publishing stream:', pubError);
@@ -178,6 +179,7 @@ export function useVonageCall({
               originalError: pubError
             });
             setIsConnecting(false);
+            setConnectionAttempts(prev => prev + 1);
             return;
           }
 
@@ -196,6 +198,7 @@ export function useVonageCall({
         originalError: err
       });
       setIsConnecting(false);
+      setConnectionAttempts(prev => prev + 1); // count only *actual* errors
     }
   }, [
     initializeSession, 
@@ -210,7 +213,6 @@ export function useVonageCall({
     destroySubscriber
   ]);
 
-  // Add functionality to handle mic and video state
   const [isMicActive, setIsMicActive] = useState(true);
   const [isVideoActive, setIsVideoActive] = useState(false);
 
