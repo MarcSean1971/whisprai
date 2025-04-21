@@ -205,14 +205,21 @@ export function useWebRTCPeer({
         const videoTrack = originalStreamRef.current.getVideoTracks()[0];
         
         if (videoTrack && peerRef.current) {
-          // Find senders in the peer connection to replace tracks
-          const senders = (peerRef.current as any).getSenders?.();
-          const videoSender = senders?.find((s: RTCRtpSender) => s.track?.kind === 'video');
-          
-          if (videoSender) {
-            videoSender.replaceTrack(videoTrack).catch(e => {
-              console.error("Error replacing track:", e);
-            });
+          try {
+            // Access the native RTCPeerConnection inside simple-peer
+            const pc = (peerRef.current as any)._pc;
+            if (pc && pc.getSenders) {
+              const senders = pc.getSenders();
+              const videoSender = senders.find((s: RTCRtpSender) => s.track?.kind === 'video');
+              
+              if (videoSender) {
+                videoSender.replaceTrack(videoTrack).catch(e => {
+                  console.error("Error replacing track:", e);
+                });
+              }
+            }
+          } catch (e) {
+            console.error("Error accessing peer connection for track replacement:", e);
           }
         }
         
@@ -234,20 +241,27 @@ export function useWebRTCPeer({
           const screenTrack = screenStream.getVideoTracks()[0];
           
           if (screenTrack) {
-            // Find senders in the peer connection to replace tracks
-            const senders = (peerRef.current as any).getSenders?.();
-            const videoSender = senders?.find((s: RTCRtpSender) => s.track?.kind === 'video');
-            
-            if (videoSender) {
-              videoSender.replaceTrack(screenTrack).catch(e => {
-                console.error("Error replacing track:", e);
-              });
+            try {
+              // Access the native RTCPeerConnection inside simple-peer
+              const pc = (peerRef.current as any)._pc;
+              if (pc && pc.getSenders) {
+                const senders = pc.getSenders();
+                const videoSender = senders.find((s: RTCRtpSender) => s.track?.kind === 'video');
+                
+                if (videoSender) {
+                  videoSender.replaceTrack(screenTrack).catch(e => {
+                    console.error("Error replacing track:", e);
+                  });
+                }
+              }
+              
+              // Handle the screen sharing being stopped by the user via the browser UI
+              screenTrack.onended = () => {
+                toggleScreenShare();
+              };
+            } catch (e) {
+              console.error("Error accessing peer connection for track replacement:", e);
             }
-            
-            // Handle the screen sharing being stopped by the user via the browser UI
-            screenTrack.onended = () => {
-              toggleScreenShare();
-            };
           }
           
           // Create a new combined stream with audio from original and video from screen

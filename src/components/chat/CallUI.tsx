@@ -99,6 +99,20 @@ export function CallUI({
     };
   }, [callStatus]);
 
+  // Set remote stream to remote video element
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
+  // Set local stream to local video element
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
   return (
     <Dialog open={true} modal={true}>
       <DialogContent className="fixed inset-0 z-50 flex flex-col items-center justify-center p-0 sm:p-6 max-w-full max-h-full m-0 rounded-none sm:rounded-lg sm:max-w-4xl sm:max-h-[90vh]" onInteractOutside={e => e.preventDefault()}>
