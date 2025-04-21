@@ -1,42 +1,21 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
-import { generateJwtToken } from "./generateJwtToken.ts";
-import { createVonageSession } from "./createVonageSession.ts";
+// Split and refactor of monolithic Vonage session handler
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { generateJwtToken } from "./generateJwtToken.ts";
+import { corsHeaders } from "./headers.ts";
+import { authenticateUser } from "./auth.ts";
+import { storeSession, updateActiveCallWithSessionId } from "./db.ts";
+import { createSession, createToken } from "./vonage.ts";
 
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
     // Auth
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: {
-          headers: { Authorization: req.headers.get("Authorization")! },
-        },
-        auth: {
-          persistSession: false, // Fixed: disable session persistence in Edge Functions
-        }
-      }
-    );
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-    if (userError || !user) {
-      throw new Error("Not authenticated");
-    }
+    const { user, supabaseClient } = await authenticateUser(req);
 
     // Parse body
     const { conversationId, recipientId, callId } = await req.json();
@@ -44,158 +23,57 @@ serve(async (req) => {
       throw new Error("Missing required parameters");
     }
 
-    // Vonage credentials - GET ALL REQUIRED CREDENTIALS!
+    // Vonage credentials
     const apiKey = Deno.env.get("VONAGE_API_KEY");
     const apiSecret = Deno.env.get("VONAGE_API_SECRET");
     const applicationId = Deno.env.get("VONAGE_APPLICATION_ID");
-
-    // Log what credentials we have for debugging
-    console.log("[Vonage] Credentials check:", {
-      hasApiKey: !!apiKey,
-      hasApiSecret: !!apiSecret,
-      hasApplicationId: !!applicationId
-    });
-
     if (!apiKey || !apiSecret) {
       throw new Error("Vonage API credentials (API key or secret) not configured");
     }
-
     if (!applicationId) {
-      throw new Error("Vonage Application ID not configured - this is required for session creation");
+      throw new Error("Vonage Application ID not configured");
     }
 
-    // Generate JWT for OpenTok API (returns {jwt, payload})
-    try {
-      const { jwt, payload } = await generateJwtToken(apiKey, apiSecret);
-
-      // Validate JWT structure
-      if (!jwt || typeof jwt !== 'string' || jwt.split('.').length !== 3) {
-        console.error("[Vonage] Generated JWT has invalid format:", jwt);
-        throw new Error("Failed to generate valid JWT token");
-      }
-
-      console.log("[Vonage] Outgoing JWT (validated) looks good:", jwt.substring(0, 20) + "...");
-      console.log("[Vonage] JWT payload:", payload);
-
-      // Session creation with application ID
-      let sessionId: string;
-      try {
-        // Pass application ID to session creation
-        sessionId = await createVonageSession(jwt, applicationId);
-        console.log("[Vonage] Created sessionId successfully:", sessionId);
-      } catch (err) {
-        console.error("[Vonage] Error when creating session:", err instanceof Error ? err.message : err);
-        console.error("[Vonage] Session creation failed - full error:", err);
-        throw new Error(`Failed to create Vonage session: ${err instanceof Error ? err.message : "Unknown error"}`);
-      }
-
-      // Token generation (adds logging)
-      let tokenResult;
-      try {
-        console.log("[Vonage] Generating token for session:", sessionId);
-        
-        const tokenResponse = await fetch(
-          `https://api.opentok.com/v2/project/${apiKey}/token`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              "X-TB-AUTH-TOKEN": jwt, // Changed from X-OPENTOK-AUTH to X-TB-AUTH-TOKEN
-              "Accept": "application/json",
-            },
-            body: new URLSearchParams({
-              session_id: sessionId,
-              role: "publisher",
-              data: JSON.stringify({ userId: user.id }),
-              expire_time: (
-                Math.floor(Date.now() / 1000) + 3600
-              ).toString(), // 1 hour
-            }).toString(),
-          }
-        );
-
-        // Log details of Vonage response for debugging
-        console.log("[Vonage] Token response status", tokenResponse.status);
-        console.log("[Vonage] Response headers:", Object.fromEntries([...tokenResponse.headers.entries()]));
-        
-        const tokenRespText = await tokenResponse.text();
-        console.log("[Vonage] Token response body (first 100 chars):", tokenRespText.substring(0, 100));
-
-        try {
-          tokenResult = JSON.parse(tokenRespText);
-        } catch (e) {
-          console.error("[Vonage] Failed to parse token API response", tokenRespText);
-          throw new Error("Failed to parse token API response: " + tokenRespText);
-        }
-
-        if (!tokenResponse.ok) {
-          console.error("[Vonage] Error response from token API", tokenResult);
-          throw new Error(
-            `Failed to generate token: ${tokenResponse.status} - ${tokenRespText}`
-          );
-        }
-        if (!tokenResult.token) {
-          console.error("[Vonage] No token in response", tokenResult);
-          throw new Error("No token in response");
-        }
-        console.log("[Vonage] Successfully obtained token");
-      } catch (err) {
-        console.error("[Vonage] Error when generating token", err instanceof Error ? err.message : err);
-        throw err;
-      }
-
-      // Store session info in database
-      const sessionKey = `call:${conversationId}:${[user.id, recipientId]
-        .sort()
-        .join("-")}`;
-
-      // Store session in call_sessions table (for backward compatibility)
-      const { error: insertError } = await supabaseClient
-        .from("call_sessions")
-        .insert({
-          session_key: sessionKey,
-          session_id: sessionId,
-          created_by: user.id,
-          conversation_id: conversationId,
-        });
-
-      if (insertError) {
-        console.error("[Vonage] Failed to store session in call_sessions:", insertError.message);
-      }
-
-      // Update active_calls table with session_id if callId is provided
-      if (callId) {
-        const { error: updateError } = await supabaseClient
-          .from("active_calls")
-          .update({ session_id: sessionId })
-          .eq("id", callId);
-
-        if (updateError) {
-          console.error("[Vonage] Failed to update active_calls:", updateError.message);
-        } else {
-          console.log("[Vonage] Updated active_calls with sessionId for callId:", callId);
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          sessionId,
-          token: tokenResult.token,
-          apiKey,
-        }),
-        {
-          headers: {
-            ...corsHeaders,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    } catch (jwtError) {
-      console.error("[Vonage] JWT generation failed:", jwtError instanceof Error ? jwtError.message : jwtError);
-      throw jwtError;
+    // Generate JWT
+    const { jwt } = await generateJwtToken(apiKey, apiSecret);
+    if (!jwt || typeof jwt !== "string" || jwt.split(".").length !== 3) {
+      throw new Error("Failed to generate valid JWT token");
     }
+
+    // Create session
+    const sessionId = await createSession(jwt, applicationId);
+
+    // Generate token for the session
+    const token = await createToken({
+      apiKey,
+      jwt,
+      sessionId,
+      userId: user.id,
+    });
+
+    // Store session in DB
+    const sessionKey = `call:${conversationId}:${[user.id, recipientId].sort().join("-")}`;
+    await storeSession(supabaseClient, sessionKey, sessionId, user.id, conversationId);
+
+    // Optionally update active_calls if callId given
+    if (callId) {
+      await updateActiveCallWithSessionId(supabaseClient, callId, sessionId);
+    }
+
+    return new Response(
+      JSON.stringify({
+        sessionId,
+        token,
+        apiKey,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (error) {
-    // Add detailed error logs
     console.error("[EdgeFunction] Error Response", error instanceof Error ? error.message : error);
     return new Response(
       JSON.stringify({
