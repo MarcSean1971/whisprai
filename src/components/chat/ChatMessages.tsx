@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, createRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -5,6 +6,9 @@ import { MessageList } from "./message/MessageList";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageReplyInput } from "./message/MessageReplyInput";
+import { AlertCircle } from "lucide-react";
+import { EmptyState } from "@/components/EmptyState";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -32,14 +36,25 @@ export function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
+  const [error, setError] = useState<Error | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Build a ref map for message ids
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     const fetchUserId = async () => {
-      const { data } = await supabase.auth.getUser();
-      setCurrentUserId(data.user?.id || null);
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        setCurrentUserId(data.user?.id || null);
+      } catch (err) {
+        console.error('Error fetching user ID:', err);
+        setError(err instanceof Error ? err : new Error('Failed to get user information'));
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchUserId();
   }, []);
@@ -68,7 +83,27 @@ export function ChatMessages({
     }
   };
 
-  if (messages.length === 0) {
+  if (error) {
+    return (
+      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
+        <EmptyState
+          icon={<AlertCircle className="h-10 w-10 text-destructive" />}
+          title="Error loading messages"
+          description={error.message}
+          action={
+            <button
+              className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </button>
+          }
+        />
+      </div>
+    );
+  }
+
+  if (isLoading || messages.length === 0) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
         <MessageSkeleton />
@@ -79,25 +114,27 @@ export function ChatMessages({
   }
 
   return (
-    <TranslationProvider>
-      <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
-        <TranslationConsumer 
-          messages={messages} 
-          currentUserId={currentUserId}
-          userLanguage={userLanguage}
-          onNewReceivedMessage={onNewReceivedMessage}
-          onTranslation={onTranslation}
-          onReply={onReply}
-          replyToMessageId={replyToMessageId}
-          sendReply={sendReply}
-          cancelReply={cancelReply}
-          refetch={refetch}
-          messageRefs={messageRefs}
-          scrollToMessage={scrollToMessage}
-        />
-        <div ref={messagesEndRef} />
-      </div>
-    </TranslationProvider>
+    <ErrorBoundary>
+      <TranslationProvider>
+        <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
+          <TranslationConsumer 
+            messages={messages} 
+            currentUserId={currentUserId}
+            userLanguage={userLanguage}
+            onNewReceivedMessage={onNewReceivedMessage}
+            onTranslation={onTranslation}
+            onReply={onReply}
+            replyToMessageId={replyToMessageId}
+            sendReply={sendReply}
+            cancelReply={cancelReply}
+            refetch={refetch}
+            messageRefs={messageRefs}
+            scrollToMessage={scrollToMessage}
+          />
+          <div ref={messagesEndRef} />
+        </div>
+      </TranslationProvider>
+    </ErrorBoundary>
   );
 }
 
@@ -149,39 +186,58 @@ function TranslationConsumer({
     return true;
   }
 
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return (
+      <EmptyState
+        icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
+        title="No messages yet"
+        description="Start a conversation by sending a message below."
+      />
+    );
+  }
+
   return (
     <>
-      {messages.map((message) => (
-        <div
-          key={message.id}
-          ref={el => {
-            messageRefs.current[message.id] = el;
-          }}
-        >
-          <MessageList
-            messages={[message]}
-            currentUserId={currentUserId}
-            profile={{ language: userLanguage }}
-            translatedContents={translatedContents}
-            onReply={onReply}
-            replyToMessageId={replyToMessageId}
-            scrollToMessage={scrollToMessage}
-          />
-          {sendReply && cancelReply && shouldShowReplyInput(message) && (
-            <div className="ml-10 mb-4">
-              <MessageReplyInput
-                onSubmit={async (content: string) => {
-                  const sent = await sendReply(content);
-                  if (sent && refetch) {
-                    refetch();
-                  }
-                }}
-                onCancel={cancelReply}
+      {messages.map((message) => {
+        if (!message || !message.id) {
+          console.error('Invalid message object:', message);
+          return null;
+        }
+        
+        return (
+          <div
+            key={message.id}
+            ref={el => {
+              messageRefs.current[message.id] = el;
+            }}
+          >
+            <ErrorBoundary>
+              <MessageList
+                messages={[message]}
+                currentUserId={currentUserId}
+                profile={{ language: userLanguage }}
+                translatedContents={translatedContents}
+                onReply={onReply}
+                replyToMessageId={replyToMessageId}
+                scrollToMessage={scrollToMessage}
               />
-            </div>
-          )}
-        </div>
-      ))}
+            </ErrorBoundary>
+            {sendReply && cancelReply && shouldShowReplyInput(message) && (
+              <div className="ml-10 mb-4">
+                <MessageReplyInput
+                  onSubmit={async (content: string) => {
+                    const sent = await sendReply(content);
+                    if (sent && refetch) {
+                      refetch();
+                    }
+                  }}
+                  onCancel={cancelReply}
+                />
+              </div>
+            )}
+          </div>
+        );
+      })}
     </>
   );
 }

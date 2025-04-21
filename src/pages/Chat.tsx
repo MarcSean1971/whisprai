@@ -1,4 +1,5 @@
-import { useParams } from "react-router-dom";
+
+import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -9,16 +10,45 @@ import { usePredictiveAnswers } from "@/hooks/use-predictive-answers";
 import { useMessageReply } from "@/hooks/use-message-reply";
 import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useCallback, Suspense } from "react";
+import { useState, useCallback, Suspense, useEffect } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 import { CallManager } from "@/components/chat/voice-call/CallManager";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { EmptyState } from "@/components/EmptyState";
 
 export default function Chat() {
+  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { data: messages = [], isLoading, error, refetch } = useMessages(id!);
-  const { profile } = useProfile();
-  const { sendMessage, userId } = useChat(id!);
-  const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(id!);
+  
+  // Safe guard against undefined ID
+  useEffect(() => {
+    if (!id) {
+      console.error("No conversation ID provided");
+      navigate("/chats", { replace: true });
+    }
+  }, [id, navigate]);
+  
+  if (!id) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <AlertCircle className="h-10 w-10 text-destructive mr-2" />
+        <p>Invalid conversation ID. Redirecting...</p>
+      </div>
+    );
+  }
+  
+  return (
+    <ErrorBoundary>
+      <ChatContent conversationId={id} />
+    </ErrorBoundary>
+  );
+}
+
+function ChatContent({ conversationId }: { conversationId: string }) {
+  const { data: messages = [], isLoading, error, refetch } = useMessages(conversationId);
+  const { profile, isLoading: isLoadingProfile, error: profileError } = useProfile();
+  const { sendMessage, userId } = useChat(conversationId);
+  const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   
   const { 
@@ -26,7 +56,7 @@ export default function Chat() {
     isLoading: isLoadingSuggestions, 
     generateSuggestions, 
     clearSuggestions 
-  } = usePredictiveAnswers(id!, translatedContents);
+  } = usePredictiveAnswers(conversationId, translatedContents);
   
   const handleSendMessage = async (
     content: string, 
@@ -52,11 +82,47 @@ export default function Chat() {
     }));
   }, []);
 
-  if (!id) {
+  if (error || profileError) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <AlertCircle className="h-10 w-10 text-destructive mr-2" />
-        <p>Invalid conversation</p>
+      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+        <ChatHeader 
+          conversationId={conversationId} 
+          replyToMessageId={replyToMessageId}
+          onCancelReply={cancelReply}
+        />
+        <div className="flex-1 overflow-hidden relative">
+          <EmptyState
+            icon={<AlertCircle className="h-10 w-10 text-destructive" />}
+            title="Error loading chat"
+            description={error?.message || profileError?.message || "Failed to load the chat. Please try again."}
+            action={
+              <Button onClick={() => refetch()} variant="outline">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Retry
+              </Button>
+            }
+            className="absolute inset-0 flex items-center justify-center"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || isLoadingProfile) {
+    return (
+      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+        <ChatHeader 
+          conversationId={conversationId} 
+          replyToMessageId={null}
+          onCancelReply={() => {}}
+        />
+        <div className="flex-1 overflow-hidden relative">
+          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
+            <MessageSkeleton />
+            <MessageSkeleton />
+            <MessageSkeleton />
+          </div>
+        </div>
       </div>
     );
   }
@@ -64,34 +130,36 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
       <ChatHeader 
-        conversationId={id} 
+        conversationId={conversationId} 
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
       <div className="flex-1 overflow-hidden relative">
-        <Suspense fallback={
-          <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
-            <MessageSkeleton />
-            <MessageSkeleton />
-            <MessageSkeleton />
-          </div>
-        }>
-          <ChatMessages 
-            messages={messages} 
-            userLanguage={profile?.language}
-            onNewReceivedMessage={handleNewReceivedMessage}
-            onTranslation={handleTranslation}
-            onReply={startReply}
-            replyToMessageId={replyToMessageId}
-            sendReply={sendReply}
-            cancelReply={cancelReply}
-            refetch={refetch}
-          />
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={
+            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
+              <MessageSkeleton />
+              <MessageSkeleton />
+              <MessageSkeleton />
+            </div>
+          }>
+            <ChatMessages 
+              messages={messages} 
+              userLanguage={profile?.language}
+              onNewReceivedMessage={handleNewReceivedMessage}
+              onTranslation={handleTranslation}
+              onReply={startReply}
+              replyToMessageId={replyToMessageId}
+              sendReply={sendReply}
+              cancelReply={cancelReply}
+              refetch={refetch}
+            />
+          </Suspense>
+        </ErrorBoundary>
       </div>
       <div className="w-full bg-background border-t">
         <ChatInput
-          conversationId={id}
+          conversationId={conversationId}
           onSendMessage={handleSendMessage}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}

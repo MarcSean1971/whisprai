@@ -40,10 +40,10 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ 
   id,
-  content, 
-  timestamp, 
-  isOwn, 
-  isAIMessage,
+  content = "", // Provide default empty string
+  timestamp = "", // Provide default empty string
+  isOwn = false, // Provide defaults
+  isAIMessage = false,
   children, 
   attachment,
   attachments,
@@ -51,6 +51,12 @@ export function MessageBubble({
   parent,
   scrollToMessage
 }: MessageBubbleProps) {
+  // Validate required props
+  if (!id) {
+    console.error("MessageBubble missing required id prop");
+    return null;
+  }
+
   return (
     <div className="space-y-2">
       <div className={cn(
@@ -61,7 +67,7 @@ export function MessageBubble({
           ? "bg-violet-500/20 border border-violet-500/20"
           : "bg-secondary"
       )}>
-        {parent && (
+        {parent && parent.id && parent.content && (
           <ParentMessagePreview
             parent={parent}
             isOwn={isOwn}
