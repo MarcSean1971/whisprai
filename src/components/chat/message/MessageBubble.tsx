@@ -204,13 +204,15 @@ export function MessageBubble({
         {renderParentMessage()}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
-        <div className="flex items-center justify-between mt-1 w-full">
-          <div className="flex items-center">
+        <div className="flex w-full items-center mt-1">
+          <div className="flex-1 flex justify-start">
             <MessageReactions messageId={id} isOwn={isOwn} />
           </div>
-          <span className="text-[10px] opacity-70 text-right">
-            {timestamp}
-          </span>
+          <div className="flex-1 flex justify-end">
+            <span className="text-[10px] opacity-70 text-right">
+              {timestamp}
+            </span>
+          </div>
         </div>
         {children}
       </div>
