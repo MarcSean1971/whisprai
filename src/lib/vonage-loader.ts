@@ -1,4 +1,3 @@
-
 /**
  * Dynamically loads the Vonage (OpenTok) Client SDK script
  */

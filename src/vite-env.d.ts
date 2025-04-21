@@ -1,4 +1,3 @@
-
 /// <reference types="vite/client" />
 
 interface Window {
@@ -24,4 +23,3 @@ interface Window {
     [key: string]: any;
   };
 }
-
