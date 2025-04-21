@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
@@ -205,10 +204,11 @@ export function MessageBubble({
         {renderParentMessage()}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
-        {/* Emoji reactions and timestamp are in the same flex row, aligned horizontally */}
-        <div className="flex items-center gap-2 mt-1">
-          <MessageReactions messageId={id} isOwn={isOwn} />
-          <span className="text-[10px] opacity-70">
+        <div className="flex items-center justify-between mt-1 w-full">
+          <div className="flex items-center">
+            <MessageReactions messageId={id} isOwn={isOwn} />
+          </div>
+          <span className="text-[10px] opacity-70 text-right">
             {timestamp}
           </span>
         </div>
@@ -217,4 +217,3 @@ export function MessageBubble({
     </div>
   );
 }
-
