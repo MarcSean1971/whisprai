@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useVonageCall } from "@/hooks/use-vonage-call";
+import { useUserPresence } from "@/hooks/use-user-presence"; 
 
 interface VoiceCallDialogProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ export function VoiceCallDialog({
 }: VoiceCallDialogProps) {
   const publisherRef = useRef<HTMLDivElement>(null);
   const subscriberRef = useRef<HTMLDivElement>(null);
+  const { isOnline } = useUserPresence(recipientId);
+  const [callInitiated, setCallInitiated] = useState(false);
   
   const {
     isConnecting,
@@ -47,11 +50,13 @@ export function VoiceCallDialog({
     conversationId
   });
 
-  // Effect to connect when dialog opens
+  // Automatically start connecting when dialog opens and party is online
   useEffect(() => {
-    if (isOpen && conversationId) {
+    if (isOpen && conversationId && isOnline && !callInitiated) {
+      console.log("[VoiceCall] Initiating call to online user:", recipientId);
       // Small delay to ensure DOM elements are ready
       const timer = setTimeout(() => {
+        setCallInitiated(true);
         connect();
       }, 500);
       
@@ -59,17 +64,28 @@ export function VoiceCallDialog({
         clearTimeout(timer);
       };
     }
-  }, [isOpen, conversationId, connect]);
+  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId]);
+  
+  // Check if recipient is offline after connection attempt
+  useEffect(() => {
+    if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting) {
+      toast.error(`${recipientName} appears to be offline.`);
+      disconnect();
+      onClose();
+    }
+  }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose]);
   
   // Cleanup effect when dialog closes
   useEffect(() => {
     if (!isOpen && isConnected) {
       disconnect();
+      setCallInitiated(false);
     }
     
     return () => {
       if (isConnected) {
         disconnect();
+        setCallInitiated(false);
       }
     };
   }, [isOpen, disconnect, isConnected]);
@@ -79,6 +95,7 @@ export function VoiceCallDialog({
     if (error) {
       console.error('Call error:', error);
       toast.error(error.message || "An error occurred during the call");
+      setCallInitiated(false);
       
       // Auto-close dialog on error after a short delay
       const timer = setTimeout(() => {
@@ -99,6 +116,7 @@ export function VoiceCallDialog({
 
   const handleEndCall = () => {
     disconnect();
+    setCallInitiated(false);
     onClose();
   };
 
