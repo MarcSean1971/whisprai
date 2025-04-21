@@ -17,6 +17,7 @@ export function useWebRTCPeer({
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(initiator ? "calling" : "incoming");
+  const [connectionDetails, setConnectionDetails] = useState<any>(null);
 
   const { localStream, originalStreamRef, setLocalStream } = useMediaStream();
   const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
@@ -30,7 +31,8 @@ export function useWebRTCPeer({
     setupPeerConnection, 
     signalPeer, 
     destroyPeer,
-    peerRef 
+    peerRef,
+    getConnectionState
   } = usePeerConnection({
     initiator,
     localStream,
@@ -42,6 +44,21 @@ export function useWebRTCPeer({
     onError: () => {},
     setConnectionStatus,
   });
+
+  // Update connection details periodically for debugging
+  useEffect(() => {
+    if (connectionStatus === "connecting") {
+      const interval = setInterval(() => {
+        const state = getConnectionState();
+        setConnectionDetails(state);
+        
+        // Log connection state for debugging
+        console.log("[WebRTC Debug] Connection state:", state);
+      }, 1000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [connectionStatus, getConnectionState]);
 
   useEffect(() => {
     if (!localStream) return;
@@ -184,5 +201,6 @@ export function useWebRTCPeer({
     isScreenSharing,
     toggleScreenShare,
     callDuration,
+    connectionDetails
   };
 }

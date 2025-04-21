@@ -26,6 +26,7 @@ interface CallUIRootProps {
   duration?: number;
   onAcceptCall?: () => void;  // New prop
   onRejectCall?: () => void;  // New prop
+  connectionDetails?: any;    // New prop for connection details
 }
 
 export function CallUIRoot({
@@ -43,10 +44,12 @@ export function CallUIRoot({
   duration = 0,
   onAcceptCall,
   onRejectCall,
+  connectionDetails,
 }: CallUIRootProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(false);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
 
   const toggleFullScreen = () => {
     if (!remoteVideoRef.current) return;
@@ -82,6 +85,27 @@ export function CallUIRoot({
   }, []);
 
   const isRingtoneActive = callStatus === "connecting" || callStatus === "ringing";
+
+  // Show more descriptive connection status
+  const getConnectionStatusText = () => {
+    if (callStatus === "connecting") {
+      if (connectionDetails) {
+        if (connectionDetails.iceGatheringState === "gathering") {
+          return `Gathering network routes (${connectionDetails.iceCandidates} found)...`;
+        } else if (connectionDetails.iceGatheringState === "complete" && 
+                  connectionDetails.iceConnectionState === "checking") {
+          return "Testing connection routes...";
+        } else if (connectionDetails.iceConnectionState === "connected" || 
+                  connectionDetails.connectionState === "connected") {
+          return "Connected! Initializing call...";
+        } else if (connectionDetails.iceConnectionState === "failed") {
+          return "Connection failed. Try again.";
+        }
+      }
+      return "Connecting...";
+    }
+    return callStatus === "ringing" ? "Ringing..." : ""; 
+  };
 
   return (
     <Dialog open={true} modal={true}>
@@ -128,10 +152,38 @@ export function CallUIRoot({
               isConnecting={isConnecting}
               callStatus={callStatus}
               videoRef={remoteVideoRef}
+              connectionDetails={connectionDetails}
             >
               <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
               {duration > 0 && <CallTimer duration={duration} />}
             </RemoteVideoView>
+
+            {/* Debug info button */}
+            {connectionDetails && (
+              <div className="absolute top-2 right-2 z-30">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/80 backdrop-blur border-white/20 text-black hover:bg-white/90"
+                  onClick={() => setShowDebugInfo(!showDebugInfo)}
+                >
+                  {showDebugInfo ? "Hide Debug" : "Debug"}
+                </Button>
+              </div>
+            )}
+
+            {/* Debug info panel */}
+            {showDebugInfo && connectionDetails && (
+              <div className="absolute top-12 right-2 z-30 bg-black/80 text-white p-3 rounded-md text-xs font-mono max-w-[300px] overflow-auto">
+                <h4 className="font-bold mb-1">Connection Details:</h4>
+                <p>ICE State: {connectionDetails.iceConnectionState || "unknown"}</p>
+                <p>ICE Gathering: {connectionDetails.iceGatheringState || "unknown"}</p>
+                <p>Connection: {connectionDetails.connectionState || "unknown"}</p>
+                <p>Signaling: {connectionDetails.signalingState || "unknown"}</p>
+                <p>Candidates: {connectionDetails.iceCandidates}</p>
+                <p>Last Activity: {Date.now() - connectionDetails.lastActivity}ms ago</p>
+              </div>
+            )}
 
             {/* Show accept/reject buttons when call is incoming */}
             {callStatus === "incoming" && onAcceptCall && onRejectCall && (

@@ -1,3 +1,4 @@
+
 export interface WebRTCPeerOptions {
   initiator: boolean;
   onSignal: (data: any) => void;
@@ -28,6 +29,7 @@ export interface UseWebRTCPeerReturn {
   isScreenSharing: boolean;
   toggleScreenShare: () => Promise<void>;
   callDuration: number;
+  connectionDetails?: any;
 }
 
 export interface CallSession {

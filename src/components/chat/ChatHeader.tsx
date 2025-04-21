@@ -1,3 +1,4 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -62,7 +63,8 @@ export function ChatHeader({
     callStatus: peerStatus,
     isScreenSharing,
     toggleScreenShare,
-    callDuration
+    callDuration,
+    connectionDetails
   } = useWebRTCPeer({
     initiator: !!isCaller,
     onSignal: s => {
@@ -110,6 +112,7 @@ export function ChatHeader({
           duration={callDuration}
           onAcceptCall={incomingCall ? acceptCall : undefined}
           onRejectCall={incomingCall ? rejectCall : undefined}
+          connectionDetails={connectionDetails}
         />
       )}
       
