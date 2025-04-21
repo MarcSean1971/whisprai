@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -28,6 +29,30 @@ const queryClient = new QueryClient({
   },
 });
 
+const upsertUserPresence = async (userId?: string) => {
+  if (!userId) return;
+  try {
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from("user_presence")
+      .upsert(
+        {
+          user_id: userId,
+          last_seen_at: now,
+          created_at: now,
+        },
+        { onConflict: "user_id" }
+      );
+    if (error) {
+      console.error("[Presence][App] Failed to upsert user presence", error);
+    } else {
+      console.log("[Presence][App] User presence upserted for", userId);
+    }
+  } catch (err) {
+    console.error("[Presence][App] Error upserting presence:", err);
+  }
+};
+
 const App = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -36,7 +61,11 @@ const App = () => {
     const fetchUserId = async () => {
       try {
         const { data } = await supabase.auth.getUser();
-        setUserId(data.user?.id || null);
+        const uid = data.user?.id || null;
+        setUserId(uid);
+        if (uid) {
+          upsertUserPresence(uid);
+        }
       } catch (error) {
         console.error('Error fetching user:', error);
         toast.error('Error initializing session');
@@ -49,15 +78,17 @@ const App = () => {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event);
-      
       if (event === 'SIGNED_OUT') {
         console.log('User signed out, cleaning up...');
         setUserId(null);
         queryClient.clear();
         window.location.href = '/auth';
       } else if (event === 'SIGNED_IN') {
-        console.log('User signed in');
-        setUserId(session?.user?.id || null);
+        const uid = session?.user?.id || null;
+        setUserId(uid);
+        if (uid) {
+          upsertUserPresence(uid);
+        }
       }
     });
 
@@ -81,10 +112,8 @@ const App = () => {
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/verify" element={<Verify />} />
-                
                 <Route path="/" element={<Navigate to="/chats" replace />} />
                 <Route path="/home" element={<Navigate to="/chats" replace />} />
-                
                 <Route path="/profile-setup" element={
                   <ProtectedRoute>
                     <ProfileSetup />
@@ -121,3 +150,4 @@ const App = () => {
 };
 
 export default App;
+
