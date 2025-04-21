@@ -13,7 +13,7 @@ export async function generateJwtToken(apiKey: string, apiSecret: string) {
     iss: apiKey,
     iat: now,
     exp: now + 300, // expires in 5 minutes
-    scope: "session.create", // Required for REST session.create.
+    scope: "session:write session:read session.create", // Enhanced scopes for all session operations
     // sub and jti are optional for this usage
   };
   const header = {

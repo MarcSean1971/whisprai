@@ -2,6 +2,7 @@
 import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VonageSessionOptions, VonageError, VonageSessionData } from "./types";
+import { toast } from "sonner";
 
 export function useVonageSession({ conversationId = 'default', recipientId }: VonageSessionOptions) {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -9,6 +10,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
   const [error, setError] = useState<VonageError | null>(null);
   const sessionRef = useRef<any>(null);
   const sessionDataRef = useRef<VonageSessionData | null>(null);
+  const sessionRequestInProgress = useRef<boolean>(false);
 
   // Clear cached session data on error
   const clearSessionCache = useCallback(() => {
@@ -18,30 +20,44 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
 
   const initializeSession = useCallback(async (callId?: string) => {
     if (!conversationId || !recipientId) {
-      console.error('Missing required parameters:', { conversationId, recipientId });
+      console.error('[Vonage Session] Missing required parameters:', { conversationId, recipientId });
       setError({
         type: 'SESSION_ERROR',
-        message: "Missing required parameters"
+        message: "Missing required parameters for call"
       });
       return null;
     }
 
+    // Prevent concurrent requests
+    if (sessionRequestInProgress.current) {
+      console.log('[Vonage Session] Session request already in progress, skipping');
+      return sessionDataRef.current;
+    }
+
     try {
-      console.log('[Vonage Session] Initializing session...', { conversationId, recipientId, callId });
+      console.log('[Vonage Session] Initializing session...', { 
+        conversationId, 
+        recipientId, 
+        callId,
+        cached: !!sessionDataRef.current
+      });
       
-      // Skip cache if we had a previous error
+      // Skip cache if we had a previous error or if requested
       if (sessionDataRef.current && !error) {
         console.log('[Vonage Session] Using existing session data');
         return sessionDataRef.current;
       }
       
+      sessionRequestInProgress.current = true;
+      
+      console.log('[Vonage Session] Calling vonage-session edge function');
       const { data: sessionData, error: sessionError } = await supabase.functions.invoke('vonage-session', {
         body: { conversationId, recipientId, callId }
       });
 
       if (sessionError) {
-        console.error('[Vonage Session] Failed to create session:', sessionError);
-        throw new Error(sessionError.message || "Failed to create session");
+        console.error('[Vonage Session] Edge function error:', sessionError);
+        throw new Error(sessionError.message || "Failed to create session: Edge function error");
       }
       
       if (!sessionData) {
@@ -63,7 +79,8 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
 
       console.log('[Vonage Session] Session created successfully:', { 
         sessionId,
-        hasToken: !!token,
+        hasToken: !!token && token.length > 0,
+        tokenLength: token?.length || 0,
         hasApiKey: !!apiKey 
       });
 
@@ -75,14 +92,18 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
       // Clear session cache on any error
       clearSessionCache();
       
+      const errorMessage = err instanceof Error ? err.message : String(err);
       const vonageError: VonageError = {
         type: 'INITIALIZATION_ERROR',
-        message: err.message || "Failed to initialize session",
+        message: "Failed to initialize session: " + errorMessage,
         originalError: err
       };
       console.error('[Vonage Session] Error:', vonageError);
       setError(vonageError);
+      toast.error("Call setup failed: " + errorMessage);
       return null;
+    } finally {
+      sessionRequestInProgress.current = false;
     }
   }, [conversationId, recipientId, error, clearSessionCache]);
 
