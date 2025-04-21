@@ -15,19 +15,23 @@ export function useUserPresence(userId?: string) {
   useEffect(() => {
     if (!userId || !profile) return;
     
-    // First check the current status
+    // First check the current status using a REST call instead of typed client
     const checkInitialStatus = async () => {
-      const { data, error } = await supabase
-        .from('user_presence')
-        .select('last_seen_at')
-        .eq('user_id', userId)
-        .single();
+      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_presence?user_id=eq.${userId}`, {
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+        }
+      });
       
-      if (!error && data) {
-        // Consider online if seen in the last 2 minutes
-        const lastSeen = new Date(data.last_seen_at);
-        const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-        setIsOnline(lastSeen > twoMinutesAgo);
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          // Consider online if seen in the last 2 minutes
+          const lastSeen = new Date(data[0].last_seen_at);
+          const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+          setIsOnline(lastSeen > twoMinutesAgo);
+        }
       }
     };
     
@@ -35,12 +39,20 @@ export function useUserPresence(userId?: string) {
     
     // Update our own presence
     const updateMyPresence = async () => {
-      await supabase
-        .from('user_presence')
-        .upsert({
+      // Use the REST API to avoid type issues
+      await fetch(`${supabase.supabaseUrl}/rest/v1/user_presence`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabase.supabaseKey,
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({
           user_id: profile.id,
           last_seen_at: new Date().toISOString()
-        });
+        })
+      });
     };
     
     // Update presence immediately and every 30 seconds
