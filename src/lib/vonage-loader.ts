@@ -55,9 +55,5 @@ export function loadVonageScript(): Promise<void> {
   });
 }
 
-// Add global type definition for OpenTok in window object
-declare global {
-  interface Window {
-    OT: any;
-  }
-}
+// Note: We're removing the global type declaration from here as it's
+// conflicting with the one in vite-env.d.ts
