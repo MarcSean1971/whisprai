@@ -1,0 +1,68 @@
+
+import React from "react";
+import { Button } from "@/components/ui/button";
+import { Phone, PhoneOff } from "lucide-react";
+
+interface CallStatusProps {
+  callStatus: string;
+  onAcceptCall?: () => void;
+  onRejectCall?: () => void;
+}
+
+export function CallStatus({
+  callStatus,
+  onAcceptCall,
+  onRejectCall
+}: CallStatusProps) {
+  if (callStatus === "incoming") {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
+        <div className="text-3xl font-bold text-[#7C4DFF] mb-6 drop-shadow-sm">
+          Incoming call...
+        </div>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={onAcceptCall}
+            className="bg-green-600 hover:bg-green-700 text-white gap-2"
+            size="lg"
+          >
+            <Phone className="h-5 w-5" />
+            Accept
+          </Button>
+          <Button
+            onClick={onRejectCall}
+            className="bg-red-600 hover:bg-red-700 text-white gap-2"
+            size="lg"
+          >
+            <PhoneOff className="h-5 w-5" />
+            Decline
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (callStatus === "missed" || callStatus === "rejected" || callStatus === "ended") {
+    return (
+      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
+        <div className="text-3xl font-bold text-[#7C4DFF] mb-3 drop-shadow-sm">
+          {callStatus === "rejected"
+            ? "Call rejected"
+            : callStatus === "missed"
+            ? "Call not answered"
+            : "Call ended"}
+        </div>
+        <Button
+          onClick={onRejectCall}
+          className="mt-4 border-[#d6bcfa] text-[#7C4DFF] hover:bg-[#f1f0fb]"
+          variant="outline"
+          tabIndex={0}
+        >
+          Close
+        </Button>
+      </div>
+    );
+  }
+
+  return null;
+}
