@@ -6,14 +6,16 @@ import { EmojiPicker } from "@/components/shared/EmojiPicker";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
-  align?: "start" | "end";
-  side?: "left" | "right";
+  align?: "start" | "end" | "center";
+  side?: "top" | "bottom" | "left" | "right";
   onAfterClose?: () => void;
 }
 
 export function EmojiPickerPopover({
   onEmojiSelect,
   onAfterClose,
+  align = "start",
+  side = "bottom",
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -49,6 +51,8 @@ export function EmojiPickerPopover({
       }}
       width={300}
       height={350}
+      align={align}
+      side={side}
     />
   );
 }

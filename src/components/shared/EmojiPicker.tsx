@@ -9,6 +9,9 @@ interface EmojiPickerProps {
   onOpenChange: (open: boolean) => void;
   width?: number;
   height?: number;
+  align?: "center" | "start" | "end";
+  side?: "top" | "bottom" | "left" | "right";
+  sideOffset?: number;
 }
 
 export function EmojiPicker({
@@ -17,7 +20,10 @@ export function EmojiPicker({
   open,
   onOpenChange,
   width = 300,
-  height = 350
+  height = 350,
+  align = "center",
+  side = "bottom",
+  sideOffset = 4
 }: EmojiPickerProps) {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
@@ -25,7 +31,9 @@ export function EmojiPicker({
         {triggerButton}
       </PopoverTrigger>
       <PopoverContent
-        align="start"
+        align={align}
+        side={side}
+        sideOffset={sideOffset}
         className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
         style={{ minWidth: width, minHeight: height }}
       >

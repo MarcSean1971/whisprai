@@ -3,6 +3,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
 import { useState } from "react";
+import { Smile } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface MessageFieldProps {
   message: string;
@@ -24,6 +26,19 @@ export function MessageField({
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
   };
+
+  // Emoji picker trigger button
+  const emojiTrigger = (
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      className="h-8 w-8 rounded-full p-0"
+      disabled={disabled}
+    >
+      <Smile className="h-4 w-4" />
+      <span className="sr-only">Emoji</span>
+    </Button>
+  );
 
   return (
     <div className="relative flex-1">
@@ -47,11 +62,12 @@ export function MessageField({
       <div className="absolute right-2 top-1/2 -translate-y-1/2">
         <EmojiPicker
           onEmojiSelect={handleEmojiSelect}
+          triggerButton={emojiTrigger}
+          open={isEmojiPickerOpen}
+          onOpenChange={setIsEmojiPickerOpen}
           side="top"
           align="end"
           sideOffset={5}
-          open={isEmojiPickerOpen}
-          onOpenChange={setIsEmojiPickerOpen}
         />
       </div>
     </div>
