@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef } from "react";
+import { CallTimer } from "./CallTimer";
 
 interface RemoteVideoViewProps {
   remoteStream: MediaStream | null;
@@ -9,6 +10,7 @@ interface RemoteVideoViewProps {
   connectionDetails?: any;
   callType?: "audio" | "video";
   children?: React.ReactNode; // for overlays (like CallTimer or LocalVideoView)
+  duration?: number; // Add duration prop
 }
 
 export function RemoteVideoView({
@@ -18,7 +20,8 @@ export function RemoteVideoView({
   videoRef,
   connectionDetails,
   callType = "video",
-  children
+  children,
+  duration = 0, // Add default value for duration
 }: RemoteVideoViewProps) {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
   const ref = videoRef || internalVideoRef;

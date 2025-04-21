@@ -33,6 +33,7 @@ export function CallVideoView({
         callStatus={callStatus}
         connectionDetails={connectionDetails}
         callType={callType}
+        duration={duration} // Pass duration prop to RemoteVideoView
       >
         {callType === "video" && (
           <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
