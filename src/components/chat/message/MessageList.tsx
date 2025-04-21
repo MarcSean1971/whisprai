@@ -70,6 +70,7 @@ export function MessageList({
         userLanguage={profile?.language}
         onReply={() => onReply(message.id)}
         isReplying={message.id === replyToMessageId}
+        parent={message.parent}
       />
     );
   });

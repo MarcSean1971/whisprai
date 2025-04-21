@@ -48,21 +48,21 @@ interface ChatMessageProps {
       name: string;
       type: string;
     }[];
-    parent?: {
-      id: string;
-      content: string;
-      created_at: string;
-      sender?: {
-        id: string;
-        profiles?: {
-          first_name?: string | null;
-          last_name?: string | null;
-        }
-      }
-    };
   };
   onReply: () => void;
   isReplying?: boolean;
+  parent?: {
+    id: string;
+    content: string;
+    created_at: string;
+    sender?: {
+      id: string;
+      profiles?: {
+        first_name?: string | null;
+        last_name?: string | null;
+      }
+    }
+  } | null;
 }
 
 export function ChatMessage({
@@ -82,7 +82,8 @@ export function ChatMessage({
   conversationId,
   userLanguage,
   onReply,
-  isReplying = false
+  isReplying = false,
+  parent // pull parent from props (passed always)
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const { isDeleting, handleDelete } = useVoiceMessageDeletion({
@@ -144,7 +145,7 @@ export function ChatMessage({
         onReply={handleReply}
         isReplying={isReplying}
         onCancelReply={handleReply}
-        parent={metadata?.parent}
+        parent={parent}
       />
 
       {voiceMessagePath && (
@@ -158,3 +159,4 @@ export function ChatMessage({
     </MessageWrapper>
   );
 }
+
