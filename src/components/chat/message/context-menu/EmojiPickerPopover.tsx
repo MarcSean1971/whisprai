@@ -42,8 +42,6 @@ export function EmojiPickerPopover({
       </DropdownMenuSubTrigger>
       <DropdownMenuSubContent
         ref={pickerRef}
-        align={align}
-        side={side}
         className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
         style={{ minWidth: 300, minHeight: 350 }}
       >
