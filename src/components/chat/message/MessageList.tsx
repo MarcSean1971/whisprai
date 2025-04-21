@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Message } from "@/hooks/use-messages";
@@ -9,6 +10,7 @@ interface MessageListProps {
   translatedContents: Record<string, string>;
   onReply: (messageId: string) => void;
   replyToMessageId?: string | null;
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function MessageList({
@@ -17,7 +19,8 @@ export function MessageList({
   profile,
   translatedContents,
   onReply,
-  replyToMessageId
+  replyToMessageId,
+  scrollToMessage
 }: MessageListProps) {
   const handleMessageDelete = () => {
     console.log('Message was deleted, UI will update via React Query cache');
@@ -71,6 +74,7 @@ export function MessageList({
         onReply={() => onReply(message.id)}
         isReplying={message.id === replyToMessageId}
         parent={message.parent}
+        scrollToMessage={scrollToMessage}
       />
     );
   });

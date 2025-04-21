@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -63,6 +62,7 @@ interface ChatMessageProps {
       }
     }
   } | null;
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function ChatMessage({
@@ -83,7 +83,8 @@ export function ChatMessage({
   userLanguage,
   onReply,
   isReplying = false,
-  parent // pull parent from props (passed always)
+  parent,
+  scrollToMessage
 }: ChatMessageProps) {
   const [showOriginal, setShowOriginal] = useState(false);
   const { isDeleting, handleDelete } = useVoiceMessageDeletion({
@@ -146,6 +147,7 @@ export function ChatMessage({
         isReplying={isReplying}
         onCancelReply={handleReply}
         parent={parent}
+        scrollToMessage={scrollToMessage}
       />
 
       {voiceMessagePath && (
@@ -159,4 +161,3 @@ export function ChatMessage({
     </MessageWrapper>
   );
 }
-

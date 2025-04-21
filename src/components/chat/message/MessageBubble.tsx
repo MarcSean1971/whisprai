@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
 import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
@@ -36,6 +35,7 @@ interface MessageBubbleProps {
       }
     }
   }
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function MessageBubble({ 
@@ -48,7 +48,8 @@ export function MessageBubble({
   attachment,
   attachments,
   onReply,
-  parent
+  parent,
+  scrollToMessage
 }: MessageBubbleProps) {
   const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
 
@@ -152,13 +153,18 @@ export function MessageBubble({
     return null;
   };
 
-  // ---- NEW: parent reply rendering ----
   const renderParentMessage = () => {
     if (!parent) return null;
 
     const senderName = parent.sender?.profiles
       ? `${parent.sender.profiles.first_name || ''} ${parent.sender.profiles.last_name || ''}`.trim()
-      : 'Unknown User';
+      : "Unknown User";
+
+    const handleParentClick = () => {
+      if (scrollToMessage && parent.id) {
+        scrollToMessage(parent.id);
+      }
+    };
 
     return (
       <div
@@ -172,6 +178,9 @@ export function MessageBubble({
         )}
         title="Replied message"
         tabIndex={0}
+        onClick={handleParentClick}
+        role="button"
+        aria-label="Go to replied message"
       >
         <div className="flex items-center gap-1 text-muted-foreground">
           <Reply className="h-3 w-3" />
@@ -181,7 +190,6 @@ export function MessageBubble({
       </div>
     );
   };
-  // ---- END NEW ----
 
   return (
     <div className="space-y-2">
@@ -207,4 +215,3 @@ export function MessageBubble({
     </div>
   );
 }
-

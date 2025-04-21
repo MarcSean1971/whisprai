@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
@@ -38,6 +39,7 @@ interface MessageContentProps {
       }
     }
   }
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function MessageContent({
@@ -58,7 +60,8 @@ export function MessageContent({
   isReplying = false,
   onCancelReply,
   attachments,
-  parent
+  parent,
+  scrollToMessage
 }: MessageContentProps) {
   return (
     <div className="group space-y-2">
@@ -82,6 +85,7 @@ export function MessageContent({
             attachments={attachments}
             onReply={() => onReply("")}
             parent={parent}
+            scrollToMessage={scrollToMessage}
           />
         </MessageContextMenu>
         

@@ -1,5 +1,5 @@
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, createRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
 import { MessageList } from "./message/MessageList";
@@ -33,8 +33,9 @@ export function ChatMessages({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
-  const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
-  const [translationsInProgress, setTranslationsInProgress] = useState(0);
+
+  // Build a ref map for message ids
+  const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     const fetchUserId = async () => {
@@ -51,6 +52,23 @@ export function ChatMessages({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
+  // Populate refs for each message
+  useEffect(() => {
+    messages.forEach(message => {
+      if (!messageRefs.current[message.id]) {
+        messageRefs.current[message.id] = null;
+      }
+    });
+  }, [messages]);
+
+  // Provides a scrollToMessage function down the tree
+  const scrollToMessage = (messageId: string) => {
+    const ref = messageRefs.current[messageId];
+    if (ref && typeof ref.scrollIntoView === "function") {
+      ref.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
   if (messages.length === 0) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
@@ -64,7 +82,6 @@ export function ChatMessages({
   return (
     <TranslationProvider>
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
-        {/* We're now inside the TranslationProvider, so it's safe to use the useMessageProcessor hook */}
         <TranslationConsumer 
           messages={messages} 
           currentUserId={currentUserId}
@@ -76,6 +93,8 @@ export function ChatMessages({
           sendReply={sendReply}
           cancelReply={cancelReply}
           refetch={refetch}
+          messageRefs={messageRefs}
+          scrollToMessage={scrollToMessage}
         />
         <div ref={messagesEndRef} />
       </div>
@@ -94,7 +113,9 @@ function TranslationConsumer({
   replyToMessageId,
   sendReply,
   cancelReply,
-  refetch
+  refetch,
+  messageRefs,
+  scrollToMessage
 }: {
   messages: any[];
   currentUserId: string | null;
@@ -106,8 +127,9 @@ function TranslationConsumer({
   sendReply?: (content: string) => Promise<boolean>;
   cancelReply?: () => void;
   refetch?: () => void;
+  messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
+  scrollToMessage: (messageId: string) => void;
 }) {
-  // Now this hook is used inside the TranslationProvider
   const { translatedContents } = useMessageProcessor(
     messages,
     currentUserId,
@@ -116,11 +138,15 @@ function TranslationConsumer({
     onTranslation
   );
 
-  // Inline replying input logic (always show for the active replyToMessageId)
   return (
     <>
       {messages.map((message, idx) => (
-        <div key={message.id}>
+        <div
+          key={message.id}
+          ref={el => {
+            messageRefs.current[message.id] = el;
+          }}
+        >
           <MessageList
             messages={[message]}
             currentUserId={currentUserId}
@@ -128,6 +154,7 @@ function TranslationConsumer({
             translatedContents={translatedContents}
             onReply={onReply}
             replyToMessageId={replyToMessageId}
+            scrollToMessage={scrollToMessage}
           />
           {replyToMessageId === message.id && sendReply && cancelReply && (
             <div className="ml-10 mb-4">
