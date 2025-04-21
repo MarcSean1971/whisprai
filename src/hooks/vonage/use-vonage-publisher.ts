@@ -1,9 +1,9 @@
+
 import { useRef, useCallback } from "react";
 import { VonagePublisherOptions, VonageError } from "./types";
 
 export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOptions) {
   const publisher = useRef<any>(null);
-  const publisherId = useRef<string>(`vonage-publisher-${Date.now()}`);
 
   const initializePublisher = useCallback(() => {
     console.log('[Vonage Publisher] Initializing publisher...', { publisherRef: publisherRef.current });
@@ -24,9 +24,8 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
         publisherRef.current.removeChild(publisherRef.current.firstChild);
       }
       
-      // Set a unique ID for the publisher element
-      publisherRef.current.id = publisherId.current;
-      
+      // No need to set id; we use the DOM node directly
+
       const publisherOptions = {
         insertMode: 'append',
         width: '100%',
@@ -43,27 +42,13 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
       
       console.log('[Vonage Publisher] Creating publisher with options:', publisherOptions);
       
-      // This line had 3 arguments but should only have 2
-      // Fixed: Removed the publisherId.current parameter as it's already in publisherOptions via insertMode
+      // Only pass publisherRef.current and publisherOptions to initPublisher
       publisher.current = window.OT.initPublisher(
-        publisherId.current, 
-        publisherOptions,
-        (error: any) => {
-          if (error) {
-            console.error('[Vonage Publisher] Initialization callback error:', error);
-            const vonageError: VonageError = {
-              type: 'PUBLISH_ERROR',
-              message: "Failed to initialize publisher: " + error.message,
-              originalError: error
-            };
-            onError(vonageError);
-            return null;
-          }
-          console.log('[Vonage Publisher] Publisher initialized successfully');
-        }
+        publisherRef.current, 
+        publisherOptions
       );
 
-      // Set up event listeners
+      // Set up event listeners for errors
       publisher.current.on('streamCreated', (event: any) => {
         console.log('[Vonage Publisher] Local stream created:', event);
       });
