@@ -23,7 +23,10 @@ interface EmojiPickerProps {
 
 // Utility to blur any active element (fixes pointer-event trapping by modal overlay)
 function forceBlurActiveElement() {
-  if (typeof window !== "undefined" && document.activeElement instanceof HTMLElement) {
+  if (
+    typeof window !== "undefined" &&
+    document.activeElement instanceof HTMLElement
+  ) {
     document.activeElement.blur();
   }
 }
@@ -32,16 +35,13 @@ export function EmojiPicker({
   onEmojiSelect,
   triggerButton,
   open,
-  onOpenChange
+  onOpenChange,
 }: EmojiPickerProps) {
   const justClosedRef = useRef(false);
 
-  // This ensures onOpenChange(false) is only called once per close
   const safeClose = () => {
     if (!justClosedRef.current) {
       justClosedRef.current = true;
-      // Blur any elements to release pointer events
-      forceBlurActiveElement();
       onOpenChange(false);
       console.log("[EmojiPicker] Dialog closed");
     }
@@ -49,9 +49,7 @@ export function EmojiPicker({
 
   useEffect(() => {
     if (!open) {
-      // UI is closed, allow next close again
       justClosedRef.current = false;
-      // Extra safety for overlay focus bugs
       forceBlurActiveElement();
     } else {
       console.log("[EmojiPicker] Dialog opened");
@@ -59,12 +57,14 @@ export function EmojiPicker({
   }, [open]);
 
   const handleEmojiSelect = (emojiData: any) => {
-    console.log('[EmojiPicker] Emoji selected in picker:', emojiData);
-    onEmojiSelect(emojiData);
-    // Defensive: blur so overlay can't trap focus/events.
-    forceBlurActiveElement();
-    // Close dialog instantly
+    // Immediately close dialog FIRST to remove overlay instantly
     safeClose();
+    // (Make sure no modal overlay blocks remain before fulfilling side effects)
+    setTimeout(() => {
+      forceBlurActiveElement();
+      onEmojiSelect(emojiData);
+      console.log('[EmojiPicker] Emoji selected in picker:', emojiData);
+    }, 10); // Tiny delay to let dialog state propagate!
   };
 
   const handleClose = () => {
@@ -91,7 +91,6 @@ export function EmojiPicker({
       </DialogTrigger>
       <DialogContent
         className="p-0 w-auto border shadow-lg max-w-[350px]"
-        // Defensive: remove pointer events if overlay buggy
         style={{ pointerEvents: open ? "auto" : "none", zIndex: 99999 }}
         data-testid="emoji-dialog-content"
       >
@@ -124,4 +123,3 @@ export function EmojiPicker({
     </Dialog>
   );
 }
-
