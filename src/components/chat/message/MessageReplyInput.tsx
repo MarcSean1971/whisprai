@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -50,6 +51,13 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
     }
   };
 
+  const handleBlur = () => {
+    // Only cancel if nothing has been typed, not currently submitting, and not saved
+    if (!isSubmitting && !isSaved && (!content || content.trim() === '')) {
+      onCancel();
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex items-center gap-2 w-full">
       <Textarea
@@ -57,6 +65,7 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
         value={content}
         onChange={(e) => !isSaved && setContent(e.target.value)}
         onKeyPress={handleKeyPress}
+        onBlur={handleBlur}
         placeholder="Type your reply..."
         disabled={isSaved}
         className={cn(
