@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -44,6 +43,7 @@ export function ChatHeader({
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
   const { createCall, outgoingCall, isLoading: isCallLoading } = useActiveCalls();
+  const [callAttempted, setCallAttempted] = useState(false);
 
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
@@ -68,23 +68,44 @@ export function ChatHeader({
   const recipient = otherParticipants[0];
   const { isOnline } = useUserPresence(recipient?.id);
   
+  useEffect(() => {
+    if (outgoingCall) {
+      console.debug("[ChatHeader][DEBUG] Outgoing call object changed:", outgoingCall);
+    }
+  }, [outgoingCall]);
+
+  useEffect(() => {
+    if (callAttempted && !outgoingCall) {
+      const timer = setTimeout(() => {
+        toast.error("Call could not be started. Please try again.");
+        setCallAttempted(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+    if (outgoingCall?.status === "pending") {
+      setCallAttempted(false);
+    }
+  }, [callAttempted, outgoingCall]);
+
   const handleCallClick = async () => {
     if (!recipient) {
       toast.error("No recipient found for this conversation");
       return;
     }
-    
     if (outgoingCall) {
       toast.info("You already have an active call");
       return;
     }
-    
     if (!isOnline) {
       toast.error(`${recipient.first_name || "Recipient"} is currently offline.`);
       return;
     }
-    
-    await createCall(conversationId, recipient.id);
+    setCallAttempted(true);
+    const result = await createCall(conversationId, recipient.id);
+    if (!result) {
+      setCallAttempted(false);
+      toast.error("Failed to initiate call");
+    }
   };
 
   return (

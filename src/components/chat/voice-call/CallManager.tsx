@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useActiveCalls, ActiveCall } from "@/hooks/use-active-calls";
 import { IncomingCallDialog } from "./IncomingCallDialog";
@@ -16,16 +17,12 @@ export function CallManager() {
   const [currentCall, setCurrentCall] = useState<ActiveCall | null>(null);
   const [isOutgoing, setIsOutgoing] = useState(false);
 
-  // Debug logging of state
+  // Extra call debugging
   useEffect(() => {
-    console.debug("[CallManager][DEBUG] incomingCall CHANGED:", incomingCall);
-  }, [incomingCall]);
-  useEffect(() => {
-    console.debug("[CallManager][DEBUG] outgoingCall CHANGED:", outgoingCall);
-  }, [outgoingCall]);
-  useEffect(() => {
-    console.debug("[CallManager][DEBUG] showCallDialog:", showCallDialog, "currentCall:", currentCall, "isOutgoing:", isOutgoing);
-  }, [showCallDialog, currentCall, isOutgoing]);
+    if (incomingCall || outgoingCall) {
+      console.debug("[CallManager][DEBUG][STATE]", { incomingCall, outgoingCall });
+    }
+  }, [incomingCall, outgoingCall]);
 
   // Fetch caller/recipient names when calls change
   useEffect(() => {
@@ -36,9 +33,7 @@ export function CallManager() {
           .select('first_name, last_name')
           .eq('id', userId)
           .single();
-          
         if (error) throw error;
-        
         const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
         setName(fullName || 'User');
       } catch (error) {
@@ -47,33 +42,36 @@ export function CallManager() {
       }
     };
 
-    if (incomingCall) {
-      fetchProfileName(incomingCall.caller_id, setCallerName);
-    }
-    if (outgoingCall) {
-      fetchProfileName(outgoingCall.recipient_id, setRecipientName);
-    }
+    if (incomingCall) fetchProfileName(incomingCall.caller_id, setCallerName);
+    if (outgoingCall) fetchProfileName(outgoingCall.recipient_id, setRecipientName);
   }, [incomingCall, outgoingCall]);
 
-  // Improved logic to determine if call dialog should be shown (including outgoing `pending` state)
+  // CRITICAL CALL DIALOG LOGIC
   useEffect(() => {
-    // For incoming calls, show active dialog only if status is accepted (connected)
+    // Important: outgoingCall.status 'pending' or 'accepted' should always show call dialog!
+    // Priority: show dialog for outgoing, unless there is a connected incoming
     if (incomingCall && incomingCall.status === 'accepted') {
       setCurrentCall(incomingCall);
       setShowCallDialog(true);
       setIsOutgoing(false);
+      console.debug("[CallManager][DEBUG] Showing dialog for accepted incoming call");
+      return;
     }
-    // For OUTGOING call: show dialog during BOTH `pending` (dialing) AND `accepted`/in-progress
-    else if (outgoingCall && (outgoingCall.status === 'pending' || outgoingCall.status === 'accepted')) {
+    if (outgoingCall && (outgoingCall.status === 'pending' || outgoingCall.status === 'accepted')) {
       setCurrentCall(outgoingCall);
       setShowCallDialog(true);
       setIsOutgoing(true);
+      console.debug("[CallManager][DEBUG] Showing dialog for outgoing call (pending/accepted)", outgoingCall);
+      return;
     }
-    // Otherwise, if no active call or call was ended/rejected
-    else {
-      setShowCallDialog(false);
-      setCurrentCall(null);
-      setIsOutgoing(false);
+    // Handle the case where call ends (reset all state)
+    setShowCallDialog(false);
+    setCurrentCall(null);
+    setIsOutgoing(false);
+    if (!incomingCall && !outgoingCall) {
+      setActiveSessionId(null);
+      setCallerName("Someone");
+      setRecipientName("Someone");
     }
   }, [incomingCall, outgoingCall]);
 
