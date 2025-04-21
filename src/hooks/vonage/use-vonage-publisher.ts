@@ -4,6 +4,7 @@ import { VonagePublisherOptions, VonageError } from "./types";
 
 export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOptions) {
   const publisher = useRef<any>(null);
+  const publisherId = useRef<string>(`vonage-publisher-${Date.now()}`);
 
   const initializePublisher = useCallback(() => {
     console.log('[Vonage Publisher] Initializing publisher...', { publisherRef: publisherRef.current });
@@ -24,8 +25,9 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
         publisherRef.current.removeChild(publisherRef.current.firstChild);
       }
       
-      // No need to set id; we use the DOM node directly
-
+      // Set a unique ID for the publisher element
+      publisherRef.current.id = publisherId.current;
+      
       const publisherOptions = {
         insertMode: 'append',
         width: '100%',
@@ -42,9 +44,9 @@ export function useVonagePublisher({ publisherRef, onError }: VonagePublisherOpt
       
       console.log('[Vonage Publisher] Creating publisher with options:', publisherOptions);
       
-      // Only pass publisherRef.current and publisherOptions to initPublisher
+      // Pass the publisher ID as a string, not the DOM element
       publisher.current = window.OT.initPublisher(
-        publisherRef.current, 
+        publisherId.current, 
         publisherOptions
       );
 
