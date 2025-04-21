@@ -25,30 +25,42 @@ export function EmojiPicker({
   side = "bottom",
   sideOffset = 4
 }: EmojiPickerProps) {
+  // Render overlay only if picker is open
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        {triggerButton}
-      </PopoverTrigger>
-      <PopoverContent
-        align={align}
-        side={side}
-        sideOffset={sideOffset}
-        className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
-        style={{ minWidth: width, minHeight: height }}
-      >
-        <div className="bg-popover rounded-md p-2">
-          <EmojiPickerReact
-            width={width}
-            height={height}
-            onEmojiClick={onEmojiSelect}
-            lazyLoadEmojis={true}
-            skinTonesDisabled={false}
-            searchDisabled={false}
-            previewConfig={{ showPreview: false }}
-          />
-        </div>
-      </PopoverContent>
-    </Popover>
+    <>
+      {open && (
+        <div
+          aria-label="Emoji picker overlay"
+          className="fixed inset-0 bg-black/40 z-[9998]"
+          onClick={() => onOpenChange(false)}
+          tabIndex={-1}
+        />
+      )}
+      <Popover open={open} onOpenChange={onOpenChange}>
+        <PopoverTrigger asChild>
+          {triggerButton}
+        </PopoverTrigger>
+        <PopoverContent
+          align={align}
+          side={side}
+          sideOffset={sideOffset}
+          className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
+          style={{ minWidth: width, minHeight: height }}
+        >
+          <div className="bg-popover rounded-md p-2">
+            <EmojiPickerReact
+              width={width}
+              height={height}
+              onEmojiClick={onEmojiSelect}
+              lazyLoadEmojis={true}
+              skinTonesDisabled={false}
+              searchDisabled={false}
+              previewConfig={{ showPreview: false }}
+            />
+          </div>
+        </PopoverContent>
+      </Popover>
+    </>
   );
 }
+
