@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { toast } from "sonner"; // Add this import for toast notifications
+import { toast } from "sonner"; 
 import { CallUIRingtone } from "./call/CallUIRingtone";
 import { CallControls } from "./call/CallControls";
 import { CallVideoView } from "./call/CallVideoView";
@@ -83,6 +83,15 @@ export function CallUI({
 
   const isRingtoneActive = callStatus === "connecting" || callStatus === "ringing";
 
+  // Function to handle call end and call rejection
+  const handleCloseCall = () => {
+    if (onRejectCall && (callStatus === "incoming" || callStatus === "missed" || callStatus === "rejected" || callStatus === "ended")) {
+      onRejectCall();
+    } else {
+      onEndCall();
+    }
+  };
+
   return (
     <Dialog open={true} modal={true}>
       <DialogContent
@@ -119,7 +128,7 @@ export function CallUI({
           <CallStatus
             callStatus={callStatus}
             onAcceptCall={onAcceptCall}
-            onRejectCall={onRejectCall}
+            onRejectCall={handleCloseCall}
           />
 
           <div className="relative z-20 w-full bg-white/95 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa] rounded-b-2xl">
