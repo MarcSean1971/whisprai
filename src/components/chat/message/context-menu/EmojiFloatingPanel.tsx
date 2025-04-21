@@ -24,6 +24,7 @@ export function EmojiFloatingPanel({
 
   useEffect(() => {
     if (!open) return;
+    
     function onClickOutside(event: MouseEvent) {
       if (
         panelRef.current &&
@@ -32,7 +33,10 @@ export function EmojiFloatingPanel({
         onOpenChange(false);
       }
     }
+    
+    // Use capture phase to detect clicks before they propagate
     document.addEventListener("mousedown", onClickOutside, true);
+    
     return () => {
       document.removeEventListener("mousedown", onClickOutside, true);
     };

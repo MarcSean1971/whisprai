@@ -29,6 +29,7 @@ export function EmojiPickerPopover({
   const handleTriggerClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
     // Get the bounding rect of the submenu trigger button
     if (buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();
@@ -50,13 +51,15 @@ export function EmojiPickerPopover({
   return (
     <>
       <DropdownMenuSub>
-        <DropdownMenuSubTrigger
-          className="flex items-center px-2 py-1.5 rounded-sm cursor-pointer gap-2 w-full outline-none focus:bg-accent"
-          onClick={handleTriggerClick}
-        >
-          <Smile className="mr-2 h-4 w-4" />
-          <span>Add Reaction</span>
-        </DropdownMenuSubTrigger>
+        <div ref={buttonRef}>
+          <DropdownMenuSubTrigger
+            className="flex items-center px-2 py-1.5 rounded-sm cursor-pointer gap-2 w-full outline-none focus:bg-accent"
+            onClick={handleTriggerClick}
+          >
+            <Smile className="mr-2 h-4 w-4" />
+            <span>Add Reaction</span>
+          </DropdownMenuSubTrigger>
+        </div>
         {/* Don't render submenu content—picker is rendered in portal as panel */}
       </DropdownMenuSub>
       <EmojiFloatingPanel
