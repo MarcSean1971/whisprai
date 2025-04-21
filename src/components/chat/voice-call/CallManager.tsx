@@ -1,10 +1,12 @@
-
 import { useEffect, useState } from "react";
 import { useActiveCalls, ActiveCall } from "@/hooks/use-active-calls";
 import { IncomingCallDialog } from "./IncomingCallDialog";
 import { VoiceCallDialog } from "./VoiceCallDialog";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * The call manager handles when modals/dialogs are shown for calls.
+ */
 export function CallManager() {
   const { incomingCall, outgoingCall, acceptCall, rejectCall, endCall } = useActiveCalls();
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -13,6 +15,17 @@ export function CallManager() {
   const [showCallDialog, setShowCallDialog] = useState(false);
   const [currentCall, setCurrentCall] = useState<ActiveCall | null>(null);
   const [isOutgoing, setIsOutgoing] = useState(false);
+
+  // Debug logging of state
+  useEffect(() => {
+    console.debug("[CallManager][DEBUG] incomingCall CHANGED:", incomingCall);
+  }, [incomingCall]);
+  useEffect(() => {
+    console.debug("[CallManager][DEBUG] outgoingCall CHANGED:", outgoingCall);
+  }, [outgoingCall]);
+  useEffect(() => {
+    console.debug("[CallManager][DEBUG] showCallDialog:", showCallDialog, "currentCall:", currentCall, "isOutgoing:", isOutgoing);
+  }, [showCallDialog, currentCall, isOutgoing]);
 
   // Fetch caller/recipient names when calls change
   useEffect(() => {
@@ -37,28 +50,30 @@ export function CallManager() {
     if (incomingCall) {
       fetchProfileName(incomingCall.caller_id, setCallerName);
     }
-    
     if (outgoingCall) {
       fetchProfileName(outgoingCall.recipient_id, setRecipientName);
     }
   }, [incomingCall, outgoingCall]);
 
-  // Handle active call states
+  // Improved logic to determine if call dialog should be shown (including outgoing `pending` state)
   useEffect(() => {
-    if (incomingCall?.status === 'accepted') {
-      // Accepted incoming call
+    // For incoming calls, show active dialog only if status is accepted (connected)
+    if (incomingCall && incomingCall.status === 'accepted') {
       setCurrentCall(incomingCall);
       setShowCallDialog(true);
       setIsOutgoing(false);
-    } else if (outgoingCall) {
-      // Handle outgoing call
+    }
+    // For OUTGOING call: show dialog during BOTH `pending` (dialing) AND `accepted`/in-progress
+    else if (outgoingCall && (outgoingCall.status === 'pending' || outgoingCall.status === 'accepted')) {
       setCurrentCall(outgoingCall);
       setShowCallDialog(true);
       setIsOutgoing(true);
-    } else {
-      // No active calls
+    }
+    // Otherwise, if no active call or call was ended/rejected
+    else {
       setShowCallDialog(false);
       setCurrentCall(null);
+      setIsOutgoing(false);
     }
   }, [incomingCall, outgoingCall]);
 
@@ -67,11 +82,14 @@ export function CallManager() {
     return success;
   };
 
+  // This will be triggered BOTH when user closes dialog and when call ends
   const handleCloseCallDialog = () => {
     if (currentCall) {
       endCall(currentCall.id);
     }
     setShowCallDialog(false);
+    setCurrentCall(null);
+    setIsOutgoing(false);
   };
 
   return (
@@ -84,7 +102,7 @@ export function CallManager() {
         callerName={callerName}
       />
 
-      {/* Active call dialog */}
+      {/* Outgoing/active call dialog for both outgoing and accepted cases */}
       {currentCall && showCallDialog && (
         <VoiceCallDialog
           isOpen={showCallDialog}
