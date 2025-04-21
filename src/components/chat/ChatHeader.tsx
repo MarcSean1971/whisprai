@@ -3,7 +3,7 @@ import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
-import { Search, Phone, PhoneCall, Video, X } from "lucide-react";
+import { Search, Phone, Video, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -15,8 +15,6 @@ import { useWebRTCCalls } from "@/hooks/use-webrtc-calls";
 import { toast } from "sonner";
 import { CallUI } from "./CallUI";
 import { useWebRTCPeer } from "@/hooks/use-webrtc-peer";
-import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 interface Participant {
   id: string;
@@ -46,7 +44,6 @@ export function ChatHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [showCallHistory, setShowCallHistory] = useState(false);
 
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
@@ -82,27 +79,11 @@ export function ChatHeader({
     updateSignalingData, 
     remoteSignal,
     endCall,
-    callHistory
   } = useWebRTCCalls(conversationId, profile?.id || "", recipient?.id || "");
 
   // Set up peer connection when in "pending" (if this user is caller) or "connected"
   const shouldShowCallUI = !!callSession && (status === "pending" || status === "connected");
   const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
-
-  // Parse and format the call history for display
-  const formattedCallHistory = callHistory.map(call => {
-    const isOutgoing = call.caller_id === profile?.id;
-    const date = new Date(call.created_at);
-    return {
-      id: call.id,
-      type: call.call_type,
-      direction: isOutgoing ? 'outgoing' : 'incoming',
-      status: call.status,
-      date: date.toLocaleDateString(),
-      time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      duration: call.status === 'connected' ? '00:00' : '--'
-    };
-  });
 
   // Use the peer connection hook
   const {
@@ -178,11 +159,7 @@ export function ChatHeader({
                   <span className="font-semibold">
                     {participantDetails.map(p => p.name).join(', ')}
                   </span>
-                  {isOnline && (
-                    <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
-                      Online
-                    </Badge>
-                  )}
+                  {/* Removed online badge as requested */}
                 </div>
                 <span className="text-sm text-muted-foreground">
                   {participantDetails.map(p => p.tagline).filter(Boolean).join(', ')}
@@ -235,62 +212,7 @@ export function ChatHeader({
                   <span className="sr-only">Call</span>
                 </Button>
                 
-                {/* Call history button */}
-                <Drawer open={showCallHistory} onOpenChange={setShowCallHistory}>
-                  <DrawerTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      title="Call history"
-                    >
-                      <PhoneCall className="h-5 w-5" />
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <DrawerHeader>
-                      <DrawerTitle>Call History</DrawerTitle>
-                    </DrawerHeader>
-                    <div className="px-4 py-2">
-                      {formattedCallHistory.length > 0 ? (
-                        <div className="space-y-2">
-                          {formattedCallHistory.map(call => (
-                            <div key={call.id} className="flex items-center justify-between p-3 rounded-md border">
-                              <div className="flex items-center gap-3">
-                                <div className={`p-2 rounded-full ${
-                                  call.direction === 'outgoing' 
-                                    ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' 
-                                    : 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400'
-                                }`}>
-                                  {call.type === 'audio' ? <Phone size={18} /> : <Video size={18} />}
-                                </div>
-                                <div>
-                                  <div className="font-medium">
-                                    {call.direction === 'outgoing' ? 'Outgoing' : 'Incoming'} {call.type} call
-                                  </div>
-                                  <div className="text-sm text-muted-foreground">{call.date} • {call.time}</div>
-                                </div>
-                              </div>
-                              <div>
-                                <Badge variant={
-                                  call.status === 'connected' ? 'default' : 
-                                  call.status === 'rejected' ? 'destructive' : 
-                                  call.status === 'missed' ? 'destructive' : 'outline'
-                                }>
-                                  {call.status}
-                                </Badge>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                          No call history
-                        </div>
-                      )}
-                    </div>
-                  </DrawerContent>
-                </Drawer>
+                {/* Removed call history button and drawer as requested */}
               </div>
               
               {/* Basic incoming call dialog */}
