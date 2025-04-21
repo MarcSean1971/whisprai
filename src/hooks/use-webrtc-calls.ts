@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -160,24 +159,67 @@ export function useWebRTCCalls(
     }
   };
 
+  // Updated: Check for and auto-end stale active calls before starting a new call
   const startCall = useCallback(
     async (callType: "audio" | "video" = "audio") => {
       setIsCalling(true);
       try {
-        // First check if there's an existing active call
+        // Check for existing active call in this conversation
         const { data: existingCall } = await supabase
           .from("call_sessions")
           .select("*")
           .eq("conversation_id", conversationId)
           .in("status", ["pending", "connected"])
-          .single();
-          
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        // If there is an active call, check if we can auto-close it
         if (existingCall) {
+          const now = new Date();
+          const createdAt = new Date(existingCall.created_at);
+          const updatedAt = new Date(existingCall.updated_at);
+          let shouldClose = false;
+
+          // Define staleness:
+          // - pending more than 30s old
+          // - connected but no update more than 2min
+          if (
+            (existingCall.status === "pending" && now.getTime() - createdAt.getTime() > 30000) ||
+            (existingCall.status === "connected" && now.getTime() - updatedAt.getTime() > 120000)
+          ) {
+            shouldClose = true;
+          }
+
+          if (shouldClose && existingCall.id) {
+            // Auto-end the stale session
+            await supabase
+              .from("call_sessions")
+              .update({ status: "ended", updated_at: new Date().toISOString() })
+              .eq("id", existingCall.id);
+            toast.info("Previous stale call has been auto-ended. Trying to start a new call...");
+            // Wait a moment after updating
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          } else {
+            toast.error("There's already an active call in this conversation");
+            setIsCalling(false);
+            return null;
+          }
+        }
+
+        const { data: stillExistingCall } = await supabase
+          .from("call_sessions")
+          .select("*")
+          .eq("conversation_id", conversationId)
+          .in("status", ["pending", "connected"])
+          .single();
+
+        if (stillExistingCall) {
           toast.error("There's already an active call in this conversation");
           setIsCalling(false);
           return null;
         }
-        
+
         const { data, error } = await supabase
           .from("call_sessions")
           .insert({
@@ -190,31 +232,30 @@ export function useWebRTCCalls(
           })
           .select()
           .single();
-          
+
         if (error) {
           setIsCalling(false);
           toast.error("Failed to start call.");
           return null;
         }
-        
+
         setCallSession(data);
         setStatus("pending");
         toast.success("Calling...");
-        
-        // Auto-cancel call if not answered within 30 seconds
+
         setTimeout(async () => {
           const { data: currentSession } = await supabase
             .from("call_sessions")
             .select("status")
             .eq("id", data.id)
             .single();
-            
+
           if (currentSession?.status === "pending") {
             endCall(data.id, "missed");
             toast.error("Call not answered");
           }
         }, 30000);
-        
+
         return data;
       } catch (err) {
         setIsCalling(false);

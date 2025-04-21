@@ -1,15 +1,17 @@
+
 import React, { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Monitor, Maximize2, Volume2, VolumeX } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { CallControls } from "./CallControls";
+import { CallTimer } from "./CallTimer";
+import { LocalVideoView } from "./LocalVideoView";
+import { RemoteVideoView } from "./RemoteVideoView";
+import { CallUIFullScreenButton } from "./CallUIFullScreenButton";
+import { CallUIRingtone } from "./CallUIRingtone";
+import { Button } from "@/components/ui/button";
+import { Volume2, VolumeX, PhoneOff, Monitor, Mic, MicOff, Video, VideoOff } from "lucide-react";
 
-import { CallControls } from "./call/CallControls";
-import { CallTimer } from "./call/CallTimer";
-import { LocalVideoView } from "./call/LocalVideoView";
-import { RemoteVideoView } from "./call/RemoteVideoView";
-
-interface CallUIProps {
+interface CallUIRootProps {
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
   isAudioMuted: boolean;
@@ -24,7 +26,7 @@ interface CallUIProps {
   duration?: number;
 }
 
-export function CallUI({
+export function CallUIRoot({
   localStream,
   remoteStream,
   isAudioMuted,
@@ -37,7 +39,7 @@ export function CallUI({
   isScreenSharing = false,
   onToggleScreenShare,
   duration = 0,
-}: CallUIProps) {
+}: CallUIRootProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(false);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -80,26 +82,12 @@ export function CallUI({
     };
   }, []);
 
-  // Play a ringtone sound if the call is connecting/ringing
-  useEffect(() => {
-    const audio = new Audio('/sounds/ringtone.mp3');
-    if (callStatus === 'connecting' || callStatus === 'ringing') {
-      audio.loop = true;
-      audio.play().catch(e => console.error('Could not play ringtone:', e));
-    }
-    return () => {
-      audio.pause();
-      audio.currentTime = 0;
-    };
-  }, [callStatus]);
-
   return (
     <Dialog open={true} modal={true}>
       <DialogContent
         className="fixed inset-0 z-50 flex flex-col items-center justify-center p-0 sm:p-6 max-w-full max-h-full m-0 rounded-none sm:rounded-lg sm:max-w-4xl sm:max-h-[90vh]"
         onInteractOutside={e => e.preventDefault()}>
         <div className="relative flex flex-col w-full h-full bg-black overflow-hidden">
-          {/* Main video area (remote stream) + overlays */}
           <RemoteVideoView
             remoteStream={remoteStream}
             isConnecting={isConnecting}
@@ -108,6 +96,7 @@ export function CallUI({
           >
             <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
             <CallTimer duration={duration} />
+            <CallUIRingtone callStatus={callStatus} />
           </RemoteVideoView>
 
           <CallControls
