@@ -8,14 +8,14 @@ interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
   align?: "start" | "end";
   side?: "left" | "right";
-  onAfterClose?: () => void; // NEW: callback for after picker closes
+  onAfterClose?: () => void;
 }
 
 export function EmojiPickerPopover({
   onEmojiSelect,
   align = "start",
   side = "right",
-  onAfterClose, // NEW: callback for menu closure
+  onAfterClose,
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -25,13 +25,12 @@ export function EmojiPickerPopover({
     // Picker will call onOpenChange(false) afterwards
   };
 
-  // Fire callback to close parent dropdown menu after picker closes
+  // Ensures dropdown closes immediately after picker closes.
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open && onAfterClose) {
-      setTimeout(() => {
-        onAfterClose();
-      }, 75); // Short delay to allow dialog UI to finish
+      // Call menu close callback right away (no delay)
+      onAfterClose();
     }
   };
 
