@@ -1,11 +1,9 @@
+
 import { cn } from "@/lib/utils";
-import { ReactNode, useState } from "react";
-import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download, Reply } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
+import { ReactNode } from "react";
 import { MessageReactions } from "./reactions/MessageReactions";
-import { MessageAttachment } from "./MessageAttachment";
 import { ParentMessagePreview } from "./ParentMessagePreview";
+import { MessageAttachments } from "./MessageAttachments";
 
 interface MessageBubbleProps {
   id: string;
@@ -36,7 +34,7 @@ interface MessageBubbleProps {
         last_name?: string | null;
       }
     }
-  }
+  };
   scrollToMessage?: (messageId: string) => void;
 }
 
@@ -53,148 +51,6 @@ export function MessageBubble({
   parent,
   scrollToMessage
 }: MessageBubbleProps) {
-  const [downloadingFiles, setDownloadingFiles] = useState<Record<string, boolean>>({});
-
-  const getAttachmentIcon = (file: { type: string }) => {
-    const iconProps = { className: "h-6 w-6 mr-2 text-muted-foreground" };
-    
-    if (file.type.startsWith('image/')) return <FileImage {...iconProps} />;
-    if (file.type.startsWith('video/')) return <FileVideo {...iconProps} />;
-    if (file.type.startsWith('audio/')) return <FileAudio {...iconProps} />;
-    if (file.type.includes('zip') || file.type.includes('rar')) return <FileArchive {...iconProps} />;
-    if (file.type.startsWith('text/')) return <FileText {...iconProps} />;
-    return <File {...iconProps} />;
-  };
-
-  const handleDownload = async (file: { url: string; name: string }) => {
-    try {
-      setDownloadingFiles(prev => ({ ...prev, [file.url]: true }));
-      
-      const response = await fetch(file.url);
-      if (!response.ok) throw new Error('Download failed');
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = file.name;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success(`Downloaded ${file.name}`);
-    } catch (error) {
-      console.error('Download error:', error);
-      toast.error(`Failed to download ${file.name}`);
-    } finally {
-      setDownloadingFiles(prev => ({ ...prev, [file.url]: false }));
-    }
-  };
-
-  const renderFileAttachment = (file: { url: string; name: string; type: string }) => {
-    const isDownloading = downloadingFiles[file.url];
-    
-    if (file.type.startsWith('image/')) {
-      return (
-        <div className="mt-2 max-w-full relative group" key={file.url}>
-          <img 
-            src={file.url} 
-            alt={file.name}
-            className="rounded-lg max-h-[300px] object-contain"
-          />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-white hover:text-white hover:bg-white/20"
-              onClick={() => handleDownload(file)}
-              disabled={isDownloading}
-              aria-label={`Download ${file.name}`}
-            >
-              <Download className="h-5 w-5 mr-1" />
-              {isDownloading ? 'Downloading...' : 'Download'}
-            </Button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-2 flex items-center justify-between bg-muted/50 rounded-md p-2 gap-2" key={file.url}>
-        <div className="flex items-center min-w-0 flex-1">
-          {getAttachmentIcon(file)}
-          <span className="text-sm truncate">{file.name}</span>
-        </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="shrink-0"
-          onClick={() => handleDownload(file)}
-          disabled={isDownloading}
-          aria-label={`Download ${file.name}`}
-        >
-          {isDownloading ? (
-            <span className="text-xs">Downloading...</span>
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-    );
-  };
-
-  const renderAttachments = () => {
-    if (attachments && attachments.length > 0) {
-      return attachments.map((file) => (
-        <MessageAttachment key={file.url} file={file} />
-      ));
-    }
-    if (attachment) {
-      return <MessageAttachment file={attachment} />;
-    }
-    return null;
-  };
-
-  const renderParentMessage = () => {
-    if (!parent) return null;
-
-    const senderName = parent.sender?.profiles
-      ? `${parent.sender.profiles.first_name || ''} ${parent.sender.profiles.last_name || ''}`.trim()
-      : "Unknown User";
-
-    const handleParentClick = () => {
-      if (scrollToMessage && parent.id) {
-        scrollToMessage(parent.id);
-      }
-    };
-
-    return (
-      <div
-        className={cn(
-          "mb-1 text-xs border-l-2 pl-2 py-1 bg-muted/40 rounded-sm cursor-pointer hover:bg-muted transition",
-          isOwn
-            ? "border-primary/40"
-            : isAIMessage
-            ? "border-violet-500/40"
-            : "border-secondary/40"
-        )}
-        title="Replied message"
-        tabIndex={0}
-        onClick={handleParentClick}
-        role="button"
-        aria-label="Go to replied message"
-      >
-        <div className="flex items-center gap-1 text-muted-foreground">
-          <Reply className="h-3 w-3" />
-          <span className="font-medium">{senderName}</span>
-        </div>
-        <p className="line-clamp-1 text-muted-foreground break-words whitespace-pre-wrap">{parent.content}</p>
-      </div>
-    );
-  };
-
   return (
     <div className="space-y-2">
       <div className={cn(
@@ -214,7 +70,10 @@ export function MessageBubble({
           />
         )}
         <div className="text-sm break-words">{content}</div>
-        {renderAttachments()}
+        <MessageAttachments 
+          attachments={attachments}
+          attachment={attachment}
+        />
         <div className="flex w-full items-center mt-1">
           <div className="flex-1 flex justify-start">
             <MessageReactions messageId={id} isOwn={isOwn} />
