@@ -46,7 +46,7 @@ export default function Chat() {
 
 function ChatContent({ conversationId }: { conversationId: string }) {
   const { data: messages = [], isLoading, error, refetch } = useMessages(conversationId);
-  const { profile, isLoading: isLoadingProfile, error: profileError } = useProfile();
+  const { profile, isLoading: isLoadingProfile } = useProfile();
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
@@ -82,7 +82,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     }));
   }, []);
 
-  if (error || profileError) {
+  if (error) {
     return (
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
         <ChatHeader 
@@ -94,7 +94,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           <EmptyState
             icon={<AlertCircle className="h-10 w-10 text-destructive" />}
             title="Error loading chat"
-            description={error?.message || profileError?.message || "Failed to load the chat. Please try again."}
+            description={error?.message || "Failed to load the chat. Please try again."}
             action={
               <Button onClick={() => refetch()} variant="outline">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -170,3 +170,4 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     </div>
   );
 }
+

@@ -7,7 +7,7 @@ import { ProfileFormValues } from "@/components/profile-setup/types";
 export function useProfile() {
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,6 +81,7 @@ export function useProfile() {
   return {
     profile,
     isLoading,
+    error,
     updateProfile: updateProfileMutation.mutateAsync
   };
 }
