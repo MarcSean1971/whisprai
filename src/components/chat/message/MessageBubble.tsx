@@ -4,6 +4,8 @@ import { File, FileText, FileImage, FileVideo, FileAudio, FileArchive, Download,
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { MessageReactions } from "./reactions/MessageReactions";
+import { MessageAttachment } from "./MessageAttachment";
+import { ParentMessagePreview } from "./ParentMessagePreview";
 
 interface MessageBubbleProps {
   id: string;
@@ -145,10 +147,12 @@ export function MessageBubble({
 
   const renderAttachments = () => {
     if (attachments && attachments.length > 0) {
-      return attachments.map(file => renderFileAttachment(file));
+      return attachments.map((file) => (
+        <MessageAttachment key={file.url} file={file} />
+      ));
     }
     if (attachment) {
-      return renderFileAttachment(attachment);
+      return <MessageAttachment file={attachment} />;
     }
     return null;
   };
@@ -201,7 +205,14 @@ export function MessageBubble({
           ? "bg-violet-500/20 border border-violet-500/20"
           : "bg-secondary"
       )}>
-        {renderParentMessage()}
+        {parent && (
+          <ParentMessagePreview
+            parent={parent}
+            isOwn={isOwn}
+            isAIMessage={isAIMessage}
+            scrollToMessage={scrollToMessage}
+          />
+        )}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
         <div className="flex w-full items-center mt-1">
