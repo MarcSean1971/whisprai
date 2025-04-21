@@ -7,6 +7,7 @@ interface RemoteVideoViewProps {
   callStatus: string;
   videoRef?: React.RefObject<HTMLVideoElement>;
   connectionDetails?: any;
+  callType?: "audio" | "video";
   children?: React.ReactNode; // for overlays (like CallTimer or LocalVideoView)
 }
 
@@ -16,6 +17,7 @@ export function RemoteVideoView({
   callStatus,
   videoRef,
   connectionDetails,
+  callType = "video",
   children
 }: RemoteVideoViewProps) {
   const internalVideoRef = useRef<HTMLVideoElement>(null);
@@ -46,6 +48,9 @@ export function RemoteVideoView({
            callStatus === "calling" ? "Calling..." : "Ringing...";
   };
 
+  // For audio calls, show a different UI for remote video
+  const isAudioOnlyCall = callType === "audio";
+
   return (
     <div className="relative flex-1 w-full h-full bg-white">
       {isConnecting && (
@@ -70,12 +75,43 @@ export function RemoteVideoView({
           </div>
         </div>
       )}
-      <video
-        className="w-full h-full object-cover bg-white"
-        autoPlay
-        playsInline
-        ref={ref}
-      />
+      
+      {isAudioOnlyCall && callStatus === "connected" && !isConnecting ? (
+        <div className="w-full h-full flex items-center justify-center bg-[#f1f0fb]">
+          <div className="flex flex-col items-center text-center p-8">
+            <div className="w-20 h-20 rounded-full bg-[#7C4DFF] flex items-center justify-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+              </svg>
+            </div>
+            <div className="text-lg font-medium text-[#4b3a6b]">Audio Call</div>
+            {duration > 0 && <CallTimer duration={duration} />}
+          </div>
+        </div>
+      ) : (
+        <>
+          <video
+            className={`w-full h-full object-cover bg-white ${isAudioOnlyCall ? 'hidden' : ''}`}
+            autoPlay
+            playsInline
+            ref={ref}
+          />
+          {isAudioOnlyCall && !isConnecting && (
+            <div className="absolute inset-0 flex items-center justify-center bg-[#f1f0fb]">
+              <div className="text-center p-4">
+                <div className="w-16 h-16 rounded-full bg-[#7C4DFF] mx-auto flex items-center justify-center mb-3">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                </div>
+                <div className="text-lg font-medium text-[#4b3a6b]">
+                  Audio Call in Progress
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
       {children}
     </div>
   );

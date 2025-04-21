@@ -7,18 +7,20 @@ interface CallStatusProps {
   callStatus: string;
   onAcceptCall?: () => void;
   onRejectCall?: () => void;
+  callType?: "audio" | "video";
 }
 
 export function CallStatus({
   callStatus,
   onAcceptCall,
-  onRejectCall
+  onRejectCall,
+  callType = "video"
 }: CallStatusProps) {
   if (callStatus === "incoming") {
     return (
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
         <div className="text-3xl font-bold text-[#7C4DFF] mb-6 drop-shadow-sm">
-          Incoming call...
+          Incoming {callType} call...
         </div>
         <div className="flex items-center gap-4">
           <Button
@@ -47,10 +49,10 @@ export function CallStatus({
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
         <div className="text-3xl font-bold text-[#7C4DFF] mb-3 drop-shadow-sm">
           {callStatus === "rejected"
-            ? "Call rejected"
+            ? `${callType} call rejected`
             : callStatus === "missed"
-            ? "Call not answered"
-            : "Call ended"}
+            ? `${callType} call not answered`
+            : `${callType} call ended`}
         </div>
         <Button
           onClick={onRejectCall}

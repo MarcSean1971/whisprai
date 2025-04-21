@@ -3,6 +3,7 @@ export interface WebRTCPeerOptions {
   initiator: boolean;
   onSignal: (data: any) => void;
   remoteSignal?: any;
+  callType?: "audio" | "video";
 }
 
 export type ConnectionStatus = 
@@ -30,6 +31,7 @@ export interface UseWebRTCPeerReturn {
   toggleScreenShare: () => Promise<void>;
   callDuration: number;
   connectionDetails?: any;
+  callType?: "audio" | "video";
 }
 
 export interface CallSession {

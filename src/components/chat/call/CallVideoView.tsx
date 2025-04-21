@@ -12,6 +12,7 @@ interface CallVideoViewProps {
   callStatus: string;
   duration: number;
   connectionDetails?: any;
+  callType?: "audio" | "video";
 }
 
 export function CallVideoView({
@@ -21,7 +22,8 @@ export function CallVideoView({
   isConnecting,
   callStatus,
   duration,
-  connectionDetails
+  connectionDetails,
+  callType = "video"
 }: CallVideoViewProps) {
   return (
     <div className="relative w-full flex-1 flex items-center justify-center bg-white rounded-2xl max-h-[60vh] min-h-[220px]">
@@ -30,8 +32,11 @@ export function CallVideoView({
         isConnecting={isConnecting}
         callStatus={callStatus}
         connectionDetails={connectionDetails}
+        callType={callType}
       >
-        <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
+        {callType === "video" && (
+          <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
+        )}
         {duration > 0 && <CallTimer duration={duration} />}
       </RemoteVideoView>
     </div>

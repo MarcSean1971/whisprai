@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { UseWebRTCPeerReturn, WebRTCPeerOptions, ConnectionStatus } from "./webrtc/types";
 import { useMediaStream } from "./webrtc/use-media-stream";
@@ -12,15 +13,16 @@ export function useWebRTCPeer({
   initiator,
   onSignal,
   remoteSignal,
+  callType = "video",
 }: WebRTCPeerOptions): UseWebRTCPeerReturn {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isAudioMuted, setIsAudioMuted] = useState(false);
-  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(callType === "audio"); // Auto-mute video for audio calls
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(initiator ? "calling" : "incoming");
   const [connectionDetails, setConnectionDetails] = useState<any>(null);
 
-  const { localStream, originalStreamRef, setLocalStream } = useMediaStream();
+  const { localStream, originalStreamRef, setLocalStream } = useMediaStream(callType);
   const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
   const { callDuration, durationTimerRef, setCallDuration } = useCallDuration(connectionStatus === "connected");
 
@@ -91,6 +93,7 @@ export function useWebRTCPeer({
     isScreenSharing,
     toggleScreenShare,
     callDuration,
-    connectionDetails
+    connectionDetails,
+    callType
   };
 }

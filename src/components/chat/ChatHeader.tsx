@@ -50,6 +50,7 @@ export function ChatHeader({
 
   const shouldShowCallUI = !!callSession || !!incomingCall;
   const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
+  const currentCallType = callSession?.call_type as "audio" | "video" || "video";
 
   const {
     localStream,
@@ -73,6 +74,7 @@ export function ChatHeader({
       }
     },
     remoteSignal,
+    callType: currentCallType
   });
 
   const callStatus = incomingCall ? "incoming" : 
@@ -80,7 +82,7 @@ export function ChatHeader({
                     peerStatus === "connected" && callSessionStatus === "connected" ? "connected" :
                     peerStatus;
 
-  console.log("[ChatHeader] Status - Session:", callSessionStatus, "Peer:", peerStatus, "Final:", callStatus);
+  console.log("[ChatHeader] Status - Session:", callSessionStatus, "Peer:", peerStatus, "Final:", callStatus, "CallType:", currentCallType);
 
   const handleEndCall = () => {
     if (callSession) {
@@ -113,6 +115,7 @@ export function ChatHeader({
           onAcceptCall={incomingCall ? acceptCall : undefined}
           onRejectCall={incomingCall ? rejectCall : undefined}
           connectionDetails={connectionDetails}
+          callType={currentCallType}
         />
       )}
       

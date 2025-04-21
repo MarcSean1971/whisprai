@@ -24,6 +24,7 @@ interface CallUIProps {
   onAcceptCall?: () => void;
   onRejectCall?: () => void;
   connectionDetails?: any;
+  callType?: "audio" | "video";
 }
 
 export function CallUI({
@@ -42,6 +43,7 @@ export function CallUI({
   onAcceptCall,
   onRejectCall,
   connectionDetails,
+  callType = "video",
 }: CallUIProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(false);
@@ -124,6 +126,7 @@ export function CallUI({
             callStatus={callStatus}
             duration={duration}
             connectionDetails={connectionDetails}
+            callType={callType}
           />
 
           <CallDebugInfo
@@ -136,6 +139,7 @@ export function CallUI({
             callStatus={callStatus}
             onAcceptCall={handleAcceptCall}
             onRejectCall={handleCloseCall}
+            callType={callType}
           />
 
           <div className="relative z-20 w-full bg-white/95 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa] rounded-b-2xl">
@@ -151,6 +155,7 @@ export function CallUI({
               onToggleFullScreen={toggleFullScreen}
               remoteAudioMuted={remoteAudioMuted}
               onToggleRemoteAudio={toggleRemoteAudio}
+              callType={callType}
             />
           </div>
         </div>
