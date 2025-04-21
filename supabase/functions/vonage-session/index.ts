@@ -25,6 +25,9 @@ serve(async (req) => {
         global: {
           headers: { Authorization: req.headers.get("Authorization")! },
         },
+        auth: {
+          persistSession: false, // Fixed: disable session persistence in Edge Functions
+        }
       }
     );
     const {
