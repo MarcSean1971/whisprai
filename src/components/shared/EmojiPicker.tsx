@@ -53,6 +53,7 @@ export function EmojiPicker({
       <div
         className="bg-popover rounded-md"
         style={{ width, minWidth: width, minHeight: height }}
+        // <=== KEY: prevent mousedown in picker from closing popover
         onMouseDown={e => e.stopPropagation()}
       >
         <EmojiPickerReact
@@ -90,6 +91,7 @@ export function EmojiPicker({
           sideOffset={sideOffset}
           className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
           style={{ minWidth: width, minHeight: height }}
+          // <=== KEY: prevent mousedown in picker content from closing popover
           onMouseDown={e => e.stopPropagation()}
         >
           <div className="bg-popover rounded-md p-2">
@@ -108,3 +110,4 @@ export function EmojiPicker({
     </>
   );
 }
+
