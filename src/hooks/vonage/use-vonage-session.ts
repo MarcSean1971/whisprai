@@ -10,6 +10,12 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
   const sessionRef = useRef<any>(null);
   const sessionDataRef = useRef<VonageSessionData | null>(null);
 
+  // Clear cached session data on error
+  const clearSessionCache = useCallback(() => {
+    console.log('[Vonage Session] Clearing session cache');
+    sessionDataRef.current = null;
+  }, []);
+
   const initializeSession = useCallback(async (callId?: string) => {
     if (!conversationId || !recipientId) {
       console.error('Missing required parameters:', { conversationId, recipientId });
@@ -23,8 +29,8 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
     try {
       console.log('[Vonage Session] Initializing session...', { conversationId, recipientId, callId });
       
-      // Check if we already have session data
-      if (sessionDataRef.current) {
+      // Skip cache if we had a previous error
+      if (sessionDataRef.current && !error) {
         console.log('[Vonage Session] Using existing session data');
         return sessionDataRef.current;
       }
@@ -33,9 +39,19 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
         body: { conversationId, recipientId, callId }
       });
 
-      if (sessionError || !sessionData) {
-        console.error('[Vonage Session] Failed to create session:', sessionError || 'No session data received');
-        throw new Error(sessionError?.message || "Failed to create session");
+      if (sessionError) {
+        console.error('[Vonage Session] Failed to create session:', sessionError);
+        throw new Error(sessionError.message || "Failed to create session");
+      }
+      
+      if (!sessionData) {
+        console.error('[Vonage Session] No session data received from edge function');
+        throw new Error("No session data received from server");
+      }
+
+      if (sessionData.error) {
+        console.error('[Vonage Session] Edge function returned error:', sessionData.error);
+        throw new Error(sessionData.error);
       }
 
       const { sessionId, token, apiKey } = sessionData;
@@ -56,6 +72,9 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
       return { sessionId, token, apiKey };
 
     } catch (err: any) {
+      // Clear session cache on any error
+      clearSessionCache();
+      
       const vonageError: VonageError = {
         type: 'INITIALIZATION_ERROR',
         message: err.message || "Failed to initialize session",
@@ -65,7 +84,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
       setError(vonageError);
       return null;
     }
-  }, [conversationId, recipientId]);
+  }, [conversationId, recipientId, error, clearSessionCache]);
 
   const disconnect = useCallback(() => {
     if (sessionRef.current) {
@@ -95,6 +114,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
     setIsConnecting,
     setIsConnected,
     setError,
+    clearSessionCache,
     setSession: (session: any) => {
       sessionRef.current = session;
     },

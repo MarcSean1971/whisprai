@@ -32,8 +32,13 @@ export function useVonageCallSession({
   setIsConnected,
 }: VonageCallSessionProps) {
   const [connectionAttempts, setConnectionAttempts] = useState(0);
-  const { initializeSession, disconnect: disconnectSession } = useVonageSession({
-    conversationId, recipientId
+  const { 
+    initializeSession, 
+    disconnect: disconnectSession,
+    clearSessionCache 
+  } = useVonageSession({
+    conversationId, 
+    recipientId
   });
 
   const connectSession = useCallback(async () => {
@@ -70,38 +75,58 @@ export function useVonageCallSession({
         .limit(1)
         .single();
 
+      console.log("[VonageCallSession] Found active call:", activeCall);
+
       // Get session data from the server, passing callId if we have it
       const sessionData: VonageSessionData | null = await initializeSession(
         activeCall?.id || undefined
       );
       
       if (!sessionData) {
+        console.error("[VonageCallSession] Failed to get session data");
         setIsConnecting(false);
         setConnectionAttempts(c => c + 1);
+        // Clear session cache to force a fresh attempt next time
+        clearSessionCache();
         return;
       }
+
+      console.log("[VonageCallSession] Initializing OT session with:", {
+        apiKey: sessionData.apiKey,
+        sessionId: sessionData.sessionId
+      });
 
       const otSession = window.OT.initSession(sessionData.apiKey, sessionData.sessionId);
       setSession(otSession);
 
       otSession.on('streamCreated', (event: any) => handleStreamCreated(otSession, event));
       otSession.on('streamDestroyed', (event: any) => destroySubscriber());
-      otSession.on('sessionDisconnected', () => {
+      otSession.on('sessionDisconnected', (event: any) => {
+        console.log("[VonageCallSession] Session disconnected:", event);
         setIsConnected(false);
         destroySubscriber();
       });
-      otSession.on('connectionCreated', () => {});
-      otSession.on('connectionDestroyed', () => {});
+      otSession.on('connectionCreated', (event: any) => {
+        console.log("[VonageCallSession] Connection created:", event);
+      });
+      otSession.on('connectionDestroyed', (event: any) => {
+        console.log("[VonageCallSession] Connection destroyed:", event);
+      });
 
+      console.log("[VonageCallSession] Initializing publisher");
       const pub = initializePublisher();
       if (!pub) {
+        console.error("[VonageCallSession] Failed to initialize publisher");
         setIsConnecting(false);
         setConnectionAttempts(c => c + 1);
+        clearSessionCache();
         throw new Error('Failed to initialize publisher');
       }
 
+      console.log("[VonageCallSession] Connecting to session with token");
       otSession.connect(sessionData.token, (error: any) => {
         if (error) {
+          console.error("[VonageCallSession] Connection error:", error);
           setError({
             type: 'CONNECTION_ERROR',
             message: "Failed to connect to session: " + error.message,
@@ -109,11 +134,14 @@ export function useVonageCallSession({
           });
           setIsConnecting(false);
           setConnectionAttempts(c => c + 1);
+          clearSessionCache();
           return;
         }
 
+        console.log("[VonageCallSession] Connected to session, publishing stream");
         otSession.publish(pub, (pubError: any) => {
           if (pubError) {
+            console.error("[VonageCallSession] Publish error:", pubError);
             setError({
               type: 'PUBLISH_ERROR',
               message: "Failed to publish your stream: " + pubError.message,
@@ -121,14 +149,17 @@ export function useVonageCallSession({
             });
             setIsConnecting(false);
             setConnectionAttempts(c => c + 1);
+            clearSessionCache();
             return;
           }
+          console.log("[VonageCallSession] Successfully published stream");
           setIsConnected(true);
           setIsConnecting(false);
           setConnectionAttempts(0);
         });
       });
     } catch (err: any) {
+      console.error("[VonageCallSession] Connection error:", err);
       setError({
         type: 'INITIALIZATION_ERROR',
         message: err.message || "Failed to set up call",
@@ -136,10 +167,12 @@ export function useVonageCallSession({
       });
       setIsConnecting(false);
       setConnectionAttempts(c => c + 1);
+      clearSessionCache();
     }
   }, [
     conversationId, recipientId, initializeSession, initializePublisher, handleStreamCreated, 
-    destroySubscriber, setError, setIsConnecting, setIsConnected, setSession, maxReconnectAttempts, connectionAttempts
+    destroySubscriber, setError, setIsConnecting, setIsConnected, setSession, maxReconnectAttempts, 
+    connectionAttempts, clearSessionCache, destroyPublisher
   ]);
 
   const disconnectAll = useCallback(() => {
