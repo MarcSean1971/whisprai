@@ -205,9 +205,12 @@ export function useWebRTCPeer({
         const videoTrack = originalStreamRef.current.getVideoTracks()[0];
         
         if (videoTrack && peerRef.current) {
-          const sender = peerRef.current._senders?.find((s: any) => s.track?.kind === 'video');
-          if (sender) {
-            sender.replaceTrack(videoTrack).catch(e => {
+          // Find senders in the peer connection to replace tracks
+          const senders = (peerRef.current as any).getSenders?.();
+          const videoSender = senders?.find((s: RTCRtpSender) => s.track?.kind === 'video');
+          
+          if (videoSender) {
+            videoSender.replaceTrack(videoTrack).catch(e => {
               console.error("Error replacing track:", e);
             });
           }
@@ -231,9 +234,12 @@ export function useWebRTCPeer({
           const screenTrack = screenStream.getVideoTracks()[0];
           
           if (screenTrack) {
-            const sender = peerRef.current._senders?.find((s: any) => s.track?.kind === 'video');
-            if (sender) {
-              sender.replaceTrack(screenTrack).catch(e => {
+            // Find senders in the peer connection to replace tracks
+            const senders = (peerRef.current as any).getSenders?.();
+            const videoSender = senders?.find((s: RTCRtpSender) => s.track?.kind === 'video');
+            
+            if (videoSender) {
+              videoSender.replaceTrack(screenTrack).catch(e => {
                 console.error("Error replacing track:", e);
               });
             }

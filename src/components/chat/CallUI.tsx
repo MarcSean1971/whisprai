@@ -116,32 +116,20 @@ export function CallUI({
               </div>
             )}
             <video
-              ref={remoteVideoRef}
               className="w-full h-full object-cover bg-black"
               autoPlay
               playsInline
-              ref={(el) => {
-                if (el && remoteStream) {
-                  el.srcObject = remoteStream;
-                  remoteVideoRef.current = el;
-                }
-              }}
+              ref={remoteVideoRef}
             />
             
             {/* Local video (picture-in-picture) */}
             <div className="absolute bottom-4 right-4 w-1/4 max-w-[150px] aspect-video rounded-lg overflow-hidden shadow-lg">
               <video
-                ref={localVideoRef}
                 className={`w-full h-full object-cover bg-zinc-800 ${isVideoMuted ? 'hidden' : ''}`}
                 autoPlay
                 playsInline
                 muted
-                ref={(el) => {
-                  if (el && localStream) {
-                    el.srcObject = localStream;
-                    localVideoRef.current = el;
-                  }
-                }}
+                ref={localVideoRef}
               />
               {isVideoMuted && (
                 <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
