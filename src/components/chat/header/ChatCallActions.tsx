@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Phone, Video } from "lucide-react";
 import { toast } from "sonner";
@@ -29,7 +28,7 @@ export function ChatCallActions({
       <Button
         variant="outline"
         size="icon"
-        className={`h-9 w-9 ${isOnline ? 'hover:bg-purple-100 hover:text-purple-600 dark:hover:bg-purple-900/30' : ''}`}
+        className="h-9 w-9"
         disabled={isCalling || !isOnline}
         title={`Video call ${recipientName}`}
         onClick={() => handleCall("video")}
@@ -41,7 +40,7 @@ export function ChatCallActions({
       <Button
         variant="outline"
         size="icon"
-        className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
+        className="h-9 w-9"
         disabled={isCalling || !isOnline}
         title={`Call ${recipientName}`}
         onClick={() => handleCall("audio")}

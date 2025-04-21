@@ -12,13 +12,19 @@ interface Participant {
 interface ChatParticipantsInfoProps {
   participants: Participant[];
   onParticipantClick: (participant: Participant) => void;
+  isOnline?: boolean;
 }
 
-export function ChatParticipantsInfo({ participants, onParticipantClick }: ChatParticipantsInfoProps) {
+export function ChatParticipantsInfo({ 
+  participants, 
+  onParticipantClick,
+  isOnline = false
+}: ChatParticipantsInfoProps) {
   const participantAvatars = participants.map(p => ({
     src: p.avatar_url || '',
     name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-    onClick: () => onParticipantClick(p)
+    onClick: () => onParticipantClick(p),
+    isOnline: isOnline // Only first participant (in 1:1 chats) gets online status
   }));
 
   const participantDetails = participants.map(p => ({

@@ -7,6 +7,7 @@ interface AvatarStackProps {
     src?: string;
     name: string;
     onClick?: () => void;
+    isOnline?: boolean;
   }[];
   limit?: number;
   size?: "sm" | "md" | "lg";
@@ -31,19 +32,23 @@ export function AvatarStack({
   return (
     <div className={cn("flex items-center", className)}>
       {displayAvatars.map((avatar, i) => (
-        <Avatar 
-          key={i} 
-          className={cn(
-            "border-2 border-background cursor-pointer hover:scale-105 transition-transform", 
-            sizeClasses[size]
+        <div key={i} className="relative">
+          <Avatar 
+            className={cn(
+              "border-2 border-background cursor-pointer hover:scale-105 transition-transform", 
+              sizeClasses[size]
+            )}
+            onClick={avatar.onClick}
+          >
+            <AvatarImage src={avatar.src} alt={avatar.name} />
+            <AvatarFallback className="bg-primary/10 text-primary">
+              {avatar.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          {avatar.isOnline && (
+            <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-emerald-500 border-2 border-background" />
           )}
-          onClick={avatar.onClick}
-        >
-          <AvatarImage src={avatar.src} alt={avatar.name} />
-          <AvatarFallback className="bg-primary/10 text-primary">
-            {avatar.name.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        </div>
       ))}
       
       {remainingCount > 0 && (

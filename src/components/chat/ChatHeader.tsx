@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -125,6 +124,7 @@ export function ChatHeader({
           <ChatParticipantsInfo 
             participants={otherParticipants}
             onParticipantClick={handleParticipantClick}
+            isOnline={isOnline}
           />
         </div>
         
