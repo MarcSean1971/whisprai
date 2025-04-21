@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -38,8 +37,8 @@ export function ChatHeader({
   const {
     isCalling, 
     callSession, 
+    incomingCall,
     startCall,
-    incomingCall, 
     acceptCall, 
     rejectCall, 
     status,
@@ -48,7 +47,7 @@ export function ChatHeader({
     endCall,
   } = useWebRTCCalls(conversationId, profile?.id || "", recipient?.id || "");
 
-  const shouldShowCallUI = !!callSession;
+  const shouldShowCallUI = !!callSession || !!incomingCall;
   const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
 
   const {
@@ -98,12 +97,12 @@ export function ChatHeader({
           onToggleVideo={toggleVideo}
           onEndCall={handleEndCall}
           isConnecting={isConnecting}
-          callStatus={callStatus}
+          callStatus={incomingCall ? "incoming" : callStatus}
           isScreenSharing={isScreenSharing}
           onToggleScreenShare={toggleScreenShare}
           duration={callDuration}
-          onAcceptCall={!isCaller ? acceptCall : undefined}
-          onRejectCall={!isCaller ? rejectCall : undefined}
+          onAcceptCall={incomingCall ? acceptCall : undefined}
+          onRejectCall={incomingCall ? rejectCall : undefined}
         />
       )}
       
