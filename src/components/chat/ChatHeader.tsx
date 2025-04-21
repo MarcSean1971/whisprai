@@ -9,6 +9,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
+import { Phone } from "lucide-react";
+import { VoiceCallDialog } from "./voice-call/VoiceCallDialog";
 
 interface Participant {
   id: string;
@@ -38,7 +40,8 @@ export function ChatHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  
+  const [isVoiceCallOpen, setIsVoiceCallOpen] = useState(false);
+
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
   ) || [];
@@ -58,6 +61,8 @@ export function ChatHeader({
     setSelectedParticipant(participant);
     setShowProfile(true);
   };
+
+  const recipient = otherParticipants[0];
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
@@ -82,8 +87,31 @@ export function ChatHeader({
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
+          {recipient && (
+            <>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setIsVoiceCallOpen(true)}
+                title={`Call ${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`}
+              >
+                <Phone className="h-5 w-5" />
+                <span className="sr-only">Call</span>
+              </Button>
+              <VoiceCallDialog
+                isOpen={isVoiceCallOpen}
+                onClose={() => setIsVoiceCallOpen(false)}
+                recipientId={recipient.id}
+                recipientName={
+                  `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() || "Participant"
+                }
+                conversationId={conversationId}
+              />
+            </>
+          )}
           {isSearching ? (
             <div className="flex items-center relative">
               <Input
