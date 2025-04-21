@@ -29,7 +29,6 @@ export function EmojiPickerPopover({
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open && onAfterClose) {
-      // Call menu close callback right away (no delay)
       onAfterClose();
     }
   };

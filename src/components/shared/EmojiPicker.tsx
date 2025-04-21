@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -27,26 +27,34 @@ export function EmojiPicker({
   open,
   onOpenChange
 }: EmojiPickerProps) {
+  const justClosedRef = useRef(false);
+
+  // This ensures onOpenChange(false) is only called once per close
+  const safeClose = () => {
+    if (!justClosedRef.current) {
+      justClosedRef.current = true;
+      onOpenChange(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!open) {
+      // UI is closed, allow next close again
+      justClosedRef.current = false;
+    }
+  }, [open]);
+
   const handleEmojiSelect = (emojiData: any) => {
     console.log('Emoji selected in picker:', emojiData);
-    // First call the callback to handle the emoji
     onEmojiSelect(emojiData);
-    // Then close the dialog with a small delay to allow state updates to propagate
     setTimeout(() => {
-      onOpenChange(false);
-    }, 50);
+      safeClose();
+    }, 0); // Call onOpenChange(false) ASAP after selection
   };
 
   const handleClose = () => {
-    onOpenChange(false);
+    safeClose();
   };
-
-  // Clean up any UI state when the dialog closes
-  useEffect(() => {
-    if (!open) {
-      // Any additional cleanup could go here
-    }
-  }, [open]);
 
   const defaultTrigger = (
     <Button
@@ -83,7 +91,7 @@ export function EmojiPicker({
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          {open && ( // Only render the picker when dialog is open
+          {open && (
             <EmojiPickerReact
               width={300}
               height={350}
