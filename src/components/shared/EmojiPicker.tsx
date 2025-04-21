@@ -50,7 +50,11 @@ export function EmojiPicker({
   // If triggerButton is null, render only the picker content (for use in floating panel)
   if (triggerButton === null) {
     return (
-      <div className="bg-popover rounded-md">
+      <div
+        className="bg-popover rounded-md"
+        style={{ width, minWidth: width, minHeight: height }}
+        onMouseDown={e => e.stopPropagation()}
+      >
         <EmojiPickerReact
           width={width}
           height={height}
