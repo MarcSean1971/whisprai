@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { Button } from "@/components/ui/button";
@@ -39,7 +38,10 @@ export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
             isOwn && "bg-white/10 hover:bg-white/20"
           )}
         >
-          {emoji} {count > 1 && <span className="font-medium">{count}</span>}
+          {emoji}
+          {count > 1 && (
+            <span className="ml-1 font-medium">{count}</span>
+          )}
         </Button>
       ))}
     </div>
