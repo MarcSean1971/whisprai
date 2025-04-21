@@ -1,11 +1,12 @@
 
-import { useState, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useActiveCalls, ActiveCall } from "@/hooks/use-active-calls";
 import { IncomingCallDialog } from "./IncomingCallDialog";
 import { VoiceCallDialog } from "./VoiceCallDialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useCallTimeouts } from "./hooks/useCallTimeouts";
 import { useCallDialogState } from "./hooks/useCallDialogState";
+import { useCallParticipantNames } from "./hooks/useCallParticipantNames";
+import { useCallHandlers } from "./CallHandlers";
 
 export function CallManager() {
   const { incomingCall, outgoingCall, acceptCall, rejectCall, endCall, timeoutCall } = useActiveCalls();
@@ -19,27 +20,9 @@ export function CallManager() {
   const [dismissedCallId, setDismissedCallId] = useState<string | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
 
-  // Call name fetch
-  useCallback(() => {}, []);
+  const { fetchProfileName } = useCallParticipantNames();
 
-  // Fetch participant names
-  const fetchProfileName = useCallback(async (userId: string, setName: (name: string) => void) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', userId)
-        .single();
-      if (error) throw error;
-      const fullName = `${data.first_name || ''} ${data.last_name || ''}`.trim();
-      setName(fullName || 'User');
-    } catch (error) {
-      setName('User');
-    }
-  }, []);
-
-  // Update names whenever relevant call changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (incomingCall) fetchProfileName(incomingCall.caller_id, setCallerName);
     if (outgoingCall) fetchProfileName(outgoingCall.recipient_id, setRecipientName);
   }, [incomingCall, outgoingCall, fetchProfileName]);
@@ -72,31 +55,20 @@ export function CallManager() {
     setDismissedCallId,
   });
 
-  const handleAcceptCall = async (callId: string) => {
-    setShowIncomingDialog(false);
-    setDismissedCallId(callId);
-    setCallError(null);
-    return await acceptCall(callId);
-  };
-
-  const handleRejectCall = async (callId: string) => {
-    setShowIncomingDialog(false);
-    setDismissedCallId(callId);
-    setCallError("Call declined.");
-    await rejectCall(callId);
-    return true;
-  };
-
-  const handleCloseCallDialog = () => {
-    if (currentCall) {
-      endCall(currentCall.id);
-      setDismissedCallId(currentCall.id);
-      setCallError("Call ended.");
-    }
-    setShowCallDialog(false);
-    setCurrentCall(null);
-    setIsOutgoing(false);
-  };
+  const { handleAcceptCall, handleRejectCall, handleCloseCallDialog } = useCallHandlers({
+    incomingCall,
+    outgoingCall,
+    acceptCall,
+    rejectCall,
+    endCall,
+    setShowIncomingDialog,
+    setDismissedCallId,
+    setCallError,
+    setShowCallDialog,
+    setCurrentCall,
+    setIsOutgoing,
+    currentCall,
+  });
 
   return (
     <>
