@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AttachmentControls } from "./controls/AttachmentControls";
 import { EnhanceButton } from "./controls/EnhanceButton";
 import { MessageField } from "./controls/MessageField";
@@ -36,6 +36,24 @@ export function MessageControls({
   const [showWarning, setShowWarning] = useState(false);
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
+
+  // Analyze toxicity when message changes
+  useEffect(() => {
+    if (message.trim()) {
+      const timeoutId = setTimeout(() => {
+        analyzeToxicity(message);
+      }, 500); // Debounce to avoid too many API calls
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [message, analyzeToxicity]);
+
+  // Update last toxicity score when current score changes
+  useEffect(() => {
+    if (toxicityScore > 0) {
+      setLastToxicityScore(toxicityScore);
+    }
+  }, [toxicityScore]);
 
   // Utility function to get button style based on toxicity score
   const getButtonStyle = () => {
@@ -148,4 +166,3 @@ export function MessageControls({
     </>
   );
 }
-
