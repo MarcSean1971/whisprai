@@ -82,50 +82,57 @@ export function CallUIRoot({
     };
   }, []);
 
-  // Main card styling for responsiveness and centering
-  const wrapperClass = `
-    fixed inset-0 z-50 flex items-center justify-center
-    bg-[#f1f0fb] bg-opacity-95
-    p-0
-    transition-all
-  `;
-  const cardClass = `
-    relative flex flex-col w-full h-full max-w-lg max-h-[85vh]
-    sm:max-w-2xl sm:max-h-[85vh]
-    rounded-2xl mx-auto overflow-hidden
-    border border-[#e0ddfa]
-    ring-2 ring-[#d6bcfa]
-    shadow-xl
-    items-center justify-center
-    transition-all
-    bg-white
-  `;
+  // Improved: always include ringtone for connecting & ringing (so it plays ~ immediately)
+  const isRingtoneActive = callStatus === "connecting" || callStatus === "ringing";
 
+  // Main dialog styling for consistent, always-centered, full-viewport light modal
+  // Responsive: will shrink & round on small screens, center always with plenty of padding
   return (
     <Dialog open={true} modal={true}>
       <DialogContent
-        className={wrapperClass}
+        className={`
+          fixed inset-0 z-50 flex items-center justify-center
+          bg-[#f1f0fb] bg-opacity-100
+          p-0 m-0
+          w-full h-full
+          transition-all
+          overflow-hidden
+        `}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           padding: 0,
-          background: "#f1f0fb",
-          boxShadow: "0 4px 36px 0 rgba(80, 46, 203, 0.10)",
+          background: "rgba(241,240,251,1)", // light purple, no alpha
+          minHeight: "100dvh", // proper mobile viewport fit
+          minWidth: "100vw",
         }}
         onInteractOutside={e => e.preventDefault()}
       >
-        {/* Centered, light, responsive card */}
+        {/* Card is always centered and responsive (smaller on small screens, full height/rounded on big) */}
         <div
-          className={cardClass}
+          className={`
+            relative flex flex-col w-full h-full max-w-[430px] max-h-[90vh]
+            sm:max-w-2xl sm:max-h-[90vh]
+            rounded-2xl mx-auto overflow-hidden
+            border border-[#e0ddfa]
+            ring-2 ring-[#d6bcfa]
+            shadow-2xl
+            items-center justify-center
+            bg-white
+            transition-all
+          `}
           style={{
             margin: "auto",
-            boxShadow: "0 4px 36px 0 rgba(80, 46, 203, 0.10)",
+            boxShadow: "0 6px 38px 0 rgba(80, 46, 203, 0.14)",
             background: "#fff",
+            minHeight: 380,
           }}
         >
           {/* Remote video section or connecting indicator */}
-          <div className="relative w-full h-full flex-1 flex items-center justify-center bg-white">
+          <div className="relative w-full h-full flex-1 flex items-center justify-center bg-white rounded-2xl">
+            {/* Always play ringtone on connecting/ringing */}
+            {isRingtoneActive && <CallUIRingtone callStatus={callStatus} />}
             <RemoteVideoView
               remoteStream={remoteStream}
               isConnecting={isConnecting}
@@ -133,9 +140,7 @@ export function CallUIRoot({
               videoRef={remoteVideoRef}
             >
               <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
-              <CallTimer duration={duration} />
-              {/* Ringtone always included */}
-              <CallUIRingtone callStatus={callStatus} />
+              {duration > 0 && <CallTimer duration={duration} />}
             </RemoteVideoView>
             {/* Overlay for "Call Not Answered." */}
             {(callStatus === "missed" || callStatus === "rejected" || callStatus === "ended") && (
@@ -159,7 +164,7 @@ export function CallUIRoot({
             )}
           </div>
           {/* Call controls bar */}
-          <div className="relative z-20 w-full bg-white/80 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa]">
+          <div className="relative z-20 w-full bg-white/90 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa] rounded-b-2xl">
             <CallControls
               isAudioMuted={isAudioMuted}
               onToggleAudio={onToggleAudio}
