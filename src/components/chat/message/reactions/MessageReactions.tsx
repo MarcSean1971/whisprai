@@ -10,7 +10,7 @@ interface MessageReactionsProps {
 
 export function MessageReactions({ messageId, isOwn }: MessageReactionsProps) {
   const { reactions, removeReaction } = useMessageReactions(messageId);
-  
+
   // Group reactions by emoji and count them
   const reactionGroups = reactions.reduce((acc, reaction) => {
     acc[reaction.emoji] = (acc[reaction.emoji] || 0) + 1;
