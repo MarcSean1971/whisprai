@@ -41,7 +41,7 @@ export function ChatHeader({
     startCall,
     acceptCall, 
     rejectCall, 
-    status,
+    status: callSessionStatus,
     updateSignalingData, 
     remoteSignal,
     endCall,
@@ -59,7 +59,7 @@ export function ChatHeader({
     toggleVideo,
     endCall: disconnectCall,
     isConnecting,
-    callStatus,
+    callStatus: peerStatus,
     isScreenSharing,
     toggleScreenShare,
     callDuration
@@ -72,6 +72,13 @@ export function ChatHeader({
     },
     remoteSignal,
   });
+
+  const callStatus = incomingCall ? "incoming" : 
+                    isConnecting ? "connecting" :
+                    peerStatus === "connected" && callSessionStatus === "connected" ? "connected" :
+                    peerStatus;
+
+  console.log("[ChatHeader] Status - Session:", callSessionStatus, "Peer:", peerStatus, "Final:", callStatus);
 
   const handleEndCall = () => {
     if (callSession) {
@@ -97,7 +104,7 @@ export function ChatHeader({
           onToggleVideo={toggleVideo}
           onEndCall={handleEndCall}
           isConnecting={isConnecting}
-          callStatus={incomingCall ? "incoming" : callStatus}
+          callStatus={callStatus}
           isScreenSharing={isScreenSharing}
           onToggleScreenShare={toggleScreenShare}
           duration={callDuration}

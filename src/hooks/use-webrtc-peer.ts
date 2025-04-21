@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
@@ -21,15 +20,16 @@ export function useWebRTCPeer({
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<string>(initiator ? "calling" : "receiving");
+  const [connectionStatus, setConnectionStatus] = useState<string>(initiator ? "calling" : "incoming");
   const [callDuration, setCallDuration] = useState(0);
   const durationTimerRef = useRef<number | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const originalStreamRef = useRef<MediaStream | null>(null);
-  
+
   // Start call duration timer
   useEffect(() => {
     if (connectionStatus === "connected") {
+      console.log("[WebRTC] Starting call duration timer");
       durationTimerRef.current = window.setInterval(() => {
         setCallDuration(prev => prev + 1);
       }, 1000);
@@ -55,14 +55,14 @@ export function useWebRTCPeer({
         
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (!stopped) {
+          console.log("[WebRTC] Got local media stream");
           setLocalStream(stream);
           originalStreamRef.current = stream;
         }
       } catch (e: any) {
         if (!stopped) {
-          console.error("Media error:", e);
+          console.error("[WebRTC] Media error:", e);
           
-          // Try fallback to audio only if video fails
           if (e.name === "NotAllowedError") {
             toast.error("Camera and microphone access denied. Please check your permissions.");
           } else if (e.name === "NotFoundError") {
@@ -86,7 +86,6 @@ export function useWebRTCPeer({
     
     return () => {
       stopped = true;
-      // Stop tracks
       if (localStream) {
         localStream.getTracks().forEach((t) => t.stop());
       }
@@ -100,9 +99,13 @@ export function useWebRTCPeer({
   useEffect(() => {
     if (!localStream) return;
     
+    console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
+    setConnectionStatus(initiator ? "calling" : "incoming");
+    setIsConnecting(true);
+
     const peerOptions: Peer.Options = {
       initiator,
-      trickle: true, // Enable ICE trickling for better connections
+      trickle: true,
       stream: localStream,
       config: {
         iceServers: [
@@ -116,37 +119,40 @@ export function useWebRTCPeer({
     peerRef.current = p;
 
     p.on("signal", data => {
-      console.log("Generated signal:", data);
+      console.log("[WebRTC] Generated signal");
       onSignal(data);
     });
 
     p.on("connect", () => {
-      console.log("Peer connection established!");
+      console.log("[WebRTC] Peer connection established!");
       setIsConnecting(false);
       setConnectionStatus("connected");
       toast.success("Call connected");
     });
 
     p.on("stream", remote => {
-      console.log("Received remote stream", remote);
+      console.log("[WebRTC] Received remote stream");
       setRemoteStream(remote);
     });
 
     p.on("error", err => {
-      console.error("Peer connection error:", err);
+      console.error("[WebRTC] Peer connection error:", err);
       toast.error(`Connection error: ${err.message}`);
+      setConnectionStatus("error");
     });
 
     p.on("close", () => {
-      console.log("Peer connection closed");
+      console.log("[WebRTC] Peer connection closed");
       setConnectionStatus("ended");
     });
 
     if (remoteSignal) {
       try {
+        console.log("[WebRTC] Applying remote signal");
         p.signal(remoteSignal);
+        setConnectionStatus("connecting");
       } catch (e) {
-        console.error("Error applying remote signal:", e);
+        console.error("[WebRTC] Error applying remote signal:", e);
       }
     }
 
@@ -154,22 +160,25 @@ export function useWebRTCPeer({
       try {
         p.destroy();
       } catch (e) {
-        console.error("Error destroying peer:", e);
+        console.error("[WebRTC] Error destroying peer:", e);
       }
     };
   }, [initiator, localStream, onSignal]);
 
-  // Dynamically signal remote offer/answer if remoteSignal updates
+  // Dynamically signal remote offer/answer
   useEffect(() => {
     if (peerRef.current && remoteSignal) {
       try {
-        console.log("Applying remote signal:", remoteSignal);
+        console.log("[WebRTC] Applying new remote signal");
         peerRef.current.signal(remoteSignal);
+        if (connectionStatus === "incoming") {
+          setConnectionStatus("connecting");
+        }
       } catch (e) {
-        console.error("Error applying remote signal:", e);
+        console.error("[WebRTC] Error applying remote signal:", e);
       }
     }
-  }, [remoteSignal]);
+  }, [remoteSignal, connectionStatus]);
 
   // Media controls
   const toggleAudio = useCallback(() => {
@@ -289,6 +298,7 @@ export function useWebRTCPeer({
   }, [isScreenSharing, localStream]);
 
   const endCall = useCallback(() => {
+    console.log("[WebRTC] Ending call");
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
     }
@@ -297,7 +307,7 @@ export function useWebRTCPeer({
       try {
         peerRef.current.destroy();
       } catch (e) {
-        console.error("Error destroying peer:", e);
+        console.error("[WebRTC] Error destroying peer:", e);
       }
     }
     
@@ -324,7 +334,7 @@ export function useWebRTCPeer({
     isVideoMuted,
     toggleVideo,
     endCall,
-    isConnecting: isConnecting && (connectionStatus === "calling" || connectionStatus === "receiving"),
+    isConnecting,
     callStatus: connectionStatus,
     isScreenSharing,
     toggleScreenShare,
