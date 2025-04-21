@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -82,48 +83,42 @@ export function CallUIRoot({
     <Dialog open={true} modal={true}>
       <DialogContent
         className={`
-          z-50 flex items-center justify-center
-          p-0 m-0 
-          w-screen min-h-screen
-          bg-[#f1f0fb] bg-opacity-100
+          z-50 flex items-center justify-center p-0 bg-transparent
+          w-full max-w-lg sm:max-w-2xl
           transition-all
-          overflow-hidden
+          overflow-visible
         `}
         style={{
-          minHeight: "100vh",
-          minWidth: "100vw",
-          height: "100dvh",
-          width: "100vw",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "rgba(241,240,251,1)",
+          background: "transparent",
           padding: 0,
-          margin: 0,
+          boxShadow: "none",
+          minHeight: "unset",
         }}
         onInteractOutside={e => e.preventDefault()}
       >
         <div
           className={`
-            relative flex flex-col w-full h-auto
-            max-w-[430px] max-h-[90vh]
-            sm:max-w-2xl sm:max-h-[90vh]
+            relative flex flex-col w-full
+            max-w-lg sm:max-w-2xl
             rounded-2xl mx-auto overflow-hidden
             border border-[#e0ddfa]
             ring-2 ring-[#d6bcfa]
             shadow-2xl
-            items-center justify-center
             bg-white
+            max-h-[80vh]
+            min-h-[300px]
+            items-center justify-center
             transition-all
           `}
           style={{
             margin: "auto",
-            boxShadow: "0 6px 38px 0 rgba(80, 46, 203, 0.14)",
             background: "#fff",
-            minHeight: 380,
+            height: "100%",
+            maxHeight: "80vh",
           }}
         >
-          <div className="relative w-full h-full flex-1 flex items-center justify-center bg-white rounded-2xl">
+          <div className="relative w-full flex-1 flex items-center justify-center bg-white rounded-2xl max-h-[60vh] min-h-[220px]">
+            {/* Always play ringtone for "ringing"/"connecting" */}
             {isRingtoneActive && <CallUIRingtone callStatus={callStatus} />}
             <RemoteVideoView
               remoteStream={remoteStream}
@@ -154,7 +149,7 @@ export function CallUIRoot({
               </div>
             )}
           </div>
-          <div className="relative z-20 w-full bg-white/90 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa] rounded-b-2xl">
+          <div className="relative z-20 w-full bg-white/95 pt-3 pb-5 px-4 flex items-center justify-center border-t border-[#e0ddfa] rounded-b-2xl">
             <CallControls
               isAudioMuted={isAudioMuted}
               onToggleAudio={onToggleAudio}
