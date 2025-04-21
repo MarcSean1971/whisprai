@@ -4,7 +4,7 @@ import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
@@ -97,7 +97,7 @@ export function ChatHeader({
       return;
     }
     if (!isOnline) {
-      toast.error(`${recipient.first_name || "Recipient"} is currently offline.`);
+      toast.error(`${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`);
       return;
     }
     setCallAttempted(true);

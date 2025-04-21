@@ -1,4 +1,3 @@
-
 import { useParams } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -12,6 +11,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useCallback, Suspense } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
+import { CallManager } from "@/components/chat/voice-call/CallManager";
 
 export default function Chat() {
   const { id } = useParams<{ id: string }>();
@@ -28,14 +28,12 @@ export default function Chat() {
     clearSuggestions 
   } = usePredictiveAnswers(id!, translatedContents);
   
-  // Only use sendMessage from here. sendReply is now only used in inline inputs.
   const handleSendMessage = async (
     content: string, 
     voiceMessageData?: { base64Audio: string; audioPath?: string }, 
     location?: { latitude: number; longitude: number; accuracy: number },
     attachments?: { url: string; name: string; type: string }[]
   ) => {
-    // Never handle replies in main input, let inline reply input handle those.
     await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
     refetch();
@@ -97,9 +95,10 @@ export default function Chat() {
           onSendMessage={handleSendMessage}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
-          // remove replyMode
         />
       </div>
+      
+      <CallManager />
     </div>
   );
 }
