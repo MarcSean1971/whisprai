@@ -1,7 +1,7 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import { useTranslationContext } from '@/contexts/TranslationContext';
+import { useMessageSound } from './use-message-sound';
 
 export function useMessageProcessor(
   messages: any[],
@@ -12,6 +12,7 @@ export function useMessageProcessor(
 ) {
   const [lastProcessedMessageId, setLastProcessedMessageId] = useState<string | null>(null);
   const { translateMessage } = useTranslation();
+  const { playMessageSound } = useMessageSound();
   const { 
     translatedContents, 
     setTranslatedContents, 
@@ -41,7 +42,6 @@ export function useMessageProcessor(
         pendingTranslations.map(async (message) => {
           const translated = await translateMessage(message.content, userLanguage);
           if (translated !== message.content) {
-            // Fix: Create a new object with the previous state and add the new translation
             const newTranslations = {
               ...translatedContents,
               [message.id]: translated
@@ -70,6 +70,7 @@ export function useMessageProcessor(
 
       if (lastMessage.sender_id !== currentUserId) {
         setLastProcessedMessageId(lastMessage.id);
+        playMessageSound();
         onNewReceivedMessage?.();
       }
     };
@@ -79,7 +80,7 @@ export function useMessageProcessor(
     return () => {
       mounted = false;
     };
-  }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress]);
+  }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress, playMessageSound]);
 
   useEffect(() => {
     let mounted = true;
