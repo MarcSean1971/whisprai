@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { generateJwtToken } from "./generateJwtToken.ts";
@@ -51,42 +50,85 @@ serve(async (req) => {
       throw new Error("Vonage API credentials not configured");
     }
 
-    // Generate JWT for OpenTok API
-    const jwt = await generateJwtToken(apiKey, apiSecret);
+    // Generate JWT for OpenTok API (returns {jwt, payload})
+    const { jwt, payload } = await generateJwtToken(apiKey, apiSecret);
 
-    // Session creation
-    const sessionId = await createVonageSession(jwt);
+    // Log JWT and its decoded payload prior to sending to Vonage
+    console.log("[Vonage] Outgoing JWT", jwt);
+    console.log("[Vonage] JWT payload (decoded, should match expectations)", payload);
 
-    // Token generation
-    const tokenResponse = await fetch(
-      `https://api.opentok.com/v2/project/${apiKey}/token`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "X-OPENTOK-AUTH": jwt,
-          Accept: "application/json",
-        },
-        body: new URLSearchParams({
-          session_id: sessionId,
-          role: "publisher",
-          data: JSON.stringify({ userId: user.id }),
-          expire_time: (
-            Math.floor(Date.now() / 1000) + 3600
-          ).toString(), // 1 hour
-        }).toString(),
-      }
-    );
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
-      throw new Error(
-        `Failed to generate token: ${tokenResponse.status} - ${errorText}`
-      );
+    // --- Optionally, decode and validate JWT structure ---
+    // Deno doesn't have a built-in jwt.decode, so we decode manually for logs:
+    function tryDecodePart(part: string) {
+      try { return JSON.parse(atob(part.replace(/-/g, "+").replace(/_/g, "/"))); }
+      catch { return null; }
     }
-    const tokenResult = await tokenResponse.json();
-    if (!tokenResult.token) {
-      throw new Error("No token in response");
+    const [hPart, pPart, sPart] = jwt.split(".");
+    const decodedHeader = tryDecodePart(hPart);
+    const decodedPayload = tryDecodePart(pPart);
+
+    console.log("[Vonage] Decoded JWT header (pre-check)", decodedHeader);
+    console.log("[Vonage] Decoded JWT payload (pre-check)", decodedPayload);
+    // (not verifying signature here; upstream already generated it)
+
+    // Session creation (adds logging)
+    let sessionId: string;
+    try {
+      sessionId = await createVonageSession(jwt);
+      console.log("[Vonage] Created sessionId", sessionId);
+    } catch (err) {
+      console.error("[Vonage] Error when creating session", err?.message || err);
+      throw err;
+    }
+
+    // Token generation (adds logging)
+    let tokenResult;
+    try {
+      const tokenResponse = await fetch(
+        `https://api.opentok.com/v2/project/${apiKey}/token`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "X-OPENTOK-AUTH": jwt,
+            Accept: "application/json",
+          },
+          body: new URLSearchParams({
+            session_id: sessionId,
+            role: "publisher",
+            data: JSON.stringify({ userId: user.id }),
+            expire_time: (
+              Math.floor(Date.now() / 1000) + 3600
+            ).toString(), // 1 hour
+          }).toString(),
+        }
+      );
+
+      // Log details of Vonage response for debugging
+      console.log("[Vonage] Token response status", tokenResponse.status);
+      const tokenRespText = await tokenResponse.text();
+
+      try {
+        tokenResult = JSON.parse(tokenRespText);
+      } catch (e) {
+        console.error("[Vonage] Failed to parse token API response", tokenRespText);
+        throw new Error("Failed to parse token API response: " + tokenRespText);
+      }
+
+      if (!tokenResponse.ok) {
+        console.error("[Vonage] Error response from token API", tokenResult);
+        throw new Error(
+          `Failed to generate token: ${tokenResponse.status} - ${tokenRespText}`
+        );
+      }
+      if (!tokenResult.token) {
+        console.error("[Vonage] No token in response", tokenResult);
+        throw new Error("No token in response");
+      }
+      console.log("[Vonage] Successfully obtained token");
+    } catch (err) {
+      console.error("[Vonage] Error when generating token", err?.message || err);
+      throw err;
     }
 
     // Store session info in database
@@ -121,6 +163,8 @@ serve(async (req) => {
       }
     );
   } catch (error) {
+    // Add detailed error logs
+    console.error("[EdgeFunction] Error Response", error instanceof Error ? error.message : error);
     return new Response(
       JSON.stringify({
         error:
