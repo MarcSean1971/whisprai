@@ -13,6 +13,7 @@ interface EmojiPickerProps {
   align?: "center" | "start" | "end";
   side?: "top" | "bottom" | "left" | "right";
   sideOffset?: number;
+  hideOverlay?: boolean; // NEW: when rendering inside a dropdown-menu, hide overlay
 }
 
 export function EmojiPicker({
@@ -24,14 +25,14 @@ export function EmojiPicker({
   height = 350,
   align = "center",
   side = "bottom",
-  sideOffset = 4
+  sideOffset = 4,
+  hideOverlay = false
 }: EmojiPickerProps) {
   // To prevent overlay click from triggering when click is inside popover
   const popoverRef = useRef<HTMLDivElement>(null);
 
   // Overlay click handler: only closes if click is outside emoji picker
   const handleOverlayClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    // If the click was outside the popover, close it
     if (
       popoverRef.current &&
       !popoverRef.current.contains(event.target as Node)
@@ -48,7 +49,8 @@ export function EmojiPicker({
 
   return (
     <>
-      {open && (
+      {/* ONLY render overlay unless we're inside dropdown (hideOverlay=true) */}
+      {!hideOverlay && open && (
         <div
           aria-label="Emoji picker overlay"
           className="fixed inset-0 bg-black/40 z-[9998]"
@@ -67,7 +69,7 @@ export function EmojiPicker({
           sideOffset={sideOffset}
           className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
           style={{ minWidth: width, minHeight: height }}
-          onMouseDown={e => e.stopPropagation()} // Prevent overlay mousedown bubbling in
+          onMouseDown={e => e.stopPropagation()}
         >
           <div className="bg-popover rounded-md p-2">
             <EmojiPickerReact

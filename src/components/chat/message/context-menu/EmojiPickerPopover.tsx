@@ -7,7 +7,7 @@ import {
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -23,14 +23,14 @@ export function EmojiPickerPopover({
   side = "right", // Open submenu to the right
   onAfterClose,
 }: EmojiPickerPopoverProps) {
-  // We use a ref to track the EmojiPicker submenu content so escape closes only it
+  // Use internal state to open/close the emoji picker inside the dropdown sub-menu
+  const [open, setOpen] = useState(false);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   // When the user picks an emoji, call parent and close dropdown
   const handleSelect = (emojiData: any) => {
     onEmojiSelect(emojiData);
-    // Trick: Normally, Radix closes all menus on click, but emoji-picker handles that by bubbling.
-    // We also trigger onAfterClose if parent wants.
+    setOpen(false);
     if (onAfterClose) onAfterClose();
   };
 
@@ -46,17 +46,31 @@ export function EmojiPickerPopover({
         style={{ minWidth: 300, minHeight: 350 }}
       >
         <div className="bg-popover rounded-md p-2">
+          {/* Pass hideOverlay so it doesn't render an overlay */}
           <EmojiPicker
             onEmojiSelect={handleSelect}
             triggerButton={null}
-            open={true}
-            onOpenChange={() => {}} // No-op, controlled by dropdown
+            open={open}
+            onOpenChange={setOpen}
             width={300}
             height={350}
             align={align}
             side={side}
             sideOffset={4}
+            hideOverlay={true}
           />
+          {/* Show a button to open the Emoji picker if not already open */}
+          {!open && (
+            <button
+              className="flex items-center justify-center w-full h-10 rounded hover:bg-accent text-muted-foreground"
+              onClick={() => setOpen(true)}
+              tabIndex={0}
+              type="button"
+            >
+              <Smile className="h-5 w-5 mx-2" />
+              <span>Pick emoji</span>
+            </button>
+          )}
         </div>
       </DropdownMenuSubContent>
     </DropdownMenuSub>
