@@ -1,5 +1,6 @@
 
 import { useCallback } from "react";
+import { ConnectionStatus } from "./types";
 
 interface UseCallCleanupProps {
   localStream: MediaStream | null;
@@ -8,7 +9,7 @@ interface UseCallCleanupProps {
   durationTimerRef: React.MutableRefObject<number | null>;
   setLocalStream: (stream: MediaStream | null) => void;
   setRemoteStream: (stream: MediaStream | null) => void;
-  setConnectionStatus: (status: string) => void;
+  setConnectionStatus: (status: ConnectionStatus) => void;
   setCallDuration: (duration: number) => void;
 }
 

@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from "react";
 import { UseWebRTCPeerReturn, WebRTCPeerOptions, ConnectionStatus } from "./webrtc/types";
 import { useMediaStream } from "./webrtc/use-media-stream";
@@ -29,6 +28,10 @@ export function useWebRTCPeer({
     setIsConnecting(false);
   }, []);
 
+  const handleSetConnectionStatus = useCallback((status: ConnectionStatus) => {
+    setConnectionStatus(status);
+  }, []);
+
   const { setupPeerConnection, signalPeer, destroyPeer, peerRef, getConnectionState } = usePeerConnection({
     initiator,
     localStream,
@@ -38,7 +41,7 @@ export function useWebRTCPeer({
     onStream: setRemoteStream,
     onClose: () => setConnectionStatus("ended"),
     onError: () => {},
-    setConnectionStatus,
+    setConnectionStatus: handleSetConnectionStatus,
   });
 
   const { toggleScreenShare } = useScreenShareHandler({
