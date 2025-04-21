@@ -2,7 +2,7 @@
 import { Smile } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -19,33 +19,19 @@ export function EmojiPickerPopover({
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // When emoji is chosen, call parent handler
+  // When emoji is chosen, call parent handler. Picker will close via onOpenChange.
   const handleEmojiSelect = (emojiData: any) => {
     onEmojiSelect(emojiData);
-    // We don't need to call setIsOpen(false) here as the picker will call onOpenChange
+    // Picker will call onOpenChange(false) afterwards
   };
 
-  // Ensures dropdown closes immediately after picker closes
+  // Ensures dropdown closes immediately after picker closes.
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
-    
     if (!open && onAfterClose) {
-      // Small delay to ensure all UI updates have processed
-      setTimeout(() => {
-        onAfterClose();
-      }, 50);
+      onAfterClose();
     }
   };
-
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      // If component unmounts while open, ensure we call the after close handler
-      if (isOpen && onAfterClose) {
-        onAfterClose();
-      }
-    };
-  }, [isOpen, onAfterClose]);
 
   const triggerButton = (
     <DropdownMenuItem
