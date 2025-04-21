@@ -17,10 +17,10 @@ export function useUserPresence(userId?: string) {
     
     // First check the current status using a REST call instead of typed client
     const checkInitialStatus = async () => {
-      const response = await fetch(`${supabase.supabaseUrl}/rest/v1/user_presence?user_id=eq.${userId}`, {
+      const response = await fetch(`https://vmwiigfhjvwecnlwppnj.supabase.co/rest/v1/user_presence?user_id=eq.${userId}`, {
         headers: {
-          'apikey': supabase.supabaseKey,
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtd2lpZ2ZoanZ3ZWNubHdwcG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NDE1NzEsImV4cCI6MjA2MDUxNzU3MX0.bHAZN8-ToQfcxPfhHgLQbUnXXwBkpmachGanLaZpwPo",
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtd2lpZ2ZoanZ3ZWNubHdwcG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NDE1NzEsImV4cCI6MjA2MDUxNzU3MX0.bHAZN8-ToQfcxPfhHgLQbUnXXwBkpmachGanLaZpwPo`,
         }
       });
       
@@ -40,11 +40,11 @@ export function useUserPresence(userId?: string) {
     // Update our own presence
     const updateMyPresence = async () => {
       // Use the REST API to avoid type issues
-      await fetch(`${supabase.supabaseUrl}/rest/v1/user_presence`, {
+      await fetch(`https://vmwiigfhjvwecnlwppnj.supabase.co/rest/v1/user_presence`, {
         method: 'POST',
         headers: {
-          'apikey': supabase.supabaseKey,
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'apikey': "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtd2lpZ2ZoanZ3ZWNubHdwcG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NDE1NzEsImV4cCI6MjA2MDUxNzU3MX0.bHAZN8-ToQfcxPfhHgLQbUnXXwBkpmachGanLaZpwPo",
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtd2lpZ2ZoanZ3ZWNubHdwcG5qIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDQ5NDE1NzEsImV4cCI6MjA2MDUxNzU3MX0.bHAZN8-ToQfcxPfhHgLQbUnXXwBkpmachGanLaZpwPo`,
           'Content-Type': 'application/json',
           'Prefer': 'resolution=merge-duplicates'
         },
