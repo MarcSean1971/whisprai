@@ -24,7 +24,7 @@ export function EmojiFloatingPanel({
 
   useEffect(() => {
     if (!open) return;
-    
+
     function onClickOutside(event: MouseEvent) {
       if (
         panelRef.current &&
@@ -33,10 +33,10 @@ export function EmojiFloatingPanel({
         onOpenChange(false);
       }
     }
-    
+
     // Use capture phase to detect clicks before they propagate
     document.addEventListener("mousedown", onClickOutside, true);
-    
+
     return () => {
       document.removeEventListener("mousedown", onClickOutside, true);
     };
@@ -57,6 +57,7 @@ export function EmojiFloatingPanel({
     style.zIndex = 99999;
     style.minWidth = width;
     style.minHeight = height;
+    style.pointerEvents = "auto"; // ensure pointer events enabled for the panel
   }
 
   if (!open || !anchorRect) return null;
@@ -64,29 +65,41 @@ export function EmojiFloatingPanel({
   return createPortal(
     <div
       ref={panelRef}
-      className="bg-popover rounded-md p-2 border shadow-lg"
+      className="rounded-md border shadow-lg"
       style={style}
       tabIndex={-1}
+      // Remove p-2 and any overlay/background on the wrapper!
       onMouseDown={e => {
-        // Prevent mouse events (click, scroll, drag, selection, scrollbar) inside panel from closing it
+        // Prevent mouse events inside panel from closing it
         e.stopPropagation();
       }}
     >
-      <EmojiPicker
-        onEmojiSelect={emoji => {
-          onEmojiSelect(emoji);
-          onOpenChange(false);
+      {/* Give EmojiPicker a real background, no overlay */}
+      <div
+        className="bg-popover rounded-md"
+        style={{
+          width: width,
+          minWidth: width,
+          minHeight: height,
+          background: "#221F26", // solid dark background for emoji panel
         }}
-        triggerButton={null}
-        open={true}
-        onOpenChange={onOpenChange}
-        width={width}
-        height={height}
-        align="center"
-        side="bottom"
-        sideOffset={4}
-        hideOverlay={true}
-      />
+      >
+        <EmojiPicker
+          onEmojiSelect={emoji => {
+            onEmojiSelect(emoji);
+            onOpenChange(false);
+          }}
+          triggerButton={null}
+          open={true}
+          onOpenChange={onOpenChange}
+          width={width}
+          height={height}
+          align="center"
+          side="bottom"
+          sideOffset={4}
+          hideOverlay={true}
+        />
+      </div>
     </div>,
     document.body
   );
