@@ -88,7 +88,7 @@ export function ChatHeader({
     }
   }, [callAttempted, outgoingCall]);
 
-  const handleCallClick = async (callType: 'vonage' | 'p2p' = 'vonage') => {
+  const handleCallClick = async () => {
     if (!recipient) {
       toast.error("No recipient found for this conversation");
       return;
@@ -102,12 +102,12 @@ export function ChatHeader({
       return;
     }
     setCallAttempted(true);
-    const result = await createCall(conversationId, recipient.id, callType);
+    const result = await createCall();
     if (!result) {
       setCallAttempted(false);
       toast.error("Failed to initiate call");
     } else {
-      toast.success(`Starting ${callType === 'p2p' ? 'direct' : 'Vonage'} call...`);
+      toast.success("Starting call...");
     }
   };
 
@@ -137,36 +137,21 @@ export function ChatHeader({
 
         <div className="flex items-center gap-2">
           {recipient && (
-            <>
-              <DropdownMenu open={showCallOptions} onOpenChange={setShowCallOptions}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
-                    disabled={isCallLoading || !!outgoingCall}
-                    title={`Call ${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`}
-                  >
-                    {isCallLoading ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Phone className="h-5 w-5" />
-                    )}
-                    <span className="sr-only">Call</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleCallClick('vonage')}>
-                    <Phone className="h-4 w-4 mr-2" />
-                    Vonage Call
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleCallClick('p2p')}>
-                    <Video className="h-4 w-4 mr-2" />
-                    Direct P2P Call
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+            <Button
+              variant="outline"
+              size="icon"
+              className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
+              disabled={isCallLoading || !!outgoingCall}
+              title={`Call ${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`}
+              onClick={handleCallClick}
+            >
+              {isCallLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Phone className="h-5 w-5" />
+              )}
+              <span className="sr-only">Call</span>
+            </Button>
           )}
           {isSearching ? (
             <div className="flex items-center relative">
