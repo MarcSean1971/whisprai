@@ -85,33 +85,66 @@ export function CallUIRoot({
   return (
     <Dialog open={true} modal={true}>
       <DialogContent
-        className="fixed inset-0 z-50 flex flex-col items-center justify-center p-0 sm:p-6 max-w-full max-h-full m-0 rounded-none sm:rounded-lg sm:max-w-4xl sm:max-h-[90vh]"
-        onInteractOutside={e => e.preventDefault()}>
-        <div className="relative flex flex-col w-full h-full bg-black overflow-hidden">
-          <RemoteVideoView
-            remoteStream={remoteStream}
-            isConnecting={isConnecting}
-            callStatus={callStatus}
-            videoRef={remoteVideoRef}
-          >
-            <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
-            <CallTimer duration={duration} />
-            <CallUIRingtone callStatus={callStatus} />
-          </RemoteVideoView>
-
-          <CallControls
-            isAudioMuted={isAudioMuted}
-            onToggleAudio={onToggleAudio}
-            isVideoMuted={isVideoMuted}
-            onToggleVideo={onToggleVideo}
-            onEndCall={onEndCall}
-            isScreenSharing={isScreenSharing}
-            onToggleScreenShare={onToggleScreenShare}
-            isFullScreen={isFullScreen}
-            onToggleFullScreen={toggleFullScreen}
-            remoteAudioMuted={remoteAudioMuted}
-            onToggleRemoteAudio={toggleRemoteAudio}
-          />
+        className="
+          fixed z-50 inset-0 p-0 flex items-center justify-center
+          bg-[rgba(26,31,44,0.93)] sm:p-0
+          !m-0
+          border-none
+          shadow-2xl
+          !max-w-none !w-screen !h-screen
+          sm:!max-w-2xl sm:!max-h-[90vh] sm:rounded-2xl sm:mx-auto
+          overflow-hidden
+          transition-all
+        "
+        style={{
+          // On small screens take up full, on md+ be centered and sized
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+        }}
+        onInteractOutside={e => e.preventDefault()}
+      >
+        <div
+          className="
+            flex flex-col bg-[#221F26] relative
+            w-full h-full max-w-[500px] max-h-[80vh]
+            sm:max-w-[680px] sm:max-h-[80vh]
+            rounded-2xl overflow-hidden ring-1 ring-neutral-800 shadow-2xl
+            items-center justify-center
+          "
+          style={{
+            margin: "auto",
+            boxShadow: "0 4px 36px 0 rgba(80, 46, 203, 0.19)",
+          }}
+        >
+          <div className="relative w-full h-full flex-1 flex items-center justify-center">
+            <RemoteVideoView
+              remoteStream={remoteStream}
+              isConnecting={isConnecting}
+              callStatus={callStatus}
+              videoRef={remoteVideoRef}
+            >
+              <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
+              <CallTimer duration={duration} />
+              <CallUIRingtone callStatus={callStatus} />
+            </RemoteVideoView>
+          </div>
+          <div className="relative z-20 w-full bg-black/40 pt-4 pb-6 px-4 flex items-center justify-center">
+            <CallControls
+              isAudioMuted={isAudioMuted}
+              onToggleAudio={onToggleAudio}
+              isVideoMuted={isVideoMuted}
+              onToggleVideo={onToggleVideo}
+              onEndCall={onEndCall}
+              isScreenSharing={isScreenSharing}
+              onToggleScreenShare={onToggleScreenShare}
+              isFullScreen={isFullScreen}
+              onToggleFullScreen={toggleFullScreen}
+              remoteAudioMuted={remoteAudioMuted}
+              onToggleRemoteAudio={toggleRemoteAudio}
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>
