@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageContent } from "./chat/message/MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
@@ -147,8 +148,6 @@ export function ChatMessage({
         isDeleting={isDeleting}
         attachments={attachments}
         onReply={handleReply}
-        isReplying={isReplying}
-        onCancelReply={handleReply}
         parent={parent}
         scrollToMessage={scrollToMessage}
       />
