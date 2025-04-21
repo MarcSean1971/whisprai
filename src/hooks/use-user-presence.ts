@@ -36,7 +36,8 @@ export function useUserPresence(userId?: string) {
           const lastSeen = new Date(data.last_seen_at);
           const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
           setIsOnline(lastSeen > twoMinutesAgo);
-          console.log("[Presence] User", userId, "last seen at", lastSeen, "Online?", lastSeen > twoMinutesAgo);
+
+          console.log("[Presence] [CHECK] User", userId, "last_seen_at", lastSeen, "| 2 minutes ago:", twoMinutesAgo, "| Online?", lastSeen > twoMinutesAgo);
         } else {
           setIsOnline(false);
           console.log("[Presence] No presence info found for user", userId);
@@ -45,13 +46,14 @@ export function useUserPresence(userId?: string) {
         // If this is ourselves, and there's no row, upsert presence now (so a row always exists)
         // (This is safe even if it exists, thanks to upsert)
         if (profile && profile.id === userId) {
+          const now = new Date().toISOString();
           const { error: upsertError } = await supabase
             .from("user_presence")
             .upsert(
               {
                 user_id: profile.id,
-                last_seen_at: new Date().toISOString(),
-                created_at: new Date().toISOString(),
+                last_seen_at: now,
+                created_at: now,
               },
               { onConflict: "user_id" }
             );
@@ -69,11 +71,42 @@ export function useUserPresence(userId?: string) {
 
     checkAndUpsertPresence();
 
+    // --- ADDED: "refocus"/visibility upsert for ourselves ---
+    let visibilityHandler: (() => void) | null = null;
+    if (profile && profile.id === userId) {
+      visibilityHandler = async () => {
+        if (document.visibilityState === "visible" || document.hasFocus()) {
+          const now = new Date().toISOString();
+          const { error } = await supabase
+            .from("user_presence")
+            .upsert(
+              {
+                user_id: profile.id,
+                last_seen_at: now,
+                created_at: now,
+              },
+              { onConflict: "user_id" }
+            );
+          if (error) {
+            console.error("[Presence] Upsert on visibilitychange/focus failed:", error);
+          } else {
+            console.log("[Presence] Upsert after visibilitychange/focus for", profile.id, now);
+          }
+        }
+      };
+      window.addEventListener("visibilitychange", visibilityHandler);
+      window.addEventListener("focus", visibilityHandler);
+    }
+
     return () => {
       // Clean up: clear any presence interval when userId changes/unmounts
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
+      }
+      if (visibilityHandler) {
+        window.removeEventListener("visibilitychange", visibilityHandler);
+        window.removeEventListener("focus", visibilityHandler);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,13 +128,14 @@ export function useUserPresence(userId?: string) {
     const updateMyPresence = async () => {
       if (stopped) return;
       try {
+        const now = new Date().toISOString();
         const { error } = await supabase
           .from('user_presence')
           .upsert(
             {
               user_id: profile.id,
-              last_seen_at: new Date().toISOString(),
-              created_at: new Date().toISOString(),
+              last_seen_at: now,
+              created_at: now,
             },
             { onConflict: 'user_id' }
           );
@@ -148,7 +182,7 @@ export function useUserPresence(userId?: string) {
           const lastSeen = new Date(userData.last_seen_at);
           const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
           setIsOnline(lastSeen > twoMinutesAgo);
-          console.log("[Presence] Realtime change for", userId, "last_seen_at", lastSeen, "Online?", lastSeen > twoMinutesAgo);
+          console.log("[Presence] [REALTIME] change", userId, "last_seen_at", lastSeen, "| Online?", lastSeen > twoMinutesAgo);
         }
       )
       .subscribe();
@@ -160,4 +194,3 @@ export function useUserPresence(userId?: string) {
 
   return { isOnline };
 }
-

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -92,10 +91,19 @@ const App = () => {
       }
     });
 
+    const handleFocus = () => {
+      if (userId) {
+        upsertUserPresence(userId);
+        console.log("[Presence][App] Upsert on window focus for", userId);
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       subscription.unsubscribe();
+      window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [userId]);
 
   if (isInitializing) {
     return null;
@@ -150,4 +158,3 @@ const App = () => {
 };
 
 export default App;
-
