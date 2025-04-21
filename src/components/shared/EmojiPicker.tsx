@@ -1,3 +1,4 @@
+
 import { X, Smile } from "lucide-react";
 import EmojiPickerReact from "emoji-picker-react";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface EmojiPickerProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -30,11 +31,10 @@ function forceBlurActiveElement() {
   }
 }
 
-// NEW: Utility to forcibly remove ALL Radix overlay blocks if present (fix stuck overlays)
-// Aggressively targets dialog, alert-dialog, dropdown, and popover overlays
-function forceRemoveAllRadixOverlays() {
+// Safer overlay cleanup approach that doesn't directly remove DOM nodes
+// but hides them and marks them for cleanup
+function safeHideOverlays() {
   if (typeof window !== "undefined" && typeof document !== "undefined") {
-    // Covers dialog, alert-dialog, dropdown, and popover overlays (Radix v1)
     const selectors = [
       '.radix-dialog-overlay',
       '[data-radix-dialog-overlay]',
@@ -42,17 +42,28 @@ function forceRemoveAllRadixOverlays() {
       '[data-radix-alert-dialog-overlay]',
       '[data-state="open"].fixed.bg-black\\/80',
       '.radix-dropdown-menu-content',
-      '[data-radix-popper-content-wrapper]', // popover/dropdown portal
-      '[data-side][data-state="open"].z-50', // some Radix overlays set z-50
-      '.fixed.z-50.bg-black\\/80', // fallback
-      '[data-state="open"].z-50', // fallback
+      '[data-radix-popper-content-wrapper]',
+      '[data-side][data-state="open"].z-50',
+      '.fixed.z-50.bg-black\\/80',
+      '[data-state="open"].z-50',
     ];
+    
     const overlays = document.querySelectorAll(selectors.join(','));
+    
     overlays.forEach(overlay => {
-      console.warn("[EmojiPicker] Removing stuck overlay:", overlay);
-      // Remove from DOM if possible
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
+      // Instead of removing, hide with pointer-events: none and opacity: 0
+      // Let React handle the actual removal
+      if (overlay instanceof HTMLElement) {
+        console.log("[EmojiPicker] Hiding overlay:", overlay);
+        overlay.style.opacity = "0";
+        overlay.style.pointerEvents = "none";
+        overlay.style.visibility = "hidden";
+        
+        // Add a class we can identify later
+        overlay.classList.add("emoji-picker-cleaned");
+        
+        // Set data attribute to mark as processed
+        overlay.setAttribute("data-emoji-picker-processed", "true");
       }
     });
   }
@@ -65,41 +76,74 @@ export function EmojiPicker({
   onOpenChange,
 }: EmojiPickerProps) {
   const justClosedRef = useRef(false);
+  const [internalOpen, setInternalOpen] = useState(open);
+  
+  // Sync internal state with external state
+  useEffect(() => {
+    setInternalOpen(open);
+  }, [open]);
 
   const safeClose = () => {
     if (!justClosedRef.current) {
       justClosedRef.current = true;
+      
+      // First hide overlays
+      safeHideOverlays();
+      
+      // Then update state
+      setInternalOpen(false);
       onOpenChange(false);
-      // After dialog attempts to close, forcibly remove overlays of any kind
-      setTimeout(() => {
-        forceRemoveAllRadixOverlays();
-      }, 10);
+      
       console.log("[EmojiPicker] Dialog closed");
     }
   };
 
   useEffect(() => {
-    if (!open) {
+    if (!internalOpen) {
       justClosedRef.current = false;
       forceBlurActiveElement();
-      setTimeout(() => {
-        forceRemoveAllRadixOverlays();
-      }, 10);
+      safeHideOverlays();
     } else {
       console.log("[EmojiPicker] Dialog opened");
     }
-  }, [open]);
+  }, [internalOpen]);
+
+  // Add a global event listener to handle clicks after an emoji is selected
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      // Check if there are any invisible overlays left and hide them
+      const processedOverlays = document.querySelectorAll('[data-emoji-picker-processed="true"]');
+      if (processedOverlays.length > 0) {
+        console.log("[EmojiPicker] Cleanup on global click, found:", processedOverlays.length, "overlays");
+        processedOverlays.forEach(overlay => {
+          if (overlay instanceof HTMLElement) {
+            overlay.style.opacity = "0";
+            overlay.style.pointerEvents = "none";
+            overlay.style.visibility = "hidden";
+          }
+        });
+      }
+    };
+    
+    document.addEventListener('click', handleGlobalClick);
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+    };
+  }, []);
 
   const handleEmojiSelect = (emojiData: any) => {
-    // Immediately close dialog FIRST to remove overlay instantly
+    // First hide overlays safely
+    safeHideOverlays();
+    
+    // Then close dialog through state updates
     safeClose();
-    // (Make sure no modal overlay blocks remain before fulfilling side effects)
+    
+    // Wait a bit for React to process state changes before calling callback
     setTimeout(() => {
       forceBlurActiveElement();
-      forceRemoveAllRadixOverlays();
       onEmojiSelect(emojiData);
       console.log('[EmojiPicker] Emoji selected in picker:', emojiData);
-    }, 10);
+    }, 50);
   };
 
   const handleClose = () => {
@@ -120,13 +164,19 @@ export function EmojiPicker({
   );
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={internalOpen} onOpenChange={(state) => {
+      setInternalOpen(state);
+      onOpenChange(state);
+    }}>
       <DialogTrigger asChild>
         {triggerButton || defaultTrigger}
       </DialogTrigger>
       <DialogContent
         className="p-0 w-auto border shadow-lg max-w-[350px]"
-        style={{ pointerEvents: open ? "auto" : "none", zIndex: 99999 }}
+        style={{ 
+          pointerEvents: internalOpen ? "auto" : "none", 
+          zIndex: 99999 
+        }}
         data-testid="emoji-dialog-content"
       >
         <DialogTitle>
@@ -145,7 +195,7 @@ export function EmojiPicker({
               <span className="sr-only">Close</span>
             </Button>
           </div>
-          {open && (
+          {internalOpen && (
             <EmojiPickerReact
               width={300}
               height={350}
