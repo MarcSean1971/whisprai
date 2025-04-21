@@ -3,14 +3,34 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+// Define types for our call session
+interface CallSession {
+  id: string;
+  caller_id: string;
+  recipient_id: string;
+  conversation_id: string;
+  status: string;
+  call_type: string;
+  signaling_data: any | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Type for Supabase realtime payload
+interface RealtimePayload {
+  eventType: string;
+  new: CallSession;
+  old: CallSession | null;
+}
+
 /**
  * WebRTC signaling and call logic through Supabase call_sessions.
  * Use this hook to manage call lifecycle: start, receive invitation, respond with signaling, etc.
  */
 export function useWebRTCCalls(conversationId: string, currentUserId: string, otherUserId: string) {
-  const [callSession, setCallSession] = useState<any>(null);
+  const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [isCalling, setIsCalling] = useState(false);
-  const [incomingCall, setIncomingCall] = useState<any>(null);
+  const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [signaling, setSignaling] = useState<any>(null);
 
@@ -29,13 +49,15 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          if (payload.eventType === "INSERT" && payload.new.status === "pending" && payload.new.recipient_id === currentUserId) {
-            setIncomingCall(payload.new);
+          const typedPayload = payload as unknown as RealtimePayload;
+          
+          if (typedPayload.eventType === "INSERT" && typedPayload.new.status === "pending" && typedPayload.new.recipient_id === currentUserId) {
+            setIncomingCall(typedPayload.new);
             setStatus("incoming");
-          } else if (payload.new && (payload.new.caller_id === currentUserId || payload.new.recipient_id === currentUserId)) {
-            setCallSession(payload.new);
-            setStatus(payload.new.status);
-            if (payload.new.status === "ended" || payload.new.status === "rejected" || payload.new.status === "missed") {
+          } else if (typedPayload.new && (typedPayload.new.caller_id === currentUserId || typedPayload.new.recipient_id === currentUserId)) {
+            setCallSession(typedPayload.new);
+            setStatus(typedPayload.new.status);
+            if (typedPayload.new.status === "ended" || typedPayload.new.status === "rejected" || typedPayload.new.status === "missed") {
               setIsCalling(false);
               setIncomingCall(null);
             }
@@ -127,4 +149,3 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
     signaling, setSignaling
   };
 }
-
