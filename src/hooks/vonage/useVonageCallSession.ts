@@ -1,7 +1,8 @@
 
-import { useRef, useCallback, useState } from "react";
+import { useCallback, useState } from "react";
 import { VonageSessionData, VonageError } from "./types";
 import { useVonageSession } from "./use-vonage-session";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VonageCallSessionProps {
   conversationId?: string;
@@ -48,11 +49,32 @@ export function useVonageCallSession({
       setIsConnecting(false);
       return;
     }
+    
     try {
       setIsConnecting(true);
       setError(null);
+      
+      // Find the active call if it exists
+      const { data: user } = await supabase.auth.getUser();
+      
+      if (!user?.user?.id) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { data: activeCall } = await supabase
+        .from('active_calls')
+        .select('*')
+        .or(`caller_id.eq.${user.user.id},recipient_id.eq.${user.user.id}`)
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
-      const sessionData: VonageSessionData | null = await initializeSession();
+      // Get session data from the server, passing callId if we have it
+      const sessionData: VonageSessionData | null = await initializeSession(
+        activeCall?.id || undefined
+      );
+      
       if (!sessionData) {
         setIsConnecting(false);
         setConnectionAttempts(c => c + 1);

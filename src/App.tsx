@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +17,7 @@ import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import Contacts from "./pages/Contacts";
 import { toast } from "sonner";
+import { CallManager } from "./components/chat/voice-call/CallManager";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -117,6 +119,7 @@ const App = () => {
             <div className="mx-auto max-w-2xl bg-background min-h-screen">
               <Toaster />
               <Sonner />
+              {userId && <CallManager />}
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/verify" element={<Verify />} />

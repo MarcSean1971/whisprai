@@ -1,3 +1,4 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -10,9 +11,9 @@ import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { Phone } from "lucide-react";
-import { VoiceCallDialog } from "./voice-call/VoiceCallDialog";
 import { useUserPresence } from "@/hooks/use-user-presence";
 import { toast } from "sonner";
+import { useActiveCalls } from "@/hooks/use-active-calls";
 
 interface Participant {
   id: string;
@@ -42,7 +43,7 @@ export function ChatHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [isVoiceCallOpen, setIsVoiceCallOpen] = useState(false);
+  const { createCall, outgoingCall, isLoading: isCallLoading } = useActiveCalls();
 
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
@@ -67,12 +68,23 @@ export function ChatHeader({
   const recipient = otherParticipants[0];
   const { isOnline } = useUserPresence(recipient?.id);
   
-  const handleCallClick = () => {
-    if (isOnline) {
-      setIsVoiceCallOpen(true);
-    } else {
-      toast.error(`${recipient.first_name || "Recipient"} is currently offline.`);
+  const handleCallClick = async () => {
+    if (!recipient) {
+      toast.error("No recipient found for this conversation");
+      return;
     }
+    
+    if (outgoingCall) {
+      toast.info("You already have an active call");
+      return;
+    }
+    
+    if (!isOnline) {
+      toast.error(`${recipient.first_name || "Recipient"} is currently offline.`);
+      return;
+    }
+    
+    await createCall(conversationId, recipient.id);
   };
 
   return (
@@ -107,20 +119,16 @@ export function ChatHeader({
                 size="icon"
                 className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
                 onClick={handleCallClick}
+                disabled={isCallLoading || !!outgoingCall}
                 title={`Call ${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`}
               >
-                <Phone className="h-5 w-5" />
+                {isCallLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <Phone className="h-5 w-5" />
+                )}
                 <span className="sr-only">Call</span>
               </Button>
-              <VoiceCallDialog
-                isOpen={isVoiceCallOpen}
-                onClose={() => setIsVoiceCallOpen(false)}
-                recipientId={recipient.id}
-                recipientName={
-                  `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() || "Participant"
-                }
-                conversationId={conversationId}
-              />
             </>
           )}
           {isSearching ? (

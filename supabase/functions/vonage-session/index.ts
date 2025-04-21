@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
 import { generateJwtToken } from "./generateJwtToken.ts";
@@ -38,7 +39,7 @@ serve(async (req) => {
     }
 
     // Parse body
-    const { conversationId, recipientId } = await req.json();
+    const { conversationId, recipientId, callId } = await req.json();
     if (!conversationId || !recipientId) {
       throw new Error("Missing required parameters");
     }
@@ -136,6 +137,7 @@ serve(async (req) => {
       .sort()
       .join("-")}`;
 
+    // Store session in call_sessions table (for backward compatibility)
     const { error: insertError } = await supabaseClient
       .from("call_sessions")
       .insert({
@@ -146,7 +148,21 @@ serve(async (req) => {
       });
 
     if (insertError) {
-      throw new Error(`Failed to store session: ${insertError.message}`);
+      console.error("[Vonage] Failed to store session in call_sessions:", insertError.message);
+    }
+
+    // Update active_calls table with session_id if callId is provided
+    if (callId) {
+      const { error: updateError } = await supabaseClient
+        .from("active_calls")
+        .update({ session_id: sessionId })
+        .eq("id", callId);
+
+      if (updateError) {
+        console.error("[Vonage] Failed to update active_calls:", updateError.message);
+      } else {
+        console.log("[Vonage] Updated active_calls with sessionId for callId:", callId);
+      }
     }
 
     return new Response(

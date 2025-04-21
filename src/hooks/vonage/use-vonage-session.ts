@@ -10,7 +10,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
   const sessionRef = useRef<any>(null);
   const sessionDataRef = useRef<VonageSessionData | null>(null);
 
-  const initializeSession = useCallback(async () => {
+  const initializeSession = useCallback(async (callId?: string) => {
     if (!conversationId || !recipientId) {
       console.error('Missing required parameters:', { conversationId, recipientId });
       setError({
@@ -21,7 +21,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
     }
 
     try {
-      console.log('[Vonage Session] Initializing session...', { conversationId, recipientId });
+      console.log('[Vonage Session] Initializing session...', { conversationId, recipientId, callId });
       
       // Check if we already have session data
       if (sessionDataRef.current) {
@@ -30,7 +30,7 @@ export function useVonageSession({ conversationId = 'default', recipientId }: Vo
       }
       
       const { data: sessionData, error: sessionError } = await supabase.functions.invoke('vonage-session', {
-        body: { conversationId, recipientId }
+        body: { conversationId, recipientId, callId }
       });
 
       if (sessionError || !sessionData) {

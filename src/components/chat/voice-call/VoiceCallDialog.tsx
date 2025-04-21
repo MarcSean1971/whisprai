@@ -18,6 +18,7 @@ interface VoiceCallDialogProps {
   recipientId: string;
   recipientName: string;
   conversationId?: string;
+  callStatus?: string;
 }
 
 export function VoiceCallDialog({
@@ -26,6 +27,7 @@ export function VoiceCallDialog({
   recipientId,
   recipientName,
   conversationId,
+  callStatus,
 }: VoiceCallDialogProps) {
   const publisherRef = useRef<HTMLDivElement>(null);
   const subscriberRef = useRef<HTMLDivElement>(null);
@@ -52,8 +54,8 @@ export function VoiceCallDialog({
 
   // Automatically start connecting when dialog opens and party is online
   useEffect(() => {
-    if (isOpen && conversationId && isOnline && !callInitiated) {
-      console.log("[VoiceCall] Initiating call to online user:", recipientId);
+    if (isOpen && conversationId && (isOnline || callStatus === 'accepted') && !callInitiated) {
+      console.log("[VoiceCall] Initiating call to user:", recipientId, "Status:", callStatus);
       // Small delay to ensure DOM elements are ready
       const timer = setTimeout(() => {
         setCallInitiated(true);
@@ -64,16 +66,16 @@ export function VoiceCallDialog({
         clearTimeout(timer);
       };
     }
-  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId]);
+  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus]);
   
   // Check if recipient is offline after connection attempt
   useEffect(() => {
-    if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting) {
+    if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
       toast.error(`${recipientName} appears to be offline.`);
       disconnect();
       onClose();
     }
-  }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose]);
+  }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose, callStatus]);
   
   // Cleanup effect when dialog closes
   useEffect(() => {
@@ -120,12 +122,24 @@ export function VoiceCallDialog({
     onClose();
   };
 
+  // Determine the appropriate dialog title based on call state
+  const getDialogTitle = () => {
+    if (callStatus === 'pending' && isConnecting && !isConnected) {
+      return `Calling ${recipientName}...`;
+    } else if (isConnected) {
+      return `Call with ${recipientName}`;
+    } else if (callStatus === 'accepted' && isConnecting) {
+      return `Connecting to ${recipientName}...`;
+    }
+    return `Call with ${recipientName}`;
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleEndCall()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {isConnecting ? `Calling ${recipientName}...` : `Call with ${recipientName}`}
+            {getDialogTitle()}
           </DialogTitle>
         </DialogHeader>
         

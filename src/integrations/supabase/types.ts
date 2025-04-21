@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      active_calls: {
+        Row: {
+          caller_id: string
+          conversation_id: string
+          created_at: string
+          id: string
+          recipient_id: string
+          session_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          caller_id: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          recipient_id: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          caller_id?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          recipient_id?: string
+          session_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "active_calls_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_settings: {
         Row: {
           created_at: string | null
