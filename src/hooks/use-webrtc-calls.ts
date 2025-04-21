@@ -37,6 +37,8 @@ export function useWebRTCCalls(
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [signaling, setSignaling] = useState<any>(null);
+  const [remoteSignal, setRemoteSignal] = useState<any>(null);
+  const [callHistory, setCallHistory] = useState<CallSession[]>([]);
 
   // Subscribe to real-time updates for call_sessions on this conversation
   useEffect(() => {
@@ -52,49 +54,130 @@ export function useWebRTCCalls(
           table: "call_sessions",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        (payload) => {
-          // Defensive checks with type guards
-          const eventType = (payload as any)?.eventType;
-          const newRow: any = (payload as any)?.new;
+        (payload: any) => {
+          // Handle various event types
+          const eventType = payload?.eventType;
+          const newRow = payload?.new as Partial<CallSession> | null;
+          
           if (!newRow) return;
+          
+          console.log("Call session update:", { eventType, newRow });
 
-          // Only proceed if newRow has required fields
-          if (
-            eventType === "INSERT" &&
-            newRow.status === "pending" &&
-            newRow.recipient_id === currentUserId
-          ) {
-            setIncomingCall(newRow as CallSession);
-            setStatus("incoming");
-          } else if (
-            newRow &&
-            (newRow.caller_id === currentUserId ||
-              newRow.recipient_id === currentUserId)
-          ) {
-            setCallSession(newRow as CallSession);
-            setStatus(newRow.status);
-            if (
-              newRow.status === "ended" ||
-              newRow.status === "rejected" ||
-              newRow.status === "missed"
-            ) {
-              setIsCalling(false);
-              setIncomingCall(null);
+          // Handle INSERT events - new calls
+          if (eventType === "INSERT") {
+            if (newRow.status === "pending" && newRow.recipient_id === currentUserId) {
+              // Incoming call
+              if (newRow) setIncomingCall(newRow as CallSession);
+              setStatus("incoming");
+              
+              // Auto-reject if already in a call
+              if (callSession?.status === "connected") {
+                rejectCall();
+              }
+            } else if (newRow.caller_id === currentUserId) {
+              // Outgoing call
+              if (newRow) setCallSession(newRow as CallSession);
+              setStatus(newRow.status || null);
+            }
+          } 
+          // Handle UPDATE events - status changes
+          else if (eventType === "UPDATE") {
+            if ((newRow.caller_id === currentUserId || newRow.recipient_id === currentUserId)) {
+              if (newRow) {
+                setCallSession(newRow as CallSession);
+                setStatus(newRow.status || null);
+                
+                // Handle session statuses
+                if (newRow.status === "connected") {
+                  setIsCalling(true);
+                  setIncomingCall(null);
+                  toast.success("Call connected");
+                } else if (newRow.status === "ended") {
+                  setIsCalling(false);
+                  setIncomingCall(null);
+                  toast.info("Call ended");
+                } else if (newRow.status === "rejected") {
+                  setIsCalling(false);
+                  setIncomingCall(null);
+                  if (newRow.caller_id === currentUserId) {
+                    toast.error("Call rejected");
+                  }
+                } else if (newRow.status === "missed") {
+                  setIsCalling(false);
+                  setIncomingCall(null);
+                  if (newRow.caller_id === currentUserId) {
+                    toast.error("Call missed");
+                  }
+                }
+                
+                // Check for signaling data updates from the other party
+                if (newRow.signaling_data && newRow.signaling_data !== signaling) {
+                  // Only set the remote signal if it comes from the other user
+                  const isFromOther = 
+                    (newRow.caller_id !== currentUserId && newRow.caller_id) || 
+                    (newRow.recipient_id !== currentUserId && newRow.recipient_id);
+                    
+                  if (isFromOther) {
+                    console.log("Received remote signal from the other party");
+                    setRemoteSignal(newRow.signaling_data);
+                  }
+                }
+              }
             }
           }
         }
       )
       .subscribe();
 
+    // Fetch recent call history
+    fetchCallHistory();
+
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, currentUserId]);
+  }, [conversationId, currentUserId, signaling]);
+
+  // Fetch call history for this conversation
+  const fetchCallHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("call_sessions")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: false })
+        .limit(10);
+        
+      if (error) {
+        console.error("Error fetching call history:", error);
+        return;
+      }
+      
+      if (data) {
+        setCallHistory(data as CallSession[]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch call history:", err);
+    }
+  };
 
   const startCall = useCallback(
     async (callType: "audio" | "video" = "audio") => {
       setIsCalling(true);
       try {
+        // First check if there's an existing active call
+        const { data: existingCall } = await supabase
+          .from("call_sessions")
+          .select("*")
+          .eq("conversation_id", conversationId)
+          .in("status", ["pending", "connected"])
+          .single();
+          
+        if (existingCall) {
+          toast.error("There's already an active call in this conversation");
+          setIsCalling(false);
+          return null;
+        }
+        
         const { data, error } = await supabase
           .from("call_sessions")
           .insert({
@@ -107,13 +190,31 @@ export function useWebRTCCalls(
           })
           .select()
           .single();
+          
         if (error) {
           setIsCalling(false);
           toast.error("Failed to start call.");
           return null;
         }
+        
         setCallSession(data);
         setStatus("pending");
+        toast.success("Calling...");
+        
+        // Auto-cancel call if not answered within 30 seconds
+        setTimeout(async () => {
+          const { data: currentSession } = await supabase
+            .from("call_sessions")
+            .select("status")
+            .eq("id", data.id)
+            .single();
+            
+          if (currentSession?.status === "pending") {
+            endCall(data.id, "missed");
+            toast.error("Call not answered");
+          }
+        }, 30000);
+        
         return data;
       } catch (err) {
         setIsCalling(false);
@@ -126,6 +227,13 @@ export function useWebRTCCalls(
 
   const updateSignalingData = useCallback(
     async (sessionId: string, signalingObj: any) => {
+      // Don't update if it's the same object (prevents loops)
+      if (JSON.stringify(signalingObj) === JSON.stringify(signaling)) {
+        return;
+      }
+      
+      setSignaling(signalingObj);
+      
       // Post updated SDP/candidate to the DB
       const { error } = await supabase
         .from("call_sessions")
@@ -134,31 +242,69 @@ export function useWebRTCCalls(
           updated_at: new Date().toISOString(),
         })
         .eq("id", sessionId);
-      if (error) toast.error("Failed to send signaling data.");
+        
+      if (error) {
+        console.error("Failed to send signaling data:", error);
+      }
     },
-    []
+    [signaling]
   );
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
+    
     const { error } = await supabase
       .from("call_sessions")
       .update({ status: "connected", updated_at: new Date().toISOString() })
       .eq("id", incomingCall.id);
-    if (error) toast.error("Failed to accept call.");
-    else setStatus("connected");
+      
+    if (error) {
+      toast.error("Failed to accept call.");
+    } else {
+      setStatus("connected");
+    }
   }, [incomingCall]);
 
   const rejectCall = useCallback(async () => {
     if (!incomingCall) return;
+    
     const { error } = await supabase
       .from("call_sessions")
       .update({ status: "rejected", updated_at: new Date().toISOString() })
       .eq("id", incomingCall.id);
-    if (error) toast.error("Failed to reject call.");
+      
+    if (error) {
+      toast.error("Failed to reject call.");
+    }
+    
     setIncomingCall(null);
     setStatus("rejected");
   }, [incomingCall]);
+
+  const endCall = useCallback(async (sessionId?: string, endStatus: 'ended' | 'missed' = 'ended') => {
+    const id = sessionId || callSession?.id;
+    
+    if (!id) return;
+    
+    const { error } = await supabase
+      .from("call_sessions")
+      .update({ status: endStatus, updated_at: new Date().toISOString() })
+      .eq("id", id);
+      
+    if (error) {
+      toast.error("Failed to end call.");
+    } else {
+      setCallSession(null);
+      setStatus(null);
+      setIsCalling(false);
+      setIncomingCall(null);
+      setRemoteSignal(null);
+      setSignaling(null);
+      
+      // Refresh call history
+      fetchCallHistory();
+    }
+  }, [callSession]);
 
   useEffect(() => {
     // Auto-clear ended call session
@@ -172,20 +318,6 @@ export function useWebRTCCalls(
     }
   }, [callSession]);
 
-  // Hook up signaling with useWebRTCPeer
-  // We'll store remoteSignal as the last signaling data sent by the other party
-  const [remoteSignal, setRemoteSignal] = useState<any>(null);
-  useEffect(() => {
-    if (!callSession?.signaling_data) return;
-    // We only want to receive remote signal that doesn't come from us
-    if (
-      callSession.caller_id !== currentUserId &&
-      callSession.signaling_data
-    ) {
-      setRemoteSignal(callSession.signaling_data);
-    }
-  }, [callSession, currentUserId]);
-
   return {
     isCalling,
     callSession,
@@ -194,10 +326,11 @@ export function useWebRTCCalls(
     incomingCall,
     acceptCall,
     rejectCall,
+    endCall,
     updateSignalingData,
     signaling,
     setSignaling,
-    remoteSignal, // NEW: for passing to peer hook
+    remoteSignal,
+    callHistory,
   };
 }
-
