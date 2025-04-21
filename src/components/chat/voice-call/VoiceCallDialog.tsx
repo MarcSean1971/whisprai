@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -61,7 +60,6 @@ export function VoiceCallDialog({
     conversationId
   });
 
-  // Handle external error messages
   useEffect(() => {
     if (errorMsg) {
       console.log("[VoiceCallDialog] External error received:", errorMsg);
@@ -72,10 +70,8 @@ export function VoiceCallDialog({
     }
   }, [errorMsg, isOpen]);
 
-  // Initiate call when dialog opens
   useEffect(() => {
     if (isOpen && conversationId && !internalError && !callInitiated) {
-      // Only attempt call if user is online or call status is accepted
       if (isOnline || callStatus === 'accepted') {
         console.log("[VoiceCallDialog] Initiating call:", { 
           callStatus, isOnline, recipientId, conversationId 
@@ -88,7 +84,6 @@ export function VoiceCallDialog({
         }, 500);
         return () => clearTimeout(timer);
       } else {
-        // Handle offline recipient immediately
         console.log("[VoiceCallDialog] Recipient appears offline:", { isOnline, callStatus });
         setInternalError(`${recipientName} appears to be offline.`);
         setShowEndBanner(true);
@@ -101,9 +96,7 @@ export function VoiceCallDialog({
     }
   }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus, internalError, recipientName, onClose]);
 
-  // Handle call connection state changes
   useEffect(() => {
-    // If we're trying to connect but recipient is offline and not already in the call
     if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
       if (callAttempts.current < maxCallAttempts) {
         console.log("[VoiceCallDialog] Retrying call, attempt:", callAttempts.current);
@@ -127,7 +120,6 @@ export function VoiceCallDialog({
     }
   }, [callInitiated, isOnline, hasRemoteParticipant, isConnecting, recipientName, disconnect, onClose, callStatus, connect]);
 
-  // Handle dialog close
   useEffect(() => {
     if (!isOpen && (isConnected || isConnecting)) {
       console.log("[VoiceCallDialog] Dialog closed, cleaning up call");
@@ -148,7 +140,6 @@ export function VoiceCallDialog({
     };
   }, [isOpen, disconnect, isConnected, isConnecting]);
 
-  // Handle vonage errors
   useEffect(() => {
     if (vonageError) {
       console.error("[VoiceCallDialog] Vonage error:", vonageError);
@@ -170,7 +161,6 @@ export function VoiceCallDialog({
     }
   }, [vonageError, onClose]);
 
-  // Handle successfully connected call
   useEffect(() => {
     if (isConnected && hasRemoteParticipant && callInitiated) {
       toast.success(`Connected with ${recipientName}`);

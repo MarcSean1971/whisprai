@@ -1,4 +1,3 @@
-
 import { useRef, useCallback } from "react";
 import { VonagePublisherOptions, VonageError } from "./types";
 
