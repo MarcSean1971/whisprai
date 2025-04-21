@@ -21,6 +21,13 @@ interface EmojiPickerProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Utility to blur any active element (fixes pointer-event trapping by modal overlay)
+function forceBlurActiveElement() {
+  if (typeof window !== "undefined" && document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
+
 export function EmojiPicker({
   onEmojiSelect,
   triggerButton,
@@ -33,7 +40,10 @@ export function EmojiPicker({
   const safeClose = () => {
     if (!justClosedRef.current) {
       justClosedRef.current = true;
+      // Blur any elements to release pointer events
+      forceBlurActiveElement();
       onOpenChange(false);
+      console.log("[EmojiPicker] Dialog closed");
     }
   };
 
@@ -41,15 +51,20 @@ export function EmojiPicker({
     if (!open) {
       // UI is closed, allow next close again
       justClosedRef.current = false;
+      // Extra safety for overlay focus bugs
+      forceBlurActiveElement();
+    } else {
+      console.log("[EmojiPicker] Dialog opened");
     }
   }, [open]);
 
   const handleEmojiSelect = (emojiData: any) => {
-    console.log('Emoji selected in picker:', emojiData);
+    console.log('[EmojiPicker] Emoji selected in picker:', emojiData);
     onEmojiSelect(emojiData);
-    setTimeout(() => {
-      safeClose();
-    }, 0); // Call onOpenChange(false) ASAP after selection
+    // Defensive: blur so overlay can't trap focus/events.
+    forceBlurActiveElement();
+    // Close dialog instantly
+    safeClose();
   };
 
   const handleClose = () => {
@@ -74,7 +89,12 @@ export function EmojiPicker({
       <DialogTrigger asChild>
         {triggerButton || defaultTrigger}
       </DialogTrigger>
-      <DialogContent className="p-0 w-auto border shadow-lg max-w-[350px]">
+      <DialogContent
+        className="p-0 w-auto border shadow-lg max-w-[350px]"
+        // Defensive: remove pointer events if overlay buggy
+        style={{ pointerEvents: open ? "auto" : "none", zIndex: 99999 }}
+        data-testid="emoji-dialog-content"
+      >
         <DialogTitle>
           <VisuallyHidden>Choose an emoji</VisuallyHidden>
         </DialogTitle>
@@ -104,3 +124,4 @@ export function EmojiPicker({
     </Dialog>
   );
 }
+
