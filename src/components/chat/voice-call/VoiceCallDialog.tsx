@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
@@ -11,6 +12,7 @@ import { CallMediaStreams } from "./CallMediaStreams";
 import { CallControlButtons } from "./CallControlButtons";
 import { CallStatusDisplay } from "./CallStatusDisplay";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VoiceCallDialogProps {
   isOpen: boolean;
@@ -40,7 +42,9 @@ export function VoiceCallDialog({
   const [internalError, setInternalError] = useState<string | null>(null);
   const [showEndBanner, setShowEndBanner] = useState(false);
   const callAttempts = useRef(0);
-  const maxCallAttempts = 2;
+  const maxCallAttempts = 3; // Increased from 2 to 3 for more attempts
+  const [manualPresenceChecked, setManualPresenceChecked] = useState(false);
+  const [recipientConfirmedOffline, setRecipientConfirmedOffline] = useState(false);
 
   const {
     isConnecting,
@@ -60,6 +64,45 @@ export function VoiceCallDialog({
     conversationId
   });
 
+  // Add a function to manually check presence in the database
+  const checkRecipientPresenceDirectly = async () => {
+    if (!recipientId) return false;
+    
+    try {
+      const { data, error } = await supabase
+        .from('user_presence')
+        .select('last_seen_at')
+        .eq('user_id', recipientId)
+        .single();
+        
+      if (error) {
+        console.error("[VoiceCallDialog] Error checking recipient presence directly:", error);
+        return false;
+      }
+      
+      if (data && data.last_seen_at) {
+        const lastSeen = new Date(data.last_seen_at);
+        // Use 5 minutes as threshold
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const isRecipientOnline = lastSeen > fiveMinutesAgo;
+        
+        console.log("[VoiceCallDialog] Manual presence check:", {
+          recipientId,
+          lastSeen,
+          fiveMinutesAgo,
+          isOnline: isRecipientOnline
+        });
+        
+        return isRecipientOnline;
+      }
+      
+      return false;
+    } catch (err) {
+      console.error("[VoiceCallDialog] Failed to check recipient presence:", err);
+      return false;
+    }
+  };
+
   useEffect(() => {
     if (errorMsg) {
       console.log("[VoiceCallDialog] External error received:", errorMsg);
@@ -72,38 +115,61 @@ export function VoiceCallDialog({
 
   useEffect(() => {
     if (isOpen && conversationId && !internalError && !callInitiated) {
-      if (isOnline || callStatus === 'accepted') {
-        console.log("[VoiceCallDialog] Initiating call:", { 
-          callStatus, isOnline, recipientId, conversationId 
-        });
-        
-        const timer = setTimeout(() => {
-          setCallInitiated(true);
-          callAttempts.current += 1;
-          connect();
-        }, 500);
-        return () => clearTimeout(timer);
-      } else {
-        console.log("[VoiceCallDialog] Recipient appears offline:", { isOnline, callStatus });
-        setInternalError(`${recipientName} appears to be offline.`);
-        setShowEndBanner(true);
-        const timer = setTimeout(() => {
-          setShowEndBanner(false);
-          onClose();
-        }, 3000);
-        return () => clearTimeout(timer);
-      }
+      // First perform a manual presence check before deciding if user is offline
+      const performManualPresenceCheck = async () => {
+        if (!manualPresenceChecked) {
+          const isRecipientOnlineDirectly = await checkRecipientPresenceDirectly();
+          setManualPresenceChecked(true);
+          
+          // If they're actually online despite what isOnline hook says
+          if (isRecipientOnlineDirectly) {
+            console.log("[VoiceCallDialog] Manual check shows recipient is online, proceeding with call");
+            setCallInitiated(true);
+            callAttempts.current += 1;
+            connect();
+          } else if (isOnline || callStatus === 'accepted') {
+            console.log("[VoiceCallDialog] Initiating call:", { 
+              callStatus, isOnline, recipientId, conversationId 
+            });
+            
+            setCallInitiated(true);
+            callAttempts.current += 1;
+            connect();
+          } else {
+            console.log("[VoiceCallDialog] Both checks indicate recipient is offline:", { isOnline, callStatus });
+            setRecipientConfirmedOffline(true);
+            setInternalError(`${recipientName} appears to be offline.`);
+            setShowEndBanner(true);
+            setTimeout(() => {
+              setShowEndBanner(false);
+              onClose();
+            }, 3000);
+          }
+        }
+      };
+      
+      performManualPresenceCheck();
     }
-  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus, internalError, recipientName, onClose]);
+  }, [isOpen, conversationId, connect, isOnline, callInitiated, recipientId, callStatus, internalError, recipientName, onClose, manualPresenceChecked]);
 
   useEffect(() => {
     if (callInitiated && !isOnline && !hasRemoteParticipant && isConnecting && callStatus !== 'accepted') {
       if (callAttempts.current < maxCallAttempts) {
         console.log("[VoiceCallDialog] Retrying call, attempt:", callAttempts.current);
         disconnect();
-        const timer = setTimeout(() => {
-          callAttempts.current += 1;
-          connect();
+        const timer = setTimeout(async () => {
+          // Before retrying, check presence again
+          const isRecipientOnlineDirectly = await checkRecipientPresenceDirectly();
+          
+          if (isRecipientOnlineDirectly || callStatus === 'accepted') {
+            console.log("[VoiceCallDialog] Recipient appears online on retry, continuing call");
+            callAttempts.current += 1;
+            connect();
+          } else {
+            console.log("[VoiceCallDialog] Recipient still offline, retry attempt:", callAttempts.current);
+            callAttempts.current += 1;
+            connect();
+          }
         }, 1000);
         return () => clearTimeout(timer);
       } else {
@@ -127,6 +193,8 @@ export function VoiceCallDialog({
       setCallInitiated(false);
       setShowEndBanner(false);
       callAttempts.current = 0;
+      setManualPresenceChecked(false);
+      setRecipientConfirmedOffline(false);
     }
     
     return () => {
@@ -136,6 +204,8 @@ export function VoiceCallDialog({
         setCallInitiated(false);
         setShowEndBanner(false);
         callAttempts.current = 0;
+        setManualPresenceChecked(false);
+        setRecipientConfirmedOffline(false);
       }
     };
   }, [isOpen, disconnect, isConnected, isConnecting]);

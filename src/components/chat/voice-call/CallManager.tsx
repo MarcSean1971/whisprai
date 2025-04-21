@@ -7,6 +7,9 @@ import { useCallTimeouts } from "./hooks/useCallTimeouts";
 import { useCallDialogState } from "./hooks/useCallDialogState";
 import { useCallParticipantNames } from "./hooks/useCallParticipantNames";
 import { useCallHandlers } from "./CallHandlers";
+import { useProfile } from "@/hooks/use-profile";
+import { useUserPresence } from "@/hooks/use-user-presence";
+import { supabase } from "@/integrations/supabase/client";
 
 export function CallManager() {
   const { incomingCall, outgoingCall, acceptCall, rejectCall, endCall, timeoutCall } = useActiveCalls();
@@ -19,13 +22,47 @@ export function CallManager() {
   const [showIncomingDialog, setShowIncomingDialog] = useState(false);
   const [dismissedCallId, setDismissedCallId] = useState<string | null>(null);
   const [callError, setCallError] = useState<string | null>(null);
+  const { profile } = useProfile();
+  const { refreshPresence } = useUserPresence(profile?.id);
 
   const { fetchProfileName } = useCallParticipantNames();
 
+  // Add manual refresh of recipient presence when a call is received
   useEffect(() => {
-    if (incomingCall) fetchProfileName(incomingCall.caller_id, setCallerName);
-    if (outgoingCall) fetchProfileName(outgoingCall.recipient_id, setRecipientName);
-  }, [incomingCall, outgoingCall, fetchProfileName]);
+    if (incomingCall) {
+      // When we receive a call, immediately refresh our own presence
+      refreshPresence();
+      
+      // Also fetch caller profile name
+      fetchProfileName(incomingCall.caller_id, setCallerName);
+      
+      // Attempt to update the caller's last seen status (to force them online)
+      if (incomingCall.caller_id) {
+        const updateCallerPresence = async () => {
+          try {
+            // Check if caller has presence record
+            const { data } = await supabase
+              .from('user_presence')
+              .select('*')
+              .eq('user_id', incomingCall.caller_id)
+              .single();
+            
+            console.log("[CallManager] Caller presence data:", data);
+          } catch (err) {
+            console.error("[CallManager] Error checking caller presence:", err);
+          }
+        };
+        
+        updateCallerPresence();
+      }
+    }
+    
+    if (outgoingCall) {
+      // When we make a call, refresh our presence and fetch recipient name
+      refreshPresence();
+      fetchProfileName(outgoingCall.recipient_id, setRecipientName);
+    }
+  }, [incomingCall, outgoingCall, fetchProfileName, refreshPresence]);
 
   const { incomingTimeout, outgoingTimeout } = useCallTimeouts({
     incomingCall,

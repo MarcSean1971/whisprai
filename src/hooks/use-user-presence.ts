@@ -34,10 +34,11 @@ export function useUserPresence(userId?: string) {
 
         if (data && data.last_seen_at) {
           const lastSeen = new Date(data.last_seen_at);
-          const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-          setIsOnline(lastSeen > twoMinutesAgo);
+          // CHANGE: Increased from 2 to 5 minutes for presence timeout
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          setIsOnline(lastSeen > fiveMinutesAgo);
 
-          console.log("[Presence] [CHECK] User", userId, "last_seen_at", lastSeen, "| 2 minutes ago:", twoMinutesAgo, "| Online?", lastSeen > twoMinutesAgo);
+          console.log("[Presence] [CHECK] User", userId, "last_seen_at", lastSeen, "| 5 minutes ago:", fiveMinutesAgo, "| Online?", lastSeen > fiveMinutesAgo);
         } else {
           setIsOnline(false);
           console.log("[Presence] No presence info found for user", userId);
@@ -152,7 +153,8 @@ export function useUserPresence(userId?: string) {
 
     updateMyPresence(); // Immediately update once on load
 
-    intervalRef.current = setInterval(updateMyPresence, 30_000);
+    // CHANGE: Decrease interval from 30s to 20s for more frequent updates
+    intervalRef.current = setInterval(updateMyPresence, 20_000);
 
     // Clean up on unmount/profile change
     return () => {
@@ -180,9 +182,10 @@ export function useUserPresence(userId?: string) {
         (payload) => {
           const userData = payload.new as OnlineUser;
           const lastSeen = new Date(userData.last_seen_at);
-          const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-          setIsOnline(lastSeen > twoMinutesAgo);
-          console.log("[Presence] [REALTIME] change", userId, "last_seen_at", lastSeen, "| Online?", lastSeen > twoMinutesAgo);
+          // CHANGE: Increased from 2 to 5 minutes for presence timeout
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          setIsOnline(lastSeen > fiveMinutesAgo);
+          console.log("[Presence] [REALTIME] change", userId, "last_seen_at", lastSeen, "| Online?", lastSeen > fiveMinutesAgo);
         }
       )
       .subscribe();
@@ -192,5 +195,35 @@ export function useUserPresence(userId?: string) {
     };
   }, [userId]);
 
-  return { isOnline };
+  // Add a new function to explicitly update presence, useful for manual triggering
+  const refreshPresence = async (): Promise<boolean> => {
+    if (!profile?.id) return false;
+    
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from('user_presence')
+        .upsert(
+          {
+            user_id: profile.id,
+            last_seen_at: now,
+            created_at: now,
+          },
+          { onConflict: 'user_id' }
+        );
+      
+      if (error) {
+        console.error("[Presence] Manual refresh failed", error);
+        return false;
+      }
+      
+      console.log("[Presence] Manual refresh successful for", profile.id);
+      return true;
+    } catch (err) {
+      console.error("[Presence] Manual refresh error", err);
+      return false;
+    }
+  };
+
+  return { isOnline, refreshPresence };
 }

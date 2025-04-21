@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -17,7 +17,6 @@ import Chats from "./pages/Chats";
 import Chat from "./pages/Chat";
 import Contacts from "./pages/Contacts";
 import { toast } from "sonner";
-import { CallManager } from "./components/chat/voice-call/CallManager";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,6 +57,13 @@ const App = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // Create a memoized version of upsertUserPresence for this component
+  const updatePresence = useCallback(() => {
+    if (userId) {
+      upsertUserPresence(userId);
+    }
+  }, [userId]);
+
   useEffect(() => {
     const fetchUserId = async () => {
       try {
@@ -93,19 +99,54 @@ const App = () => {
       }
     });
 
+    // Enhanced presence interactions
     const handleFocus = () => {
-      if (userId) {
-        upsertUserPresence(userId);
-        console.log("[Presence][App] Upsert on window focus for", userId);
+      updatePresence();
+      console.log("[Presence][App] Upsert on window focus");
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        updatePresence();
+        console.log("[Presence][App] Upsert on visibility change to visible");
       }
     };
+    
+    const handleMouseMove = () => {
+      // Throttle update to once per minute
+      if (!window.mouseMoveTimer) {
+        window.mouseMoveTimer = setTimeout(() => {
+          updatePresence();
+          window.mouseMoveTimer = null;
+        }, 60000); // Once per minute
+      }
+    };
+    
+    const handleClick = () => {
+      updatePresence();
+    };
+    
+    // Add additional event listeners for better presence detection
     window.addEventListener("focus", handleFocus);
+    window.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("click", handleClick);
+    
+    // Set up regular interval for presence heartbeat (every 40 seconds)
+    const presenceInterval = setInterval(updatePresence, 40000);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("click", handleClick);
+      clearInterval(presenceInterval);
+      if (window.mouseMoveTimer) {
+        clearTimeout(window.mouseMoveTimer);
+      }
     };
-  }, [userId]);
+  }, [userId, updatePresence]);
 
   if (isInitializing) {
     return null;
@@ -119,7 +160,6 @@ const App = () => {
             <div className="mx-auto max-w-2xl bg-background min-h-screen">
               <Toaster />
               <Sonner />
-              {userId && <CallManager />}
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/verify" element={<Verify />} />
