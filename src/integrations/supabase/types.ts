@@ -11,32 +11,38 @@ export type Database = {
     Tables: {
       active_calls: {
         Row: {
+          call_type: string
           caller_id: string
           conversation_id: string
           created_at: string
           id: string
           recipient_id: string
           session_id: string | null
+          signaling_data: Json | null
           status: string
           updated_at: string
         }
         Insert: {
+          call_type?: string
           caller_id: string
           conversation_id: string
           created_at?: string
           id?: string
           recipient_id: string
           session_id?: string | null
+          signaling_data?: Json | null
           status?: string
           updated_at?: string
         }
         Update: {
+          call_type?: string
           caller_id?: string
           conversation_id?: string
           created_at?: string
           id?: string
           recipient_id?: string
           session_id?: string | null
+          signaling_data?: Json | null
           status?: string
           updated_at?: string
         }

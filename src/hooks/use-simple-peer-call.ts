@@ -1,7 +1,7 @@
-
 import { useEffect, useRef, useState } from 'react';
 import SimplePeer from 'simple-peer';
 import { supabase } from '@/integrations/supabase/client';
+import { ActiveCall } from './use-active-calls';
 
 interface UseSimplePeerCallOptions {
   callId: string; 
@@ -31,13 +31,11 @@ export function useSimplePeerCall({
   const peerRef = useRef<SimplePeer.Instance | null>(null);
   const channelRef = useRef<any>(null);
   
-  // Initialize media and peer connection
   const initialize = async () => {
     setIsConnecting(true);
     setError(null);
     
     try {
-      // Get user media (audio only by default)
       const mediaStream = await navigator.mediaDevices.getUserMedia({ 
         audio: true, 
         video: isVideoActive 
@@ -45,7 +43,6 @@ export function useSimplePeerCall({
       
       setLocalStream(mediaStream);
       
-      // Create peer connection
       const peer = new SimplePeer({
         initiator: isInitiator,
         stream: mediaStream,
@@ -53,7 +50,6 @@ export function useSimplePeerCall({
       });
       
       peer.on('signal', (data) => {
-        // Send signaling data via Supabase Realtime
         const signalData = JSON.stringify(data);
         
         if (channelRef.current) {
@@ -64,7 +60,6 @@ export function useSimplePeerCall({
           });
         }
         
-        // Also save to database as fallback
         supabase
           .from('active_calls')
           .update({
@@ -114,7 +109,6 @@ export function useSimplePeerCall({
     }
   };
   
-  // Setup signaling channel
   useEffect(() => {
     if (!callId) return;
     
@@ -141,14 +135,18 @@ export function useSimplePeerCall({
         }
       });
     
-    // Check for existing signaling data in the database
     const checkExistingSignalingData = async () => {
-      const { data } = await supabase
-        .from('active_calls')
+      const { data, error } = await supabase
+        .from<{ signaling_data: Record<string, string> | null }>('active_calls')
         .select('signaling_data')
         .eq('id', callId)
-        .single();
-      
+        .maybeSingle();
+
+      if (error) {
+        console.error("[SimplePeer] Error fetching signaling_data from DB:", error);
+        return;
+      }
+
       if (data?.signaling_data) {
         const key = isInitiator ? 'answer' : 'offer';
         const signalData = data.signaling_data[key];
@@ -173,7 +171,6 @@ export function useSimplePeerCall({
     };
   }, [callId, isInitiator]);
   
-  // Toggle audio
   const toggleAudio = () => {
     if (localStream) {
       const audioTracks = localStream.getAudioTracks();
@@ -184,9 +181,7 @@ export function useSimplePeerCall({
     }
   };
   
-  // Toggle video
   const toggleVideo = async () => {
-    // If we're turning video on and don't have it yet
     if (!isVideoActive && localStream) {
       try {
         const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -202,7 +197,6 @@ export function useSimplePeerCall({
         setError(err instanceof Error ? err : new Error(String(err)));
       }
     } 
-    // If we're turning video off
     else if (isVideoActive && localStream) {
       const videoTracks = localStream.getVideoTracks();
       videoTracks.forEach(track => {
@@ -216,7 +210,6 @@ export function useSimplePeerCall({
     }
   };
   
-  // Disconnect and clean up
   const disconnect = () => {
     if (peerRef.current) {
       peerRef.current.destroy();
