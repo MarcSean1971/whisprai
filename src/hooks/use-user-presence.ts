@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "./use-profile";
 
@@ -11,6 +11,8 @@ interface OnlineUser {
 export function useUserPresence(userId?: string) {
   const [isOnline, setIsOnline] = useState(false);
   const { profile } = useProfile();
+  // Store interval so we can clear it reliably
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -22,7 +24,7 @@ export function useUserPresence(userId?: string) {
           .from('user_presence')
           .select('last_seen_at')
           .eq('user_id', userId)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("[Presence] Failed to fetch initial presence", error);
@@ -30,7 +32,7 @@ export function useUserPresence(userId?: string) {
           return;
         }
 
-        if (data) {
+        if (data && data.last_seen_at) {
           const lastSeen = new Date(data.last_seen_at);
           const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
           setIsOnline(lastSeen > twoMinutesAgo);
@@ -47,19 +49,43 @@ export function useUserPresence(userId?: string) {
 
     checkInitialStatus();
 
-    // 2. If this is our own profile, update our presence every 30s
-    let presenceInterval: NodeJS.Timeout | undefined;
+    return () => {
+      // Clean up: clear any presence interval when userId changes/unmounts
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]); // Only on userId change; presence updater is handled below
+
+  // 2. Handle presence update loop ONLY if this is our own profile
+  useEffect(() => {
+    // Only run if both loaded and id matches
+    if (!userId || !profile || profile.id !== userId) {
+      // Clean up any previous interval if we're switching away
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    let stopped = false;
+
     const updateMyPresence = async () => {
-      if (!profile || profile.id !== userId) return;
+      if (stopped) return;
       try {
-        // Use upsert by inserting with onConflict
         const { error } = await supabase
           .from('user_presence')
-          .upsert({
-            user_id: profile.id,
-            last_seen_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' });
-
+          .upsert(
+            {
+              user_id: profile.id,
+              last_seen_at: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+            },
+            { onConflict: 'user_id' }
+          );
         if (error) {
           console.error("[Presence] Failed to update my presence", error);
         } else {
@@ -70,12 +96,25 @@ export function useUserPresence(userId?: string) {
       }
     };
 
-    if (profile && profile.id === userId) {
-      updateMyPresence();
-      presenceInterval = setInterval(updateMyPresence, 30000);
-    }
+    // Immediately update once
+    updateMyPresence();
 
-    // 3. Subscribe to realtime changes
+    // Then set interval
+    intervalRef.current = setInterval(updateMyPresence, 30_000);
+
+    // Clean up on unmount/profile change
+    return () => {
+      stopped = true;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [userId, profile?.id]);
+
+  // 3. Subscribe to realtime changes
+  useEffect(() => {
+    if (!userId) return;
     const channel = supabase
       .channel(`presence_${userId}`)
       .on(
@@ -98,9 +137,8 @@ export function useUserPresence(userId?: string) {
 
     return () => {
       supabase.removeChannel(channel);
-      if (presenceInterval) clearInterval(presenceInterval);
     };
-  }, [userId, profile]);
+  }, [userId]);
 
   return { isOnline };
 }
