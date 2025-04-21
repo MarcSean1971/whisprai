@@ -61,15 +61,9 @@ export function useSimplePeerCall({
           });
         }
         
-        supabase
-          .from('active_calls')
-          .update({
-            signaling_data: { [isInitiator ? 'offer' : 'answer']: signalData }
-          })
-          .eq('id', callId)
-          .then(({ error }) => {
-            if (error) console.error("[SimplePeer] Error saving signal data:", error);
-          });
+        // The original code tried to update signaling_data in the active_calls table
+        // Since that column no longer exists, we'll use only real-time channels for signaling
+        console.log('[SimplePeer] Signal data generated - using realtime channel for signaling');
       });
       
       peer.on('connect', () => {
@@ -136,40 +130,10 @@ export function useSimplePeerCall({
         }
       });
     
-    const checkExistingSignalingData = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('active_calls')
-          .select('signaling_data')
-          .eq('id', callId)
-          .maybeSingle();
-
-        if (error) {
-          console.error("[SimplePeer] Error fetching signaling_data from DB:", error);
-          return;
-        }
-
-        if (data?.signaling_data) {
-          const key = isInitiator ? 'answer' : 'offer';
-          const signalData = data.signaling_data[key];
-          
-          if (signalData && peerRef.current) {
-            try {
-              console.log(`[SimplePeer] Found existing ${key} in database`);
-              peerRef.current.signal(JSON.parse(signalData));
-            } catch (err) {
-              console.error("[SimplePeer] Error processing existing signal data:", err);
-            }
-          }
-        }
-      } catch (err) {
-        console.error("[SimplePeer] Error in checkExistingSignalingData:", err);
-      }
-    };
-    
-    if (!isInitiator) {
-      checkExistingSignalingData();
-    }
+    // The original checkExistingSignalingData function pulled signaling data from the database
+    // Since that column no longer exists, we're removing this functionality and
+    // relying solely on the real-time channel for signaling
+    console.log("[SimplePeer] Using only real-time signaling");
     
     return () => {
       supabase.removeChannel(channel);
@@ -207,9 +171,6 @@ export function useSimplePeerCall({
       videoTracks.forEach(track => {
         localStream.removeTrack(track);
         track.stop();
-        if (peerRef.current) {
-          peerRef.current.removeTrack(track, localStream);
-        }
       });
       setIsVideoActive(false);
     }
