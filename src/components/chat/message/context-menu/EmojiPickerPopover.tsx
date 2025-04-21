@@ -1,13 +1,11 @@
 
 import { Smile } from "lucide-react";
 import {
-  DropdownMenuItem,
   DropdownMenuSub,
-  DropdownMenuSubContent,
   DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
-import { EmojiPicker } from "@/components/shared/EmojiPicker";
 import { useRef, useState } from "react";
+import { EmojiFloatingPanel } from "./EmojiFloatingPanel";
 
 interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
@@ -23,56 +21,62 @@ export function EmojiPickerPopover({
   side = "right", // Open submenu to the right
   onAfterClose,
 }: EmojiPickerPopoverProps) {
-  // Use internal state to open/close the emoji picker inside the dropdown sub-menu
-  const [open, setOpen] = useState(false);
-  const pickerRef = useRef<HTMLDivElement>(null);
+  const [floatingOpen, setFloatingOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const buttonRef = useRef<HTMLDivElement>(null);
 
-  // When the user picks an emoji, call parent and close dropdown
-  const handleSelect = (emojiData: any) => {
-    onEmojiSelect(emojiData);
-    setOpen(false);
+  // We open the floating panel when this submenu is clicked
+  const handleTriggerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Get the bounding rect of the submenu trigger button
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setAnchorRect(rect);
+    }
+    setFloatingOpen(true);
+  };
+
+  const handleClose = () => {
+    setFloatingOpen(false);
     if (onAfterClose) onAfterClose();
   };
 
+  const handleSelect = (emojiData: any) => {
+    onEmojiSelect(emojiData);
+    handleClose();
+  };
+
   return (
-    <DropdownMenuSub>
-      <DropdownMenuSubTrigger inset>
-        <Smile className="mr-2 h-4 w-4" />
-        <span>Add Reaction</span>
-      </DropdownMenuSubTrigger>
-      <DropdownMenuSubContent
-        ref={pickerRef}
-        className="p-0 w-auto border shadow-lg max-w-[350px] z-[9999] bg-popover"
-        style={{ minWidth: 300, minHeight: 350 }}
-      >
-        <div className="bg-popover rounded-md p-2">
-          {/* Pass hideOverlay so it doesn't render an overlay */}
-          <EmojiPicker
-            onEmojiSelect={handleSelect}
-            triggerButton={null}
-            open={open}
-            onOpenChange={setOpen}
-            width={300}
-            height={350}
-            align={align}
-            side={side}
-            sideOffset={4}
-            hideOverlay={true}
-          />
-          {/* Show a button to open the Emoji picker if not already open */}
-          {!open && (
-            <button
-              className="flex items-center justify-center w-full h-10 rounded hover:bg-accent text-muted-foreground"
-              onClick={() => setOpen(true)}
-              tabIndex={0}
-              type="button"
-            >
-              <Smile className="h-5 w-5 mx-2" />
-              <span>Pick emoji</span>
-            </button>
-          )}
-        </div>
-      </DropdownMenuSubContent>
-    </DropdownMenuSub>
+    <>
+      <DropdownMenuSub>
+        <DropdownMenuSubTrigger
+          asChild
+          inset
+        >
+          <div
+            ref={buttonRef}
+            className="flex items-center px-2 py-1.5 rounded-sm cursor-pointer gap-2 w-full outline-none focus:bg-accent"
+            onClick={handleTriggerClick}
+            tabIndex={0}
+          >
+            <Smile className="mr-2 h-4 w-4" />
+            <span>Add Reaction</span>
+          </div>
+        </DropdownMenuSubTrigger>
+        {/* Don't render submenu content—picker is rendered in portal as panel */}
+      </DropdownMenuSub>
+      <EmojiFloatingPanel
+        anchorRect={anchorRect}
+        open={floatingOpen}
+        onOpenChange={open => {
+          setFloatingOpen(open);
+          if (!open) handleClose();
+        }}
+        onEmojiSelect={handleSelect}
+        width={300}
+        height={350}
+      />
+    </>
   );
 }
