@@ -28,10 +28,10 @@ export function MessageMenuItems({
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
 
-  // Handle emoji select and close menu
-  const handleEmojiSelect = (emojiData: any) => {
+  // Ensure that addReaction is called and awaited before closing the menu.
+  const handleEmojiSelect = async (emojiData: any) => {
     try {
-      addReaction({ emoji: emojiData.emoji });
+      await addReaction({ emoji: emojiData.emoji });
     } catch (error) {
       console.error("Error adding reaction:", error);
       toast.error("Failed to add reaction");
