@@ -67,6 +67,10 @@ export function EmojiFloatingPanel({
       className="bg-popover rounded-md p-2 border shadow-lg"
       style={style}
       tabIndex={-1}
+      onMouseDown={e => {
+        // Prevent mouse events (click, scroll, drag, selection, scrollbar) inside panel from closing it
+        e.stopPropagation();
+      }}
     >
       <EmojiPicker
         onEmojiSelect={emoji => {
