@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, useState, createRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -33,6 +34,7 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
 
+  // Build a ref map for message ids
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
@@ -50,6 +52,7 @@ export function ChatMessages({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
+  // Populate refs for each message
   useEffect(() => {
     messages.forEach(message => {
       if (!messageRefs.current[message.id]) {
@@ -58,6 +61,7 @@ export function ChatMessages({
     });
   }, [messages]);
 
+  // Provides a scrollToMessage function down the tree
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
     if (ref && typeof ref.scrollIntoView === "function") {
@@ -98,6 +102,7 @@ export function ChatMessages({
   );
 }
 
+// Separate component that uses the translation hooks inside the provider
 function TranslationConsumer({
   messages,
   currentUserId,
@@ -135,42 +140,37 @@ function TranslationConsumer({
 
   return (
     <>
-      {messages.map((message, idx) => {
-        const showReplyInput = replyToMessageId === message.id && sendReply && cancelReply;
-        return (
-          <div
-            key={message.id}
-            ref={el => {
-              messageRefs.current[message.id] = el;
-            }}
-          >
-            <MessageList
-              messages={[message]}
-              currentUserId={currentUserId}
-              profile={{ language: userLanguage }}
-              translatedContents={translatedContents}
-              onReply={onReply}
-              replyToMessageId={replyToMessageId}
-              sendReply={sendReply}
-              cancelReply={cancelReply}
-              scrollToMessage={scrollToMessage}
-            />
-            {showReplyInput && (
-              <div className="ml-10 mb-4">
-                <MessageReplyInput
-                  onSubmit={async (content: string) => {
-                    const sent = await sendReply(content);
-                    if (sent && refetch) {
-                      refetch();
-                    }
-                  }}
-                  onCancel={cancelReply}
-                />
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {messages.map((message, idx) => (
+        <div
+          key={message.id}
+          ref={el => {
+            messageRefs.current[message.id] = el;
+          }}
+        >
+          <MessageList
+            messages={[message]}
+            currentUserId={currentUserId}
+            profile={{ language: userLanguage }}
+            translatedContents={translatedContents}
+            onReply={onReply}
+            replyToMessageId={replyToMessageId}
+            scrollToMessage={scrollToMessage}
+          />
+          {replyToMessageId === message.id && sendReply && cancelReply && (
+            <div className="ml-10 mb-4">
+              <MessageReplyInput
+                onSubmit={async (content: string) => {
+                  const sent = await sendReply(content);
+                  if (sent && refetch) {
+                    refetch();
+                  }
+                }}
+                onCancel={cancelReply}
+              />
+            </div>
+          )}
+        </div>
+      ))}
     </>
   );
 }

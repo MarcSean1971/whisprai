@@ -10,8 +10,6 @@ interface MessageListProps {
   translatedContents: Record<string, string>;
   onReply: (messageId: string) => void;
   replyToMessageId?: string | null;
-  sendReply?: (content: string) => Promise<boolean>;
-  cancelReply?: () => void;
   scrollToMessage?: (messageId: string) => void;
 }
 
@@ -22,8 +20,6 @@ export function MessageList({
   translatedContents,
   onReply,
   replyToMessageId,
-  sendReply,
-  cancelReply,
   scrollToMessage
 }: MessageListProps) {
   const handleMessageDelete = () => {
@@ -54,7 +50,6 @@ export function MessageList({
 
     // When replying, scroll to parent if exists
     const handleReply = () => {
-      // Only allow one reply input, parent will not trigger nested input
       onReply(message.id);
       if (message.parent && message.parent.id && scrollToMessage) {
         scrollToMessage(message.parent.id);
