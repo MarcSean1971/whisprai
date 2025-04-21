@@ -5,6 +5,7 @@ import { useMessageProcessor } from "@/hooks/use-message-processor";
 import { MessageList } from "./message/MessageList";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { supabase } from "@/integrations/supabase/client";
+import { MessageReplyInput } from "./message/MessageReplyInput";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -130,18 +131,15 @@ function TranslationConsumer({
           />
           {replyToMessageId === message.id && sendReply && cancelReply && (
             <div className="ml-10 mb-4">
-              {/* MessageReplyInput must take sendReply as onSubmit, clear input after success */}
-              <import('@/components/chat/message/MessageReplyInput').then(({ MessageReplyInput }) =>
-                <MessageReplyInput
-                  onSubmit={async (content: string) => {
-                    const sent = await sendReply(content);
-                    if (sent && refetch) {
-                      refetch();
-                    }
-                  }}
-                  onCancel={cancelReply}
-                />
-              )}
+              <MessageReplyInput
+                onSubmit={async (content: string) => {
+                  const sent = await sendReply(content);
+                  if (sent && refetch) {
+                    refetch();
+                  }
+                }}
+                onCancel={cancelReply}
+              />
             </div>
           )}
         </div>
