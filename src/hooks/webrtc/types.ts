@@ -32,6 +32,7 @@ export interface UseWebRTCPeerReturn {
   callDuration: number;
   connectionDetails?: any;
   callType?: "audio" | "video";
+  setupPeerConnection: () => void;
 }
 
 export interface CallSession {
@@ -55,6 +56,7 @@ export interface UseCallSessionReturn {
   setSignaling: (data: any) => void;
   remoteSignal: any;
   callHistory: CallSession[];
+  resetCallState: () => void;
 }
 
 export interface UseCallActionsReturn {

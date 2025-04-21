@@ -1,10 +1,11 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useUserPresence } from "@/hooks/use-user-presence";
 import { useWebRTCCalls } from "@/hooks/use-webrtc-calls";
 import { useWebRTCPeer } from "@/hooks/use-webrtc-peer";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { CallUI } from "./CallUI";
 import { ChatParticipantsInfo } from "./header/ChatParticipantsInfo";
@@ -45,6 +46,7 @@ export function ChatHeader({
     updateSignalingData, 
     remoteSignal,
     endCall,
+    shouldInitiatePeer
   } = useWebRTCCalls(conversationId, profile?.id || "", recipient?.id || "");
 
   const shouldShowCallUI = !!callSession || !!incomingCall;
@@ -64,7 +66,8 @@ export function ChatHeader({
     isScreenSharing,
     toggleScreenShare,
     callDuration,
-    connectionDetails
+    connectionDetails,
+    setupPeerConnection
   } = useWebRTCPeer({
     initiator: !!isCaller,
     onSignal: s => {
@@ -75,6 +78,14 @@ export function ChatHeader({
     remoteSignal,
     callType: currentCallType
   });
+
+  // Reinitialize peer connection when signaled to do so
+  useEffect(() => {
+    if (shouldInitiatePeer && localStream) {
+      console.log("[ChatHeader] Initializing WebRTC peer connection");
+      setupPeerConnection();
+    }
+  }, [shouldInitiatePeer, setupPeerConnection, localStream]);
 
   const callStatus = incomingCall ? "incoming" : 
                     isConnecting ? "connecting" :

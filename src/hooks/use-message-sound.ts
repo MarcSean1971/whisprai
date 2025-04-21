@@ -10,5 +10,21 @@ export function useMessageSound() {
     });
   }, []);
 
-  return { playMessageSound };
+  const playRingtoneSound = useCallback(() => {
+    const audio = new Audio('/sounds/ringtone.mp3');
+    audio.volume = 0.7;
+    audio.loop = true;
+    const playPromise = audio.play().catch(error => {
+      console.error('Error playing ringtone sound:', error);
+    });
+    
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, []);
+
+  return { playMessageSound, playRingtoneSound };
 }

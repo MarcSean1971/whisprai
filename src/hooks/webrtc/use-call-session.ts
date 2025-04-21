@@ -1,8 +1,9 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { CallSession, UseCallSessionReturn } from "./types";
+import { useMessageSound } from "@/hooks/use-message-sound";
 
 export function useCallSession(
   conversationId: string,
@@ -15,6 +16,54 @@ export function useCallSession(
   const [signaling, setSignaling] = useState<any>(null);
   const [remoteSignal, setRemoteSignal] = useState<any>(null);
   const [callHistory, setCallHistory] = useState<CallSession[]>([]);
+  const { playRingtoneSound } = useMessageSound();
+  const [stopRingtone, setStopRingtone] = useState<(() => void) | null>(null);
+
+  // Reset call state function
+  const resetCallState = useCallback(() => {
+    console.log("[WebRTC] Resetting call state");
+    setIsCalling(false);
+    setIncomingCall(null);
+    setSignaling(null);
+    setRemoteSignal(null);
+    
+    // Stop ringtone if playing
+    if (stopRingtone) {
+      stopRingtone();
+      setStopRingtone(null);
+    }
+  }, [stopRingtone]);
+
+  // Handle call status changes
+  const handleCallStatus = useCallback((status: string | undefined) => {
+    if (status === "connected") {
+      setIsCalling(true);
+      setIncomingCall(null);
+      
+      // Stop ringtone if playing
+      if (stopRingtone) {
+        stopRingtone();
+        setStopRingtone(null);
+      }
+      
+      toast.success("Call connected");
+    } else if (status === "ended") {
+      resetCallState();
+      toast.info("Call ended");
+    } else if (status === "rejected") {
+      resetCallState();
+      toast.error("Call rejected");
+    } else if (status === "missed") {
+      resetCallState();
+      toast.error("Call missed");
+    } else if (status === "pending") {
+      // Start ringtone for incoming calls
+      if (!stopRingtone && incomingCall) {
+        const stopSound = playRingtoneSound();
+        setStopRingtone(() => stopSound);
+      }
+    }
+  }, [incomingCall, playRingtoneSound, resetCallState, stopRingtone]);
 
   // Subscribe to real-time updates for call_sessions
   useEffect(() => {
@@ -50,33 +99,44 @@ export function useCallSession(
     fetchCallHistory();
 
     return () => {
+      if (stopRingtone) {
+        stopRingtone();
+      }
       supabase.removeChannel(channel);
     };
-  }, [conversationId, currentUserId, signaling]);
+  }, [conversationId, currentUserId, signaling, stopRingtone]);
 
-  const handleInsertEvent = (newRow: Partial<CallSession>, currentUserId: string) => {
+  const handleInsertEvent = useCallback((newRow: Partial<CallSession>, currentUserId: string) => {
     if (newRow.status === "pending" && newRow.recipient_id === currentUserId) {
+      console.log("[WebRTC] Incoming call detected");
       setIncomingCall(newRow as CallSession);
       setStatus("incoming");
       
+      // Start ringtone for incoming calls
+      if (!stopRingtone) {
+        const stopSound = playRingtoneSound();
+        setStopRingtone(() => stopSound);
+      }
+      
       if (callSession?.status === "connected") {
         // Auto-reject if already in a call
-        // This needs to be handled by the parent component that has access to rejectCall
         console.log("Already in a call, should auto-reject incoming call");
-        // We'll let the parent component handle this via the incomingCall state
       }
     } else if (newRow.caller_id === currentUserId) {
+      console.log("[WebRTC] Call session created by current user");
       setCallSession(newRow as CallSession);
       setStatus(newRow.status || null);
+      setIsCalling(true);
     }
-  };
+  }, [callSession, playRingtoneSound, stopRingtone]);
 
-  const handleUpdateEvent = (
+  const handleUpdateEvent = useCallback((
     newRow: Partial<CallSession>, 
     currentUserId: string,
     currentSignaling: any
   ) => {
     if ((newRow.caller_id === currentUserId || newRow.recipient_id === currentUserId)) {
+      console.log("[WebRTC] Call session updated:", newRow.status);
       setCallSession(newRow as CallSession);
       setStatus(newRow.status || null);
       
@@ -93,27 +153,7 @@ export function useCallSession(
         }
       }
     }
-  };
-
-  const handleCallStatus = (status: string | undefined) => {
-    if (status === "connected") {
-      setIsCalling(true);
-      setIncomingCall(null);
-      toast.success("Call connected");
-    } else if (status === "ended") {
-      setIsCalling(false);
-      setIncomingCall(null);
-      toast.info("Call ended");
-    } else if (status === "rejected") {
-      setIsCalling(false);
-      setIncomingCall(null);
-      toast.error("Call rejected");
-    } else if (status === "missed") {
-      setIsCalling(false);
-      setIncomingCall(null);
-      toast.error("Call missed");
-    }
-  };
+  }, [handleCallStatus]);
 
   const fetchCallHistory = async () => {
     try {
@@ -146,5 +186,6 @@ export function useCallSession(
     setSignaling,
     remoteSignal,
     callHistory,
+    resetCallState
   };
 }

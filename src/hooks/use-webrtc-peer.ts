@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { UseWebRTCPeerReturn, WebRTCPeerOptions, ConnectionStatus } from "./webrtc/types";
 import { useMediaStream } from "./webrtc/use-media-stream";
 import { useScreenSharing } from "./webrtc/use-screen-sharing";
@@ -21,6 +21,7 @@ export function useWebRTCPeer({
   const [isConnecting, setIsConnecting] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(initiator ? "calling" : "incoming");
   const [connectionDetails, setConnectionDetails] = useState<any>(null);
+  const [peerInitialized, setPeerInitialized] = useState(false);
 
   const { localStream, originalStreamRef, setLocalStream } = useMediaStream(callType);
   const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
@@ -28,9 +29,11 @@ export function useWebRTCPeer({
 
   const handleConnect = useCallback(() => {
     setIsConnecting(false);
+    console.log("[WebRTC] Connection established successfully");
   }, []);
 
   const handleSetConnectionStatus = useCallback((status: ConnectionStatus) => {
+    console.log("[WebRTC] Connection status changed to:", status);
     setConnectionStatus(status);
   }, []);
 
@@ -45,6 +48,40 @@ export function useWebRTCPeer({
     onError: () => {},
     setConnectionStatus: handleSetConnectionStatus,
   });
+
+  // Update connection details for UI
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (peerRef.current) {
+        setConnectionDetails(getConnectionState());
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [getConnectionState, peerRef]);
+
+  // Handle remote signal updates
+  useEffect(() => {
+    if (remoteSignal && peerInitialized) {
+      console.log("[WebRTC] Received new remote signal, applying to peer");
+      signalPeer(remoteSignal);
+    }
+  }, [remoteSignal, signalPeer, peerInitialized]);
+
+  // Initialize peer connection when we have the local stream
+  useEffect(() => {
+    if (localStream && !peerInitialized) {
+      console.log("[WebRTC] Local stream ready, setting up peer connection");
+      const cleanup = setupPeerConnection();
+      setPeerInitialized(true);
+      
+      return () => {
+        if (cleanup) cleanup();
+      };
+    }
+  }, [localStream, peerInitialized, setupPeerConnection]);
 
   const { toggleScreenShare } = useScreenShareHandler({
     peerRef,
@@ -80,6 +117,18 @@ export function useWebRTCPeer({
     setIsVideoMuted(!newState);
   };
 
+  // Re-initialize peer connection if needed
+  const reinitializePeerConnection = useCallback(() => {
+    if (peerInitialized) {
+      destroyPeer();
+    }
+    if (localStream) {
+      console.log("[WebRTC] Re-initializing peer connection");
+      setupPeerConnection();
+      setPeerInitialized(true);
+    }
+  }, [destroyPeer, localStream, peerInitialized, setupPeerConnection]);
+
   return {
     localStream,
     remoteStream,
@@ -94,6 +143,7 @@ export function useWebRTCPeer({
     toggleScreenShare,
     callDuration,
     connectionDetails,
-    callType
+    callType,
+    setupPeerConnection: reinitializePeerConnection
   };
 }
