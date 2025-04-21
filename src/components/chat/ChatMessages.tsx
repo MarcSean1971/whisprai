@@ -137,25 +137,21 @@ function TranslationConsumer({
     onTranslation
   );
 
-  // Helper to check if a current message is not a parent of the reply message, so we only show input once
+  // Only show reply input for the current reply target and not its parent (if also rendered)
   function shouldShowReplyInput(message: any) {
-    // Only show reply input if:
-    // - The current message id matches replyToMessageId
-    // - AND the reply target's parent id is either not set or not visible in this messages array
     if (replyToMessageId !== message.id) return false;
-    // Find if the reply target message has a parent (i.e., we're replying to a reply)
-    const targetMessage = messages.find((m: any) => m.id === replyToMessageId);
-    if (targetMessage && targetMessage.parent && targetMessage.parent.id) {
-      // Only show the reply input for the reply target, not its parent as well
-      return true;
+    // If the parent is present and rendered, do NOT show the input here
+    const target = messages.find((m: any) => m.id === replyToMessageId);
+    if (target && target.parent && target.parent.id) {
+      const parentIsVisible = messages.some((m: any) => m.id === target.parent.id);
+      if (parentIsVisible) return false;
     }
-    // Otherwise just show on match
     return true;
   }
 
   return (
     <>
-      {messages.map((message, idx) => (
+      {messages.map((message) => (
         <div
           key={message.id}
           ref={el => {
@@ -171,8 +167,7 @@ function TranslationConsumer({
             replyToMessageId={replyToMessageId}
             scrollToMessage={scrollToMessage}
           />
-          {/* Show reply input only on the specific message selected for reply */}
-          {sendReply && cancelReply && replyToMessageId === message.id && (
+          {sendReply && cancelReply && shouldShowReplyInput(message) && (
             <div className="ml-10 mb-4">
               <MessageReplyInput
                 onSubmit={async (content: string) => {
