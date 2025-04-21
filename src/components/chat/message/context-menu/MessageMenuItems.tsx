@@ -27,18 +27,20 @@ export function MessageMenuItems({
   onCloseMenu
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
-  
+
+  // Don't call onCloseMenu here; instead, let EmojiPickerPopover handle it after dialog close
   const handleEmojiSelect = (emojiData: any) => {
-    console.log('Emoji selected:', emojiData);
     try {
       addReaction({ emoji: emojiData.emoji });
-      // We immediately close the menu to avoid UI freezing
-      onCloseMenu();
     } catch (error) {
       console.error('Error adding reaction:', error);
       toast.error('Failed to add reaction');
-      onCloseMenu();
     }
+  };
+
+  // New: callback once picker is closed, then close dropdown menu
+  const handleAfterEmojiPickerClose = () => {
+    onCloseMenu();
   };
 
   return (
@@ -50,13 +52,12 @@ export function MessageMenuItems({
         <Reply className="mr-2 h-4 w-4" />
         <span>Reply</span>
       </DropdownMenuItem>
-      
-      <EmojiPickerPopover 
+      <EmojiPickerPopover
         onEmojiSelect={handleEmojiSelect}
         side="right"
         align="start"
+        onAfterClose={handleAfterEmojiPickerClose}
       />
-      
       {showTranslationToggle && (
         <DropdownMenuItem className="cursor-pointer" onClick={() => {
           onToggleTranslation?.();
@@ -66,10 +67,9 @@ export function MessageMenuItems({
           <span>Toggle Translation</span>
         </DropdownMenuItem>
       )}
-      
       {canDelete && (
-        <DropdownMenuItem 
-          className="cursor-pointer text-destructive hover:text-destructive" 
+        <DropdownMenuItem
+          className="cursor-pointer text-destructive hover:text-destructive"
           onClick={() => {
             onDelete?.();
             onCloseMenu();

@@ -8,26 +8,36 @@ interface EmojiPickerPopoverProps {
   onEmojiSelect: (emojiData: any) => void;
   align?: "start" | "end";
   side?: "left" | "right";
+  onAfterClose?: () => void; // NEW: callback for after picker closes
 }
 
 export function EmojiPickerPopover({
   onEmojiSelect,
   align = "start",
-  side = "right"
+  side = "right",
+  onAfterClose, // NEW: callback for menu closure
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // When emoji is chosen, call the parent handler, but only close after selection or explicit close
+  // When emoji is chosen, call parent handler. Picker will close via onOpenChange.
   const handleEmojiSelect = (emojiData: any) => {
     onEmojiSelect(emojiData);
-    // The menu will close from EmojiPicker's onEmojiSelect after selection or via explicit Close
-    // No need to set isOpen(false) here directly—handled inside EmojiPicker
+    // Picker will call onOpenChange(false) afterwards
   };
 
-  // Use DropdownMenuItem as the trigger for opening the popover
+  // Fire callback to close parent dropdown menu after picker closes
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open && onAfterClose) {
+      setTimeout(() => {
+        onAfterClose();
+      }, 75); // Short delay to allow dialog UI to finish
+    }
+  };
+
   const triggerButton = (
-    <DropdownMenuItem 
-      className="cursor-pointer" 
+    <DropdownMenuItem
+      className="cursor-pointer"
       onSelect={(e) => {
         e.preventDefault();
         setIsOpen(true);
@@ -46,7 +56,7 @@ export function EmojiPickerPopover({
       align={align}
       sideOffset={5}
       open={isOpen}
-      onOpenChange={setIsOpen}
+      onOpenChange={handleOpenChange}
     />
   );
 }
