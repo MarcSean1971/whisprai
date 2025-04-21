@@ -54,5 +54,5 @@ export function useMediaStream() {
     };
   }, []);
 
-  return { localStream, originalStreamRef };
+  return { localStream, originalStreamRef, setLocalStream };
 }

@@ -1,8 +1,8 @@
 
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
-import { WebRTCPeerOptions, UseWebRTCPeerReturn } from "./webrtc/types";
+import { WebRTCPeerOptions, UseWebRTCPeerReturn, ConnectionStatus } from "./webrtc/types";
 import { useMediaStream } from "./webrtc/use-media-stream";
 import { useScreenSharing } from "./webrtc/use-screen-sharing";
 import { useCallDuration } from "./webrtc/use-call-duration";
@@ -17,11 +17,11 @@ export function useWebRTCPeer({
   const [isAudioMuted, setIsAudioMuted] = useState(false);
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState(initiator ? "calling" : "incoming");
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>(initiator ? "calling" : "incoming");
 
-  const { localStream, originalStreamRef } = useMediaStream();
+  const { localStream, originalStreamRef, setLocalStream } = useMediaStream();
   const { isScreenSharing, screenStreamRef, setIsScreenSharing, cleanupScreenShare } = useScreenSharing();
-  const { callDuration, durationTimerRef } = useCallDuration(connectionStatus === "connected");
+  const { callDuration, durationTimerRef, setCallDuration } = useCallDuration(connectionStatus === "connected");
 
   useEffect(() => {
     if (!localStream) return;
@@ -194,7 +194,7 @@ export function useWebRTCPeer({
         toast.error("Failed to start screen sharing");
       }
     }
-  }, [isScreenSharing, localStream]);
+  }, [isScreenSharing, localStream, cleanupScreenShare, originalStreamRef, screenStreamRef, setIsScreenSharing, setLocalStream]);
 
   const endCall = useCallback(() => {
     console.log("[WebRTC] Ending call");
@@ -220,7 +220,7 @@ export function useWebRTCPeer({
     setRemoteStream(null);
     setConnectionStatus("ended");
     setCallDuration(0);
-  }, [localStream]);
+  }, [localStream, cleanupScreenShare, durationTimerRef, setLocalStream, setCallDuration]);
 
   return {
     localStream,

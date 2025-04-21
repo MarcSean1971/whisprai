@@ -20,5 +20,5 @@ export function useCallDuration(isConnected: boolean) {
     };
   }, [isConnected]);
 
-  return { callDuration, durationTimerRef };
+  return { callDuration, durationTimerRef, setCallDuration };
 }
