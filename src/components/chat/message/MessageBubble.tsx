@@ -205,15 +205,14 @@ export function MessageBubble({
         {renderParentMessage()}
         <div className="text-sm break-words">{content}</div>
         {renderAttachments()}
-        {/* Emoji reactions should appear inside the bubble, just below content/attachments */}
-        <MessageReactions messageId={id} isOwn={isOwn} />
-        {children}
-        <div className="flex justify-between items-center mt-1">
-          {/* REMOVE the MessageReactions here (now above) */}
+        {/* Emoji reactions and timestamp are in the same flex row, aligned horizontally */}
+        <div className="flex items-center gap-2 mt-1">
+          <MessageReactions messageId={id} isOwn={isOwn} />
           <span className="text-[10px] opacity-70">
             {timestamp}
           </span>
         </div>
+        {children}
       </div>
     </div>
   );
