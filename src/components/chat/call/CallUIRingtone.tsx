@@ -1,22 +1,41 @@
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface CallUIRingtoneProps {
   callStatus: string;
 }
 
+// Make sure ringtone persists and is restarted if needed.
 export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
   useEffect(() => {
-    const audio = new Audio('/sounds/ringtone.mp3');
+    // Only play ringtone when connecting or ringing
     if (callStatus === 'connecting' || callStatus === 'ringing') {
-      audio.loop = true;
-      audio.play().catch(e => console.error('Could not play ringtone:', e));
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/sounds/ringtone.mp3');
+        audioRef.current.loop = true;
+      }
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(e => {
+        // In browsers where autoplay is not allowed, it's fine to be silent.
+        // Optionally: show a notification? (not required)
+      });
+    } else {
+      // Pause and reset ringtone if status is not calling/ringing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     }
+    // Clean up on unmount
     return () => {
-      audio.pause();
-      audio.currentTime = 0;
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
     };
   }, [callStatus]);
 
-  return null; // Just handles sound
+  return null; // Only handles sound
 }
