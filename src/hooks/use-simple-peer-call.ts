@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import SimplePeer from 'simple-peer';
 import { supabase } from '@/integrations/supabase/client';
@@ -136,29 +137,33 @@ export function useSimplePeerCall({
       });
     
     const checkExistingSignalingData = async () => {
-      const { data, error } = await supabase
-        .from<{ signaling_data: Record<string, string> | null }>('active_calls')
-        .select('signaling_data')
-        .eq('id', callId)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('active_calls')
+          .select('signaling_data')
+          .eq('id', callId)
+          .maybeSingle();
 
-      if (error) {
-        console.error("[SimplePeer] Error fetching signaling_data from DB:", error);
-        return;
-      }
+        if (error) {
+          console.error("[SimplePeer] Error fetching signaling_data from DB:", error);
+          return;
+        }
 
-      if (data?.signaling_data) {
-        const key = isInitiator ? 'answer' : 'offer';
-        const signalData = data.signaling_data[key];
-        
-        if (signalData && peerRef.current) {
-          try {
-            console.log(`[SimplePeer] Found existing ${key} in database`);
-            peerRef.current.signal(JSON.parse(signalData));
-          } catch (err) {
-            console.error("[SimplePeer] Error processing existing signal data:", err);
+        if (data?.signaling_data) {
+          const key = isInitiator ? 'answer' : 'offer';
+          const signalData = data.signaling_data[key];
+          
+          if (signalData && peerRef.current) {
+            try {
+              console.log(`[SimplePeer] Found existing ${key} in database`);
+              peerRef.current.signal(JSON.parse(signalData));
+            } catch (err) {
+              console.error("[SimplePeer] Error processing existing signal data:", err);
+            }
           }
         }
+      } catch (err) {
+        console.error("[SimplePeer] Error in checkExistingSignalingData:", err);
       }
     };
     
