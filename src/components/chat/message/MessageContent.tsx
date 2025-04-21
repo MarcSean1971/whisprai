@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
 import { MessageControls } from "./MessageControls";
-import { MessageReplyInput } from "./MessageReplyInput";
 
 interface MessageContentProps {
   id: string;
@@ -20,8 +19,8 @@ interface MessageContentProps {
   onDelete: () => void;
   isDeleting: boolean;
   onReply: (replyContent: string) => void;
-  isReplying?: boolean;
-  onCancelReply?: () => void;
+  // Removed: isReplying?: boolean;
+  // Removed: onCancelReply?: () => void;
   attachments?: {
     url: string;
     name: string;
@@ -57,8 +56,8 @@ export function MessageContent({
   onDelete,
   isDeleting,
   onReply,
-  isReplying = false,
-  onCancelReply,
+  // Removed: isReplying,
+  // Removed: onCancelReply,
   attachments,
   parent,
   scrollToMessage
@@ -102,15 +101,7 @@ export function MessageContent({
           />
         </div>
       </div>
-
-      {isReplying && (
-        <div className="ml-4 mt-2">
-          <MessageReplyInput
-            onSubmit={onReply}
-            onCancel={onCancelReply || (() => {})}
-          />
-        </div>
-      )}
+      {/* Removed reply input section here */}
     </div>
   );
 }
