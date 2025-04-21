@@ -52,7 +52,6 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
   };
 
   const handleBlur = () => {
-    // Only cancel if nothing has been typed, not currently submitting, and not saved
     if (!isSubmitting && !isSaved && (!content || content.trim() === '')) {
       onCancel();
     }
@@ -75,29 +74,27 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
           isSaved && "bg-gray-200 text-gray-700 cursor-not-allowed border-gray-300"
         )}
       />
-      {content.trim() && !isSaved && (
-        <div className="flex gap-1 shrink-0">
-          <Button 
-            type="submit" 
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-            disabled={isSubmitting}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-          <Button 
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      <div className="flex gap-1 shrink-0">
+        <Button 
+          type="submit" 
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+          disabled={isSubmitting || !content.trim() || isSaved}
+        >
+          <Send className="h-4 w-4" />
+        </Button>
+        <Button 
+          type="button"
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-gray-500 hover:text-gray-600 hover:bg-gray-50"
+          onClick={handleCancel}
+          disabled={isSubmitting}
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </form>
   );
 }
