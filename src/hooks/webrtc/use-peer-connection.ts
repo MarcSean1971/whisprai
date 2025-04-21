@@ -1,10 +1,12 @@
+
 import { useRef, useCallback } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
 import { ConnectionStatus } from "./types";
-import { isIceCandidateSignal } from "./ice-connection/types";
-import { getIceServers } from "./ice-connection/get-ice-servers";
 import { useConnectionState } from "./ice-connection/use-connection-state";
+import { usePeerInit } from "./peer/use-peer-init";
+import { usePeerEvents } from "./peer/use-peer-events";
+import { useRTCConnection } from "./peer/use-rtc-connection";
 
 interface UsePeerConnectionProps {
   initiator: boolean;
@@ -41,22 +43,35 @@ export function usePeerConnection({
     clearConnectionTimeout
   } = useConnectionState();
 
+  const { createPeer } = usePeerInit({ initiator, localStream });
+  
+  const { setupPeerEvents } = usePeerEvents({
+    onSignal,
+    onConnect,
+    onStream,
+    onClose,
+    onError,
+    setConnectionStatus,
+    connectionStatsRef,
+    setIceCandidate,
+    clearConnectionTimeout
+  });
+
+  const { setupRTCConnection } = useRTCConnection({
+    setIsIceGathering,
+    connectionStatsRef,
+    toast
+  });
+
   const setupPeerConnection = useCallback(() => {
     if (!localStream) return;
 
     console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     clearConnectionTimeout();
     
-    const peerOptions: Peer.Options = {
-      initiator,
-      trickle: true,
-      stream: localStream,
-      config: {
-        iceServers: getIceServers()
-      }
-    };
+    const p = createPeer();
+    if (!p) return;
     
-    const p = new Peer(peerOptions);
     peerRef.current = p;
     
     connectionStatsRef.current = {
@@ -69,102 +84,11 @@ export function usePeerConnection({
     };
     setIceCandidate(0);
 
-    p.on("signal", data => {
-      console.log("[WebRTC] Generated signal:", data.type || "ICE candidate");
-      onSignal(data);
-      
-      if (isIceCandidateSignal(data)) {
-        connectionStatsRef.current.iceCandidates++;
-        connectionStatsRef.current.lastActivity = Date.now();
-        setIceCandidate(prev => prev + 1);
-      }
-    });
-
-    p.on("connect", () => {
-      console.log("[WebRTC] Peer connection established!");
-      setConnectionStatus("connected");
-      onConnect();
-      
-      if (connectionTimeoutRef.current) {
-        window.clearTimeout(connectionTimeoutRef.current);
-        connectionTimeoutRef.current = null;
-      }
-      
-      toast.success("Call connected");
-    });
-
-    p.on("stream", remote => {
-      console.log("[WebRTC] Received remote stream");
-      onStream(remote);
-    });
-
-    p.on("error", err => {
-      console.error("[WebRTC] Peer connection error:", err);
-      toast.error(`Connection error: ${err.message}`);
-      setConnectionStatus("error");
-      onError(err);
-    });
-
-    p.on("close", () => {
-      console.log("[WebRTC] Peer connection closed");
-      setConnectionStatus("ended");
-      onClose();
-    });
+    setupPeerEvents(p);
     
     const rtcPeerConnection = (p as any)._pc;
     if (rtcPeerConnection) {
-      setIsIceGathering(true);
-      
-      rtcPeerConnection.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-        if (event.candidate) {
-          console.log("[WebRTC] New ICE candidate:", event.candidate.candidate);
-        } else {
-          console.log("[WebRTC] All ICE candidates gathered");
-          setIsIceGathering(false);
-        }
-      };
-      
-      rtcPeerConnection.oniceconnectionstatechange = () => {
-        console.log("[WebRTC] ICE connection state:", rtcPeerConnection.iceConnectionState);
-        connectionStatsRef.current.iceConnectionState = rtcPeerConnection.iceConnectionState;
-        connectionStatsRef.current.lastActivity = Date.now();
-        
-        if (rtcPeerConnection.iceConnectionState === 'failed') {
-          console.warn("[WebRTC] ICE connection failed, possibly blocked by firewall/NAT");
-          toast.error("Connection failed. Network restrictions may be blocking the call.");
-        }
-      };
-      
-      rtcPeerConnection.onicegatheringstatechange = () => {
-        console.log("[WebRTC] ICE gathering state:", rtcPeerConnection.iceGatheringState);
-        connectionStatsRef.current.iceGatheringState = rtcPeerConnection.iceGatheringState;
-        connectionStatsRef.current.lastActivity = Date.now();
-        
-        if (rtcPeerConnection.iceGatheringState === 'complete') {
-          setIsIceGathering(false);
-        }
-      };
-      
-      rtcPeerConnection.onsignalingstatechange = () => {
-        console.log("[WebRTC] Signaling state:", rtcPeerConnection.signalingState);
-        connectionStatsRef.current.signalingState = rtcPeerConnection.signalingState;
-        connectionStatsRef.current.lastActivity = Date.now();
-      };
-      
-      rtcPeerConnection.onconnectionstatechange = () => {
-        console.log("[WebRTC] Connection state:", rtcPeerConnection.connectionState);
-        connectionStatsRef.current.connectionState = rtcPeerConnection.connectionState;
-        connectionStatsRef.current.lastActivity = Date.now();
-        
-        if (rtcPeerConnection.connectionState === 'connected') {
-          console.log("[WebRTC] Successfully connected!");
-          
-          if (connectionTimeoutRef.current) {
-            window.clearTimeout(connectionTimeoutRef.current);
-            connectionTimeoutRef.current = null;
-          }
-        }
-      };
+      setupRTCConnection(rtcPeerConnection);
     }
 
     if (remoteSignal) {
@@ -210,7 +134,19 @@ export function usePeerConnection({
         console.error("[WebRTC] Error destroying peer:", e);
       }
     };
-  }, [initiator, localStream, onSignal, onConnect, onStream, onClose, onError, remoteSignal, setConnectionStatus, clearConnectionTimeout]);
+  }, [
+    initiator,
+    localStream,
+    remoteSignal,
+    setConnectionStatus,
+    clearConnectionTimeout,
+    createPeer,
+    setupPeerEvents,
+    setupRTCConnection,
+    connectionStatsRef,
+    connectionTimeoutRef,
+    setIceCandidate
+  ]);
 
   const signalPeer = useCallback((signal: any) => {
     if (peerRef.current) {
@@ -222,7 +158,7 @@ export function usePeerConnection({
         console.error("[WebRTC] Error applying remote signal:", e);
       }
     }
-  }, []);
+  }, [connectionStatsRef]);
 
   const destroyPeer = useCallback(() => {
     clearConnectionTimeout();
