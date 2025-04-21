@@ -115,6 +115,9 @@ export function ChatMessage({
 
   const handleReply = () => {
     onReply();
+    if (parent && parent.id && scrollToMessage) {
+      scrollToMessage(parent.id);
+    }
   };
 
   return (
@@ -149,7 +152,6 @@ export function ChatMessage({
         parent={parent}
         scrollToMessage={scrollToMessage}
       />
-
       {voiceMessagePath && (
         <VoiceMessagePlayer 
           voiceMessagePath={voiceMessagePath} 

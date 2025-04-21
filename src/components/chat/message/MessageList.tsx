@@ -48,6 +48,14 @@ export function MessageList({
       longitude: message.metadata.location.longitude
     } : undefined;
 
+    // When replying, scroll to parent if exists
+    const handleReply = () => {
+      onReply(message.id);
+      if (message.parent && message.parent.id && scrollToMessage) {
+        scrollToMessage(message.parent.id);
+      }
+    };
+
     return (
       <ChatMessage
         key={message.id}
@@ -71,7 +79,7 @@ export function MessageList({
         onDelete={handleMessageDelete}
         metadata={message.metadata}
         userLanguage={profile?.language}
-        onReply={() => onReply(message.id)}
+        onReply={handleReply}
         isReplying={message.id === replyToMessageId}
         parent={message.parent}
         scrollToMessage={scrollToMessage}

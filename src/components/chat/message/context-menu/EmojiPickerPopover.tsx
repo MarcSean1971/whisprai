@@ -1,8 +1,7 @@
 
 import { Smile } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { EmojiPicker } from "@/components/shared/EmojiPicker";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { EmojiPicker } from "@/components/shared/EmojiPicker";
 import { useState } from "react";
 
 interface EmojiPickerPopoverProps {
@@ -17,14 +16,15 @@ export function EmojiPickerPopover({
   side = "right"
 }: EmojiPickerPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
-  
+
+  // When emoji is chosen, call the parent handler, but only close after selection or explicit close
   const handleEmojiSelect = (emojiData: any) => {
-    // Call the provided callback
     onEmojiSelect(emojiData);
-    // Make sure we close the popover
-    setIsOpen(false);
+    // The menu will close from EmojiPicker's onEmojiSelect after selection or via explicit Close
+    // No need to set isOpen(false) here directly—handled inside EmojiPicker
   };
 
+  // Use DropdownMenuItem as the trigger for opening the popover
   const triggerButton = (
     <DropdownMenuItem 
       className="cursor-pointer" 
