@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,14 +67,15 @@ export function MessageReplyInput({ onSubmit, onCancel }: MessageReplyInputProps
           isSaved && "bg-gray-200 text-gray-700 cursor-not-allowed border-gray-300"
         )}
       />
-      {content.trim() && !isSaved && (
+      {/* Always show the buttons while input is open (unless reply already sent) */}
+      {!isSaved && (
         <div className="flex gap-1 shrink-0">
           <Button 
             type="submit" 
             size="icon"
             variant="ghost"
             className="h-8 w-8 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !content.trim()}
           >
             <Send className="h-4 w-4" />
           </Button>

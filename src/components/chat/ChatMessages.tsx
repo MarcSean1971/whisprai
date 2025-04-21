@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState, createRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -138,6 +137,22 @@ function TranslationConsumer({
     onTranslation
   );
 
+  // Helper to check if a current message is not a parent of the reply message, so we only show input once
+  function shouldShowReplyInput(message: any) {
+    // Only show reply input if:
+    // - The current message id matches replyToMessageId
+    // - AND the reply target's parent id is either not set or not visible in this messages array
+    if (replyToMessageId !== message.id) return false;
+    // Find if the reply target message has a parent (i.e., we're replying to a reply)
+    const targetMessage = messages.find((m: any) => m.id === replyToMessageId);
+    if (targetMessage && targetMessage.parent && targetMessage.parent.id) {
+      // Only show the reply input for the reply target, not its parent as well
+      return true;
+    }
+    // Otherwise just show on match
+    return true;
+  }
+
   return (
     <>
       {messages.map((message, idx) => (
@@ -156,7 +171,8 @@ function TranslationConsumer({
             replyToMessageId={replyToMessageId}
             scrollToMessage={scrollToMessage}
           />
-          {replyToMessageId === message.id && sendReply && cancelReply && (
+          {/* Show reply input only on the specific message selected for reply */}
+          {sendReply && cancelReply && replyToMessageId === message.id && (
             <div className="ml-10 mb-4">
               <MessageReplyInput
                 onSubmit={async (content: string) => {
