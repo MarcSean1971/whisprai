@@ -53,13 +53,14 @@ export function useWebRTCCalls(
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          // Defensive checks for properties before accessing
+          // Defensive checks with type guards
           const eventType = (payload as any)?.eventType;
-          const newRow = (payload as any)?.new;
-          // Only proceed if newRow exists and has required fields
+          const newRow: any = (payload as any)?.new;
+          if (!newRow) return;
+
+          // Only proceed if newRow has required fields
           if (
             eventType === "INSERT" &&
-            newRow &&
             newRow.status === "pending" &&
             newRow.recipient_id === currentUserId
           ) {
@@ -171,6 +172,20 @@ export function useWebRTCCalls(
     }
   }, [callSession]);
 
+  // Hook up signaling with useWebRTCPeer
+  // We'll store remoteSignal as the last signaling data sent by the other party
+  const [remoteSignal, setRemoteSignal] = useState<any>(null);
+  useEffect(() => {
+    if (!callSession?.signaling_data) return;
+    // We only want to receive remote signal that doesn't come from us
+    if (
+      callSession.caller_id !== currentUserId &&
+      callSession.signaling_data
+    ) {
+      setRemoteSignal(callSession.signaling_data);
+    }
+  }, [callSession, currentUserId]);
+
   return {
     isCalling,
     callSession,
@@ -182,5 +197,7 @@ export function useWebRTCCalls(
     updateSignalingData,
     signaling,
     setSignaling,
+    remoteSignal, // NEW: for passing to peer hook
   };
 }
+

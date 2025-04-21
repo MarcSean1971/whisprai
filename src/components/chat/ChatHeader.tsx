@@ -1,19 +1,21 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { useUserPresence } from "@/hooks/use-user-presence";
 import { Phone } from "lucide-react";
-import { useEffect } from "react";
 import { useWebRTCCalls } from "@/hooks/use-webrtc-calls";
 import { toast } from "sonner";
+import { CallUI } from "./CallUI";
+import { useWebRTCPeer } from "@/hooks/use-webrtc-peer"; // NEW
 
 interface Participant {
   id: string;
@@ -64,10 +66,33 @@ export function ChatHeader({
   const recipient = otherParticipants[0];
   const { isOnline } = useUserPresence(recipient?.id);
 
-  // Add call hook logic
   const {
-    isCalling, callSession, startCall, incomingCall, acceptCall, rejectCall, status
+    isCalling, callSession, startCall, incomingCall, acceptCall, rejectCall, status, updateSignalingData, remoteSignal
   } = useWebRTCCalls(conversationId, profile?.id, recipient?.id);
+
+  // Set up peer connection when in "pending" (if this user is caller) or "connected"
+  const shouldShowCallUI = !!callSession && (status === "pending" || status === "connected");
+
+  const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
+
+  // Use the peer connection hook
+  const {
+    localStream,
+    remoteStream,
+    isAudioMuted,
+    toggleAudio,
+    isVideoMuted,
+    toggleVideo,
+    endCall,
+  } = useWebRTCPeer({
+    initiator: !!isCaller, // caller initiates, callee does not
+    onSignal: s => {
+      if (callSession) {
+        updateSignalingData(callSession.id, s);
+      }
+    },
+    remoteSignal,
+  });
 
   useEffect(() => {
     if (status === "pending") {
@@ -86,6 +111,18 @@ export function ChatHeader({
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
+      {/* Dedicated Call UI Modal */}
+      {shouldShowCallUI && (
+        <CallUI
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isAudioMuted={isAudioMuted}
+          onToggleAudio={toggleAudio}
+          isVideoMuted={isVideoMuted}
+          onToggleVideo={toggleVideo}
+          onEndCall={endCall}
+        />
+      )}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-4">
           <BackButton to="/chats" />
@@ -200,3 +237,7 @@ export function ChatHeader({
     </div>
   );
 }
+
+// --- NOTE ---
+// ChatHeader.tsx is now quite long. Consider refactoring it into smaller files after verifying functionality as requested.
+
