@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 
-// Basic version with only the type definition
+// Cleaned-up type definition for active_calls (no Vonage/simple-peer columns)
 export interface ActiveCall {
   id: string;
   conversation_id: string;
@@ -12,12 +12,12 @@ export interface ActiveCall {
   updated_at: string;
 }
 
-// Empty hook that will be reimplemented later without Vonage
 export function useActiveCalls() {
   const [incomingCall, setIncomingCall] = useState<ActiveCall | null>(null);
   const [outgoingCall, setOutgoingCall] = useState<ActiveCall | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // No arguments, as reflected in ChatHeader usage
   return {
     incomingCall,
     outgoingCall,

@@ -11,38 +11,29 @@ export type Database = {
     Tables: {
       active_calls: {
         Row: {
-          call_type: string
           caller_id: string
           conversation_id: string
           created_at: string
           id: string
           recipient_id: string
-          session_id: string | null
-          signaling_data: Json | null
           status: string
           updated_at: string
         }
         Insert: {
-          call_type?: string
           caller_id: string
           conversation_id: string
           created_at?: string
           id?: string
           recipient_id: string
-          session_id?: string | null
-          signaling_data?: Json | null
           status?: string
           updated_at?: string
         }
         Update: {
-          call_type?: string
           caller_id?: string
           conversation_id?: string
           created_at?: string
           id?: string
           recipient_id?: string
-          session_id?: string | null
-          signaling_data?: Json | null
           status?: string
           updated_at?: string
         }
@@ -109,41 +100,6 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
-      }
-      call_sessions: {
-        Row: {
-          conversation_id: string | null
-          created_at: string
-          created_by: string
-          id: string
-          session_id: string
-          session_key: string
-        }
-        Insert: {
-          conversation_id?: string | null
-          created_at?: string
-          created_by: string
-          id?: string
-          session_id: string
-          session_key: string
-        }
-        Update: {
-          conversation_id?: string | null
-          created_at?: string
-          created_by?: string
-          id?: string
-          session_id?: string
-          session_key?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "call_sessions_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       contact_requests: {
         Row: {
