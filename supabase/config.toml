@@ -1,8 +1,50 @@
 
-project_id = "vmwiigfhjvwecnlwppnj"
-
-[functions.vonage-events]
-verify_jwt = false
+# This file sets project-level configuration for Supabase CLI deployments
 
 [functions.vonage-session]
 verify_jwt = true
+import_map = "import_map.json"
+
+[functions.vonage-events]
+verify_jwt = false  # Webhook endpoint shouldn't require auth
+import_map = "import_map.json"
+
+[functions.list-users]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.manage-user]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.send-email]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.translate-message]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.analyze-toxicity]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.enhance-bio]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.enhance-message]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.generate-predictive-answers]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.chat-with-ai]
+verify_jwt = true
+import_map = "import_map.json"
+
+[functions.voice-to-text]
+verify_jwt = true
+import_map = "import_map.json"
