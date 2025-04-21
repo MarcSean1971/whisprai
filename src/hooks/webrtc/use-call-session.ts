@@ -61,7 +61,9 @@ export function useCallSession(
       
       if (callSession?.status === "connected") {
         // Auto-reject if already in a call
-        rejectCall();
+        // This needs to be handled by the parent component that has access to rejectCall
+        console.log("Already in a call, should auto-reject incoming call");
+        // We'll let the parent component handle this via the incomingCall state
       }
     } else if (newRow.caller_id === currentUserId) {
       setCallSession(newRow as CallSession);
@@ -146,4 +148,3 @@ export function useCallSession(
     callHistory,
   };
 }
-

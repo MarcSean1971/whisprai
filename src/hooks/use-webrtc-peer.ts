@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { WebRTCPeerOptions, UseWebRTCPeerReturn, ConnectionStatus } from "./webrtc/types";
@@ -25,7 +26,12 @@ export function useWebRTCPeer({
     setIsConnecting(false);
   }, []);
 
-  const { setupPeerConnection, signalPeer } = usePeerConnection({
+  const { 
+    setupPeerConnection, 
+    signalPeer, 
+    destroyPeer,
+    peerRef 
+  } = usePeerConnection({
     initiator,
     localStream,
     onSignal,
@@ -143,7 +149,7 @@ export function useWebRTCPeer({
         toast.error("Failed to start screen sharing");
       }
     }
-  }, [isScreenSharing, localStream, cleanupScreenShare, originalStreamRef, screenStreamRef, setIsScreenSharing, setLocalStream]);
+  }, [isScreenSharing, localStream, cleanupScreenShare, originalStreamRef, screenStreamRef, setIsScreenSharing, setLocalStream, peerRef]);
 
   const endCall = useCallback(() => {
     console.log("[WebRTC] Ending call");
@@ -151,16 +157,10 @@ export function useWebRTCPeer({
       clearInterval(durationTimerRef.current);
     }
     
-    if (peerRef.current) {
-      try {
-        peerRef.current.destroy();
-      } catch (e) {
-        console.error("[WebRTC] Error destroying peer:", e);
-      }
-    }
+    destroyPeer();
     
     if (localStream) {
-      localStream.getTracks().forEach((t) => t.stop());
+      localStream.getTracks().forEach(t => t.stop());
     }
     
     cleanupScreenShare();
@@ -169,7 +169,7 @@ export function useWebRTCPeer({
     setRemoteStream(null);
     setConnectionStatus("ended");
     setCallDuration(0);
-  }, [localStream, cleanupScreenShare, durationTimerRef, setLocalStream, setCallDuration]);
+  }, [localStream, cleanupScreenShare, durationTimerRef, setLocalStream, setCallDuration, destroyPeer]);
 
   return {
     localStream,

@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect } from "react";
 import { useCallSession } from "./webrtc/use-call-session";
 import { useCallActions } from "./webrtc/use-call-actions";
@@ -28,6 +29,18 @@ export function useWebRTCCalls(
   } = useCallActions(conversationId, currentUserId, otherUserId, incomingCall, async () => {
     // This is passed as fetchCallHistory callback to useCallActions
   });
+
+  // Auto-reject incoming call if already in another call
+  useEffect(() => {
+    if (
+      incomingCall && 
+      callSession && 
+      callSession.status === "connected" &&
+      incomingCall.id !== callSession.id
+    ) {
+      rejectCall();
+    }
+  }, [incomingCall, callSession, rejectCall]);
 
   // Auto-clear ended call session
   useEffect(() => {
