@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,15 +19,19 @@ interface CallSession {
 // Type for Supabase realtime payload
 interface RealtimePayload {
   eventType: string;
-  new: CallSession;
-  old: CallSession | null;
+  new: Partial<CallSession> | null;
+  old: Partial<CallSession> | null;
 }
 
 /**
  * WebRTC signaling and call logic through Supabase call_sessions.
  * Use this hook to manage call lifecycle: start, receive invitation, respond with signaling, etc.
  */
-export function useWebRTCCalls(conversationId: string, currentUserId: string, otherUserId: string) {
+export function useWebRTCCalls(
+  conversationId: string,
+  currentUserId: string,
+  otherUserId: string
+) {
   const [callSession, setCallSession] = useState<CallSession | null>(null);
   const [isCalling, setIsCalling] = useState(false);
   const [incomingCall, setIncomingCall] = useState<CallSession | null>(null);
@@ -41,23 +45,38 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
     const channel = supabase
       .channel(`calls:${conversationId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'call_sessions',
+          event: "*",
+          schema: "public",
+          table: "call_sessions",
           filter: `conversation_id=eq.${conversationId}`,
         },
         (payload) => {
-          const typedPayload = payload as unknown as RealtimePayload;
-          
-          if (typedPayload.eventType === "INSERT" && typedPayload.new.status === "pending" && typedPayload.new.recipient_id === currentUserId) {
-            setIncomingCall(typedPayload.new);
+          // Defensive checks for properties before accessing
+          const eventType = (payload as any)?.eventType;
+          const newRow = (payload as any)?.new;
+          // Only proceed if newRow exists and has required fields
+          if (
+            eventType === "INSERT" &&
+            newRow &&
+            newRow.status === "pending" &&
+            newRow.recipient_id === currentUserId
+          ) {
+            setIncomingCall(newRow as CallSession);
             setStatus("incoming");
-          } else if (typedPayload.new && (typedPayload.new.caller_id === currentUserId || typedPayload.new.recipient_id === currentUserId)) {
-            setCallSession(typedPayload.new);
-            setStatus(typedPayload.new.status);
-            if (typedPayload.new.status === "ended" || typedPayload.new.status === "rejected" || typedPayload.new.status === "missed") {
+          } else if (
+            newRow &&
+            (newRow.caller_id === currentUserId ||
+              newRow.recipient_id === currentUserId)
+          ) {
+            setCallSession(newRow as CallSession);
+            setStatus(newRow.status);
+            if (
+              newRow.status === "ended" ||
+              newRow.status === "rejected" ||
+              newRow.status === "missed"
+            ) {
               setIsCalling(false);
               setIncomingCall(null);
             }
@@ -71,47 +90,53 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
     };
   }, [conversationId, currentUserId]);
 
-  const startCall = useCallback(async (callType: "audio" | "video" = "audio") => {
-    setIsCalling(true);
-    try {
-      const { data, error } = await supabase
-        .from("call_sessions")
-        .insert({
-          caller_id: currentUserId,
-          recipient_id: otherUserId,
-          conversation_id: conversationId,
-          status: "pending",
-          call_type: callType,
-          signaling_data: null,
-        })
-        .select()
-        .single();
-      if (error) {
+  const startCall = useCallback(
+    async (callType: "audio" | "video" = "audio") => {
+      setIsCalling(true);
+      try {
+        const { data, error } = await supabase
+          .from("call_sessions")
+          .insert({
+            caller_id: currentUserId,
+            recipient_id: otherUserId,
+            conversation_id: conversationId,
+            status: "pending",
+            call_type: callType,
+            signaling_data: null,
+          })
+          .select()
+          .single();
+        if (error) {
+          setIsCalling(false);
+          toast.error("Failed to start call.");
+          return null;
+        }
+        setCallSession(data);
+        setStatus("pending");
+        return data;
+      } catch (err) {
         setIsCalling(false);
-        toast.error("Failed to start call.");
+        toast.error("Could not create call session.");
         return null;
       }
-      setCallSession(data);
-      setStatus("pending");
-      return data;
-    } catch (err) {
-      setIsCalling(false);
-      toast.error("Could not create call session.");
-      return null;
-    }
-  }, [conversationId, currentUserId, otherUserId]);
+    },
+    [conversationId, currentUserId, otherUserId]
+  );
 
-  const updateSignalingData = useCallback(async (sessionId: string, signalingObj: any) => {
-    // Post updated SDP/candidate to the DB
-    const { error } = await supabase
-      .from("call_sessions")
-      .update({
-        signaling_data: signalingObj,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", sessionId);
-    if (error) toast.error("Failed to send signaling data.");
-  }, []);
+  const updateSignalingData = useCallback(
+    async (sessionId: string, signalingObj: any) => {
+      // Post updated SDP/candidate to the DB
+      const { error } = await supabase
+        .from("call_sessions")
+        .update({
+          signaling_data: signalingObj,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", sessionId);
+      if (error) toast.error("Failed to send signaling data.");
+    },
+    []
+  );
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -136,7 +161,10 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
 
   useEffect(() => {
     // Auto-clear ended call session
-    if (callSession && ["ended", "rejected", "missed"].includes(callSession.status)) {
+    if (
+      callSession &&
+      ["ended", "rejected", "missed"].includes(callSession.status)
+    ) {
       setCallSession(null);
       setStatus(null);
       setIsCalling(false);
@@ -144,8 +172,15 @@ export function useWebRTCCalls(conversationId: string, currentUserId: string, ot
   }, [callSession]);
 
   return {
-    isCalling, callSession, startCall, status,
-    incomingCall, acceptCall, rejectCall, updateSignalingData,
-    signaling, setSignaling
+    isCalling,
+    callSession,
+    startCall,
+    status,
+    incomingCall,
+    acceptCall,
+    rejectCall,
+    updateSignalingData,
+    signaling,
+    setSignaling,
   };
 }
