@@ -3,16 +3,14 @@ import { BackButton } from "@/components/ui/back-button";
 import { Button } from "@/components/ui/button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
-import { Search, Loader2, Phone, Video } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreVertical } from "lucide-react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { useUserPresence } from "@/hooks/use-user-presence";
-import { toast } from "sonner";
-import { useActiveCalls } from "@/hooks/use-active-calls";
 
 interface Participant {
   id: string;
@@ -42,9 +40,6 @@ export function ChatHeader({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedParticipant, setSelectedParticipant] = useState<Participant | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const { createCall, outgoingCall, isLoading: isCallLoading } = useActiveCalls();
-  const [callAttempted, setCallAttempted] = useState(false);
-  const [showCallOptions, setShowCallOptions] = useState(false);
 
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
@@ -68,48 +63,6 @@ export function ChatHeader({
 
   const recipient = otherParticipants[0];
   const { isOnline } = useUserPresence(recipient?.id);
-  
-  useEffect(() => {
-    if (outgoingCall) {
-      console.debug("[ChatHeader][DEBUG] Outgoing call object changed:", outgoingCall);
-    }
-  }, [outgoingCall]);
-
-  useEffect(() => {
-    if (callAttempted && !outgoingCall) {
-      const timer = setTimeout(() => {
-        toast.error("Call could not be started. Please try again.");
-        setCallAttempted(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-    if (outgoingCall?.status === "pending") {
-      setCallAttempted(false);
-    }
-  }, [callAttempted, outgoingCall]);
-
-  const handleCallClick = async () => {
-    if (!recipient) {
-      toast.error("No recipient found for this conversation");
-      return;
-    }
-    if (outgoingCall) {
-      toast.info("You already have an active call");
-      return;
-    }
-    if (!isOnline) {
-      toast.error(`${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "Recipient"} appears to be offline`);
-      return;
-    }
-    setCallAttempted(true);
-    const result = await createCall();
-    if (!result) {
-      setCallAttempted(false);
-      toast.error("Failed to initiate call");
-    } else {
-      toast.success("Starting call...");
-    }
-  };
 
   return (
     <div className="sticky top-0 z-10 bg-background border-b">
@@ -136,23 +89,6 @@ export function ChatHeader({
         </div>
 
         <div className="flex items-center gap-2">
-          {recipient && (
-            <Button
-              variant="outline"
-              size="icon"
-              className={`h-9 w-9 ${isOnline ? 'bg-green-100 hover:bg-green-200 text-green-600 dark:bg-green-900/30 dark:hover:bg-green-900/50 dark:text-green-500' : ''}`}
-              disabled={isCallLoading || !!outgoingCall}
-              title={`Call ${recipient.first_name || recipient.last_name ? `${recipient.first_name || ""} ${recipient.last_name || ""}`.trim() : "participant"}`}
-              onClick={handleCallClick}
-            >
-              {isCallLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Phone className="h-5 w-5" />
-              )}
-              <span className="sr-only">Call</span>
-            </Button>
-          )}
           {isSearching ? (
             <div className="flex items-center relative">
               <Input
