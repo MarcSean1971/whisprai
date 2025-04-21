@@ -12,7 +12,6 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useCallback, Suspense, useEffect } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
-import { CallManager } from "@/components/chat/voice-call/CallManager";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
 
@@ -165,9 +164,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           isLoadingSuggestions={isLoadingSuggestions}
         />
       </div>
-      
-      <CallManager />
     </div>
   );
 }
-
