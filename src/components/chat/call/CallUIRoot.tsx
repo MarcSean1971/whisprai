@@ -9,7 +9,7 @@ import { RemoteVideoView } from "./RemoteVideoView";
 import { CallUIFullScreenButton } from "./CallUIFullScreenButton";
 import { CallUIRingtone } from "./CallUIRingtone";
 import { Button } from "@/components/ui/button";
-import { Volume2, VolumeX, PhoneOff, Monitor, Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { Volume2, VolumeX, PhoneOff, Monitor, Mic, MicOff, Video, VideoOff, Phone } from "lucide-react";
 
 interface CallUIRootProps {
   localStream: MediaStream | null;
@@ -24,6 +24,8 @@ interface CallUIRootProps {
   isScreenSharing?: boolean;
   onToggleScreenShare?: () => void;
   duration?: number;
+  onAcceptCall?: () => void;  // New prop
+  onRejectCall?: () => void;  // New prop
 }
 
 export function CallUIRoot({
@@ -39,6 +41,8 @@ export function CallUIRoot({
   isScreenSharing = false,
   onToggleScreenShare,
   duration = 0,
+  onAcceptCall,
+  onRejectCall,
 }: CallUIRootProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [remoteAudioMuted, setRemoteAudioMuted] = useState(false);
@@ -118,7 +122,6 @@ export function CallUIRoot({
           }}
         >
           <div className="relative w-full flex-1 flex items-center justify-center bg-white rounded-2xl max-h-[60vh] min-h-[220px]">
-            {/* Always play ringtone for "ringing"/"connecting" */}
             {isRingtoneActive && <CallUIRingtone callStatus={callStatus} />}
             <RemoteVideoView
               remoteStream={remoteStream}
@@ -129,6 +132,35 @@ export function CallUIRoot({
               <LocalVideoView localStream={localStream} isVideoMuted={isVideoMuted} />
               {duration > 0 && <CallTimer duration={duration} />}
             </RemoteVideoView>
+
+            {/* Show accept/reject buttons when call is incoming */}
+            {callStatus === "incoming" && onAcceptCall && onRejectCall && (
+              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
+                <div className="text-3xl font-bold text-[#7C4DFF] mb-6 drop-shadow-sm">
+                  Incoming call...
+                </div>
+                <div className="flex items-center gap-4">
+                  <Button
+                    onClick={onAcceptCall}
+                    className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                    size="lg"
+                  >
+                    <Phone className="h-5 w-5" />
+                    Accept
+                  </Button>
+                  <Button
+                    onClick={onRejectCall}
+                    className="bg-red-600 hover:bg-red-700 text-white gap-2"
+                    size="lg"
+                  >
+                    <PhoneOff className="h-5 w-5" />
+                    Decline
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Call ended states */}
             {(callStatus === "missed" || callStatus === "rejected" || callStatus === "ended") && (
               <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
                 <div className="text-3xl font-bold text-[#7C4DFF] mb-3 drop-shadow-sm">

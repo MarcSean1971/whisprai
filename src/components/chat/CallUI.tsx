@@ -15,6 +15,8 @@ interface CallUIProps {
   isScreenSharing?: boolean;
   onToggleScreenShare?: () => void;
   duration?: number;
+  onAcceptCall?: () => void;  // New prop
+  onRejectCall?: () => void;  // New prop
 }
 
 export function CallUI(props: CallUIProps) {

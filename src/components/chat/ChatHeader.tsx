@@ -82,7 +82,7 @@ export function ChatHeader({
   } = useWebRTCCalls(conversationId, profile?.id || "", recipient?.id || "");
 
   // Set up peer connection when in "pending" (if this user is caller) or "connected"
-  const shouldShowCallUI = !!callSession && (status === "pending" || status === "connected");
+  const shouldShowCallUI = !!callSession; // Changed to show for all session states
   const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
 
   // Use the peer connection hook
@@ -141,6 +141,8 @@ export function ChatHeader({
           isScreenSharing={isScreenSharing}
           onToggleScreenShare={toggleScreenShare}
           duration={callDuration}
+          onAcceptCall={!isCaller ? acceptCall : undefined}
+          onRejectCall={!isCaller ? rejectCall : undefined}
         />
       )}
       
