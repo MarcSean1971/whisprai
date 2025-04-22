@@ -39,6 +39,10 @@ export interface EnrichedTodo extends Todo {
     first_name: string | null;
     last_name: string | null;
   };
+  creator_profile?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
   conversation_participants?: Array<{
     id: string;
     first_name: string | null;

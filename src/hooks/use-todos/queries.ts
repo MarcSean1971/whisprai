@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichedTodo } from "./types";
 
@@ -17,25 +16,13 @@ export async function fetchTodos(): Promise<EnrichedTodo[]> {
   }
 
   const conversationIds = [...new Set(todosData.map(todo => todo.conversation_id))];
+  const userIds = [
+    ...new Set([
+      ...todosData.map(todo => todo.assigned_to),
+      ...todosData.map(todo => todo.creator_id)
+    ])
+  ];
 
-  const { data: participantsData, error: participantsError } = await supabase
-    .from('conversation_participants')
-    .select(`
-      conversation_id,
-      user_id,
-      profiles:user_id(
-        id,
-        first_name,
-        last_name
-      )
-    `)
-    .in('conversation_id', conversationIds);
-
-  if (participantsError) {
-    console.error('Error fetching participants:', participantsError);
-  }
-
-  const userIds = [...new Set(todosData.map(todo => todo.assigned_to))];
   const { data: profilesData, error: profilesError } = await supabase
     .from('profiles')
     .select('id, first_name, last_name')
@@ -90,7 +77,8 @@ export async function fetchTodos(): Promise<EnrichedTodo[]> {
   }, {} as Record<string, Array<{ id: string; first_name: string | null; last_name: string | null }>>);
 
   return todosData.map(todo => {
-    const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
+    const assigneeProfile = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
+    const creatorProfile = profilesMap[todo.creator_id] || { first_name: null, last_name: null };
     const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
     const conversationParticipants = participantsByConversation[todo.conversation_id] || [];
 
@@ -98,8 +86,12 @@ export async function fetchTodos(): Promise<EnrichedTodo[]> {
       ...todo,
       messages: messageData ? { content: messageData.content } : null,
       profiles: {
-        first_name: profileData.first_name,
-        last_name: profileData.last_name
+        first_name: assigneeProfile.first_name,
+        last_name: assigneeProfile.last_name
+      },
+      creator_profile: {
+        first_name: creatorProfile.first_name,
+        last_name: creatorProfile.last_name
       },
       conversation_participants: conversationParticipants
     };
