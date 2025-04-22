@@ -1,9 +1,8 @@
-
+import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Todo } from "@/hooks/use-todos";
 import { format } from "date-fns";
 import { MessageSquare, Link, Trash2 } from "lucide-react";
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TodoEditor } from "./TodoEditor";
 import { Button } from "../ui/button";
@@ -48,8 +47,6 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
     ? `${todo.profiles.first_name} ${todo.profiles.last_name || ''}`
     : 'Unknown';
 
-  // Get the counterparty name (other participants in the conversation)
-  // Add a fallback for when conversation_participants is undefined
   const counterpartyNames = todo.conversation_participants && todo.conversation_participants.length > 0
     ? todo.conversation_participants
         .map(participant => participant.first_name 
@@ -74,7 +71,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
               <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                 {messageContent}
               </p>
-              <p className="text-sm font-medium text-whispr-purple">Assigned to: {assigneeName}</p>
+              <p className="text-sm text-muted-foreground">Assigned to: {assigneeName}</p>
               <p className="text-sm text-muted-foreground">From chat with: {counterpartyNames}</p>
             </div>
             <div className="flex items-center space-x-1">
