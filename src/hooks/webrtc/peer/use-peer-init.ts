@@ -35,24 +35,22 @@ export function usePeerInit({ initiator, localStream }: UsePeerInitProps) {
       refreshIceServers();
     }
     
+    // Enhanced ICE servers with normalized URLs
+    const enhancedIceServers = iceServers.length > 0 ? iceServers.map(server => ({
+      ...server,
+      urls: Array.isArray(server.urls) ? server.urls : [server.urls]
+    })) : [
+      { urls: ['stun:stun.l.google.com:19302'] },
+      { urls: ['stun:global.stun.twilio.com:3478'] }
+    ];
+    
     const peerOptions: Peer.Options = {
       initiator,
       trickle: true,
       stream: localStream,
       config: {
-        iceServers: iceServers.length > 0 ? iceServers : [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' }
-        ],
+        iceServers: enhancedIceServers,
         iceTransportPolicy: 'all',
-        // Enable all ICE candidate types for better connectivity
-        iceServers: iceServers.length > 0 ? iceServers.map(server => ({
-          ...server,
-          urls: Array.isArray(server.urls) ? server.urls : [server.urls]
-        })) : [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:global.stun.twilio.com:3478' }
-        ],
         iceCandidatePoolSize: 10
       },
       sdpTransform: (sdp: string) => {
