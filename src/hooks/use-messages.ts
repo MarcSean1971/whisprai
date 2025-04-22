@@ -34,8 +34,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     }),
   });
 
-  // Flatten messages and reverse them so newest appear at the bottom
-  const messages = (result.data?.pages.flat() || []).reverse();
+  // Flatten messages - no need to reverse since we want oldest at top
+  const messages = result.data?.pages.flat() || [];
 
   useEffect(() => {
     if (!conversationId) {
