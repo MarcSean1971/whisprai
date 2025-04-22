@@ -46,9 +46,7 @@ export function ChatMessages({
   const { 
     scrollContainerRef, 
     loadMoreRef, 
-    messagesEndRef,
-    pullProgress,
-    isPulling
+    messagesEndRef
   } = useMessageScroll({
     messages,
     refetch,
@@ -95,9 +93,7 @@ export function ChatMessages({
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none"
         >
           <LoadMoreMessages 
-            pullProgress={pullProgress}
             isLoading={isFetchingNextPage}
-            isPulling={isPulling}
             hasNextPage={hasNextPage}
           />
           <div ref={loadMoreRef} className="h-4" />

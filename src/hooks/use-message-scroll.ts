@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -8,26 +9,20 @@ interface UseMessageScrollProps {
   isFetchingNextPage?: boolean;
 }
 
-const PULL_THRESHOLD = 60;
-
 export function useMessageScroll({ 
   messages, 
   refetch, 
   hasNextPage = false,
   isFetchingNextPage = false 
 }: UseMessageScrollProps) {
-  const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
-  
-  const [pullProgress, setPullProgress] = useState(0);
-  const [isPulling, setIsPulling] = useState(false);
-  const touchStartY = useRef<number | null>(null);
 
+  // Store and restore scroll position when loading older messages
   useEffect(() => {
     if (scrollContainerRef.current) {
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
@@ -51,59 +46,7 @@ export function useMessageScroll({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
-  useEffect(() => {
-    if (!isMobile || !scrollContainerRef.current) return;
-    
-    const container = scrollContainerRef.current;
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop <= 0 && hasNextPage) {
-        touchStartY.current = e.touches[0].clientY;
-      }
-    };
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (!touchStartY.current || !hasNextPage) return;
-      
-      const touchY = e.touches[0].clientY;
-      const diff = touchY - touchStartY.current;
-      
-      if (diff > 0 && container.scrollTop <= 0) {
-        setIsPulling(true);
-        const progress = Math.min((diff / PULL_THRESHOLD) * 100, 100);
-        setPullProgress(progress);
-        
-        if (diff > 5) {
-          e.preventDefault();
-        }
-      }
-    };
-
-    const handleTouchEnd = async () => {
-      if (!touchStartY.current) return;
-
-      if (pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage) {
-        await refetch();
-      }
-      
-      setPullProgress(0);
-      setIsPulling(false);
-      touchStartY.current = null;
-    };
-
-    container.addEventListener('touchstart', handleTouchStart, { passive: true });
-    container.addEventListener('touchmove', handleTouchMove, { passive: false });
-    container.addEventListener('touchend', handleTouchEnd);
-    container.addEventListener('touchcancel', handleTouchEnd);
-
-    return () => {
-      container.removeEventListener('touchstart', handleTouchStart);
-      container.removeEventListener('touchmove', handleTouchMove);
-      container.removeEventListener('touchend', handleTouchEnd);
-      container.removeEventListener('touchcancel', handleTouchEnd);
-    };
-  }, [pullProgress, refetch, isFetchingNextPage, hasNextPage, isMobile]);
-
+  // Intersection Observer for infinite scroll
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
@@ -136,8 +79,6 @@ export function useMessageScroll({
   return {
     scrollContainerRef,
     loadMoreRef,
-    messagesEndRef,
-    pullProgress,
-    isPulling
+    messagesEndRef
   };
 }
