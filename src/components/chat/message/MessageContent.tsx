@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { MessageBubble } from "@/components/chat/message/MessageBubble";
 import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
@@ -68,7 +67,6 @@ export function MessageContent({
       onDelete={onDelete}
       isDeleting={isDeleting}
     >
-      {/* No MessageReactions here; it's inside MessageBubble */}
       <MessageBubble
         id={id}
         content={content}
@@ -83,4 +81,3 @@ export function MessageContent({
     </MessageContextMenu>
   );
 }
-

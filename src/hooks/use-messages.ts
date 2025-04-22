@@ -11,10 +11,16 @@ export type { Message } from "./use-messages/types";
 
 const PAGE_SIZE = 20;
 
-/**
- * Fetches paginated messages for a conversationId using react-query and real-time subscription.
- */
-export function useMessages(conversationId: string) {
+interface UseMessagesReturn {
+  messages: Message[];
+  error: Error | null;
+  isLoading: boolean;
+  fetchNextPage: () => Promise<unknown>;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+}
+
+export function useMessages(conversationId: string): UseMessagesReturn {
   const queryClient = useQueryClient();
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
 
@@ -38,7 +44,7 @@ export function useMessages(conversationId: string) {
       return;
     }
 
-    let messagesChannel: any;
+    let messagesChannel: ReturnType<typeof supabase.channel>;
     
     try {
       messagesChannel = supabase
@@ -61,7 +67,7 @@ export function useMessages(conversationId: string) {
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: any) => {
           console.log(`Subscription status for messages:${conversationId}:`, status);
           if (status === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));
@@ -92,11 +98,11 @@ export function useMessages(conversationId: string) {
   }
 
   return {
-    ...result,
     messages,
     error,
+    isLoading: result.isLoading,
     fetchNextPage: result.fetchNextPage,
-    hasNextPage: result.hasNextPage,
+    hasNextPage: result.hasNextPage ?? false,
     isFetchingNextPage: result.isFetchingNextPage
   };
 }

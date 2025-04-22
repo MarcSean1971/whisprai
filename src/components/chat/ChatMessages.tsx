@@ -39,8 +39,6 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-
-  // Build a ref map for message ids
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
@@ -69,11 +67,13 @@ export function ChatMessages({
 
   // Populate refs for each message
   useEffect(() => {
-    messages.forEach(message => {
-      if (!messageRefs.current[message.id]) {
-        messageRefs.current[message.id] = null;
-      }
-    });
+    if (Array.isArray(messages)) {
+      messages.forEach(message => {
+        if (message?.id && !messageRefs.current[message.id]) {
+          messageRefs.current[message.id] = null;
+        }
+      });
+    }
   }, [messages]);
 
   // Set up intersection observer for infinite scroll
@@ -128,7 +128,7 @@ export function ChatMessages({
     );
   }
 
-  if (isLoading || messages.length === 0) {
+  if (isLoading || !Array.isArray(messages)) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
         <MessageSkeleton />
