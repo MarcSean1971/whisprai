@@ -92,7 +92,11 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar touch-pan-y"
+          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none"
+          style={{
+            WebkitOverflowScrolling: 'touch',
+            touchAction: 'pan-y pinch-zoom',
+          }}
         >
           <div ref={loadMoreRef} />
           <LoadMoreMessages 

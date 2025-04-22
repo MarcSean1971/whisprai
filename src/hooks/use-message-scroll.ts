@@ -6,7 +6,7 @@ interface UseMessageScrollProps {
   hasNextPage?: boolean;
 }
 
-const PULL_THRESHOLD = 100; // pixels needed to trigger refresh
+const PULL_THRESHOLD = 80; // Reduced threshold for better mobile UX
 
 export function useMessageScroll({ messages, refetch, hasNextPage = false }: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -21,15 +21,19 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const initialScrollTop = useRef<number | null>(null);
+  const lastTouchY = useRef<number | null>(null);
+  const pullVelocity = useRef<number>(0);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop === 0 && hasNextPage) {
+      if (container.scrollTop <= 0 && hasNextPage) {
         touchStartY.current = e.touches[0].clientY;
+        lastTouchY.current = e.touches[0].clientY;
         initialScrollTop.current = container.scrollTop;
+        pullVelocity.current = 0;
       }
     };
 
@@ -39,37 +43,59 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
       const touchY = e.touches[0].clientY;
       const diff = touchY - touchStartY.current;
       
-      if (diff > 0 && container.scrollTop === 0) {
+      if (lastTouchY.current !== null) {
+        pullVelocity.current = touchY - lastTouchY.current;
+      }
+      lastTouchY.current = touchY;
+      
+      if (diff > 0 && container.scrollTop <= 0) {
         setIsPulling(true);
-        const progress = Math.min((diff / PULL_THRESHOLD) * 100, 100);
+        const rubberBandedDiff = Math.pow(diff, 0.8);
+        const progress = Math.min((rubberBandedDiff / PULL_THRESHOLD) * 100, 100);
         setPullProgress(progress);
-        e.preventDefault();
+        
+        if (diff > 5) {
+          e.preventDefault();
+        }
       }
     };
 
     const handleTouchEnd = async () => {
-      if (pullProgress >= 100 && refetch && !isLoadingMore && hasNextPage) {
+      if (!touchStartY.current) return;
+
+      const shouldRefetch = pullProgress >= 100 && refetch && !isLoadingMore && hasNextPage;
+      
+      const finalProgress = pullProgress + (pullVelocity.current * 2);
+      
+      if (shouldRefetch) {
         setIsLoadingMore(true);
-        await refetch();
-        setTimeout(() => {
-          setIsLoadingMore(false);
-        }, 1000);
+        try {
+          await refetch();
+        } finally {
+          setTimeout(() => {
+            setIsLoadingMore(false);
+          }, 1000);
+        }
       }
       
-      touchStartY.current = null;
-      initialScrollTop.current = null;
-      setIsPulling(false);
       setPullProgress(0);
+      setIsPulling(false);
+      touchStartY.current = null;
+      lastTouchY.current = null;
+      initialScrollTop.current = null;
+      pullVelocity.current = 0;
     };
 
-    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
     container.addEventListener('touchmove', handleTouchMove, { passive: false });
     container.addEventListener('touchend', handleTouchEnd);
+    container.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
       container.removeEventListener('touchstart', handleTouchStart);
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, [pullProgress, refetch, isLoadingMore, hasNextPage]);
 

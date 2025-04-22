@@ -22,20 +22,23 @@ export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPa
     <div 
       className={cn(
         "sticky top-0 z-10 transition-all duration-300 flex flex-col items-center justify-center",
-        "bg-gradient-to-b from-background/80 to-transparent backdrop-blur-sm",
-        "py-2 px-4 -mx-4",
-        shouldShow ? "opacity-100 h-16" : "opacity-0 h-0"
+        "bg-gradient-to-b from-background/95 to-transparent backdrop-blur-lg",
+        "py-3 px-4 -mx-4 select-none touch-none",
+        shouldShow ? "opacity-100 h-20" : "opacity-0 h-0"
       )}
+      style={{
+        transform: `translateY(${Math.min(pullProgress / 2, 50)}%)`,
+      }}
     >
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {isLoading ? (
-          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
         ) : (
-          <div className="w-32">
-            <Progress value={pullProgress} className="h-1" />
+          <div className="w-40">
+            <Progress value={pullProgress} className="h-1.5" />
           </div>
         )}
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm font-medium text-muted-foreground">
           {isLoading ? "Loading messages..." : message}
         </span>
       </div>
