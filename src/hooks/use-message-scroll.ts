@@ -10,10 +10,18 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
-  const [lastScrollHeight, setLastScrollHeight] = useState(0);
 
-  // Scroll to bottom on initial load and new messages
+  // Initial scroll to bottom
+  useEffect(() => {
+    if (!hasScrolledToBottom && scrollContainerRef.current) {
+      messagesEndRef.current?.scrollIntoView();
+      setHasScrolledToBottom(true);
+    }
+  }, [hasScrolledToBottom]);
+
+  // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

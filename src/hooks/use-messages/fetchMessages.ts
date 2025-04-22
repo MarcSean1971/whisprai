@@ -29,12 +29,12 @@ export async function fetchMessages(
     .or(
       `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
     )
-    .order("created_at", { ascending: true })
+    .order("created_at", { ascending: false }) // Changed to DESC to get newest first
     .limit(pageSize);
 
-  // Add cursor pagination - now getting messages created after the cursor
+  // Add cursor pagination - now getting messages created before the cursor
   if (cursor) {
-    query = query.gt("created_at", cursor);
+    query = query.lt("created_at", cursor); // Changed to lt to get older messages
   }
 
   const { data: messages, error: messagesError } = await query;
@@ -50,7 +50,7 @@ export async function fetchMessages(
     return { messages: [] };
   }
 
-  // Get the next cursor (timestamp of the newest message)
+  // Get the next cursor (timestamp of the oldest message)
   const nextCursor = messages.length === pageSize ? 
     messages[messages.length - 1].created_at : 
     undefined;
@@ -71,7 +71,7 @@ export async function fetchMessages(
 
   const parentMessages = await getParentMessages(parentIds);
 
-  // Format result as array of Message
+  // Format result as array of Message and reverse to display correctly
   const formattedMessages = messages
     .map((message: any) => {
       if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
