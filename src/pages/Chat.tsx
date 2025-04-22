@@ -85,6 +85,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   const refetch = () => {
     // If we have hasNextPage available, use fetchNextPage to get more messages
     if (hasNextPage) {
+      console.log('Fetching next page of messages');
       fetchNextPage();
     }
   };
@@ -160,6 +161,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
               sendReply={sendReply}
               cancelReply={cancelReply}
               refetch={refetch}
+              isFetchingNextPage={isFetchingNextPage}
+              hasNextPage={hasNextPage}
             />
           </Suspense>
         </ErrorBoundary>
@@ -175,3 +178,5 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     </div>
   );
 }
+
+export default Chat;

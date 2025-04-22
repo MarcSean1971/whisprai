@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { fetchMessages } from "./use-messages/fetchMessages";
 import type { Message } from "./use-messages/types";
 
-// Re-export the Message type for other components to use
 export type { Message } from "./use-messages/types";
 
 const PAGE_SIZE = 20;
@@ -25,17 +24,28 @@ export function useMessages(conversationId: string): UseMessagesReturn {
 
   const result = useInfiniteQuery({
     queryKey: ['messages', conversationId],
-    queryFn: ({ pageParam }) => fetchMessages(conversationId, PAGE_SIZE, pageParam),
+    queryFn: ({ pageParam }) => {
+      console.log('Fetching messages with pageParam:', pageParam);
+      return fetchMessages(conversationId, PAGE_SIZE, pageParam);
+    },
     initialPageParam: undefined as string | undefined,
-    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    getNextPageParam: (lastPage) => {
+      console.log('Getting next page param:', lastPage.nextCursor);
+      return lastPage.nextCursor;
+    },
     select: (data) => ({
       pages: data.pages.map(page => page.messages),
       pageParams: data.pageParams,
     }),
   });
 
-  // Flatten messages and reverse to show newest at bottom
-  const messages = result.data?.pages.flat().reverse() || [];
+  // Flatten messages but don't reverse since we're getting them in DESC order
+  const messages = result.data?.pages.flat() || [];
+  console.log('Messages loaded:', {
+    totalMessages: messages.length,
+    hasNextPage: result.hasNextPage,
+    isFetchingNextPage: result.isFetchingNextPage
+  });
 
   useEffect(() => {
     if (!conversationId) {
