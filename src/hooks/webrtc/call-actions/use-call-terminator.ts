@@ -3,7 +3,10 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
+export function useCallTerminator(
+  fetchCallHistory: () => Promise<void>,
+  stopRingtone?: (() => void) | null
+) {
   const endCall = useCallback(async (sessionId?: string, endStatus: 'ended' | 'missed' = 'ended') => {
     if (!sessionId) {
       console.error("[WebRTC] No session ID provided for call termination");
@@ -11,6 +14,12 @@ export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
     }
     
     console.log(`[WebRTC] Ending call (${sessionId}) with status: ${endStatus}`);
+    
+    // Stop ringtone immediately for better user experience
+    if (stopRingtone) {
+      console.log("[WebRTC] Stopping ringtone in endCall");
+      stopRingtone();
+    }
     
     try {
       // First update the session in the database
@@ -40,7 +49,7 @@ export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
       console.error("[WebRTC] Error ending call:", err);
       toast.error("Failed to end call");
     }
-  }, [fetchCallHistory]);
+  }, [fetchCallHistory, stopRingtone]);
 
   return { endCall };
 }

@@ -10,11 +10,12 @@ export function useCallActions(
   currentUserId: string,
   otherUserId: string,
   incomingCall: CallSession | null,
-  fetchCallHistory: () => Promise<void>
+  fetchCallHistory: () => Promise<void>,
+  stopRingtone?: (() => void) | null
 ): UseCallActionsReturn {
-  const { endCall } = useCallTerminator(fetchCallHistory);
+  const { endCall } = useCallTerminator(fetchCallHistory, stopRingtone);
   const { startCall } = useCallInitiator(conversationId, currentUserId, otherUserId, endCall);
-  const { acceptCall, rejectCall } = useCallResponse({ incomingCall, fetchCallHistory });
+  const { acceptCall, rejectCall } = useCallResponse({ incomingCall, fetchCallHistory, stopRingtone });
   const { updateSignalingData } = useSignaling();
 
   return {

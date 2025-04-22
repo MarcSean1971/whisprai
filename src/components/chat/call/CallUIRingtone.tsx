@@ -18,6 +18,8 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
   };
 
   useEffect(() => {
+    console.log(`[Ringtone] CallUIRingtone effect for status: ${callStatus}`);
+    
     // Only play ringtone for active call states
     if (callStatus === "connecting" || callStatus === "ringing" || callStatus === "incoming") {
       if (!audioRef.current) {
@@ -31,10 +33,15 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
       });
     } else {
       // Immediately stop ringtone for any other status
+      console.log(`[Ringtone] Stopping ringtone due to status change: ${callStatus}`);
       stopRingtone();
     }
     
-    return stopRingtone;
+    // Cleanup function to ensure audio is stopped
+    return () => {
+      console.log("[Ringtone] Component unmounting, stopping ringtone");
+      stopRingtone();
+    };
   }, [callStatus]);
 
   return null;

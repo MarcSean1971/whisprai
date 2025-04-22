@@ -18,25 +18,21 @@ export function useWebRTCCalls(
     setSignaling,
     remoteSignal,
     callHistory,
-    resetCallState
+    resetCallState,
+    stopRingtone,
+    fetchCallHistory
   } = useCallSession(conversationId, currentUserId);
 
   const [shouldInitiatePeer, setShouldInitiatePeer] = useState(false);
   const [callCleanupInProgress, setCallCleanupInProgress] = useState(false);
 
-  const fetchCallHistory = async () => {
-    console.log("[WebRTCCalls] Refreshing call history");
-    // This is a placeholder function that will be replaced with the actual
-    // fetchCallHistory function from useCallSession
-  };
-
   const {
     startCall,
-    acceptCall,
-    rejectCall,
-    endCall,
+    acceptCall: rawAcceptCall,
+    rejectCall: rawRejectCall,
+    endCall: rawEndCall,
     updateSignalingData,
-  } = useCallActions(conversationId, currentUserId, otherUserId, incomingCall, fetchCallHistory);
+  } = useCallActions(conversationId, currentUserId, otherUserId, incomingCall, fetchCallHistory, stopRingtone);
 
   // Handle call session status changes
   useEffect(() => {
@@ -45,6 +41,7 @@ export function useWebRTCCalls(
       
       if (callSession.status === "connected") {
         // Signal that peer connection should be initialized/reinforced
+        console.log("[WebRTCCalls] Setting shouldInitiatePeer to true");
         setShouldInitiatePeer(true);
       } else if (["ended", "rejected", "missed"].includes(callSession.status)) {
         // Reset state after a delay to allow animations to complete
@@ -53,7 +50,9 @@ export function useWebRTCCalls(
           
           console.log("[WebRTCCalls] Call ended, cleaning up in 3 seconds");
           setTimeout(() => {
+            console.log("[WebRTCCalls] Executing delayed cleanup");
             resetCallState();
+            setShouldInitiatePeer(false);
             setCallCleanupInProgress(false);
           }, 3000);
         }
@@ -70,13 +69,13 @@ export function useWebRTCCalls(
       incomingCall.id !== callSession.id
     ) {
       console.log("[WebRTCCalls] Auto-rejecting incoming call while in another call");
-      rejectCall();
+      rawRejectCall();
     }
-  }, [incomingCall, callSession, rejectCall]);
+  }, [incomingCall, callSession, rawRejectCall]);
 
   // Wrapped accept call to ensure database and UI state are synchronized
   const handleAcceptCall = useCallback(async () => {
-    console.log("[WebRTCCalls] Accepting call");
+    console.log("[WebRTCCalls] Accepting call with enhanced coordination");
     
     if (!incomingCall) {
       console.error("[WebRTCCalls] No incoming call to accept");
@@ -84,16 +83,22 @@ export function useWebRTCCalls(
     }
     
     try {
-      await acceptCall();
+      await rawAcceptCall();
+      
+      // Explicitly set this flag to ensure peer connection gets initialized
+      console.log("[WebRTCCalls] Setting shouldInitiatePeer to true after accepting call");
       setShouldInitiatePeer(true);
     } catch (error) {
       console.error("[WebRTCCalls] Error accepting call:", error);
+      
+      // On error, make sure we reset everything
+      resetCallState();
     }
-  }, [acceptCall, incomingCall]);
+  }, [rawAcceptCall, incomingCall, resetCallState]);
 
   // Wrapped reject call to ensure proper cleanup
   const handleRejectCall = useCallback(async () => {
-    console.log("[WebRTCCalls] Rejecting call");
+    console.log("[WebRTCCalls] Rejecting call with enhanced cleanup");
     
     if (!incomingCall) {
       console.error("[WebRTCCalls] No incoming call to reject");
@@ -101,34 +106,42 @@ export function useWebRTCCalls(
     }
     
     try {
-      await rejectCall();
+      await rawRejectCall();
       setShouldInitiatePeer(false);
       
       // Allow time for UI animations before resetting state
       setTimeout(() => {
+        console.log("[WebRTCCalls] Executing delayed cleanup after reject");
         resetCallState();
       }, 3000);
     } catch (error) {
       console.error("[WebRTCCalls] Error rejecting call:", error);
+      
+      // Even on error, make sure we clean up
+      resetCallState();
     }
-  }, [rejectCall, resetCallState, incomingCall]);
+  }, [rawRejectCall, resetCallState, incomingCall]);
 
   // Wrapped end call to ensure proper cleanup
   const handleEndCall = useCallback(async (sessionId?: string) => {
-    console.log("[WebRTCCalls] Ending call");
+    console.log("[WebRTCCalls] Ending call with enhanced cleanup");
     
     try {
-      await endCall(sessionId);
+      await rawEndCall(sessionId);
       setShouldInitiatePeer(false);
       
       // Allow time for UI animations before resetting state
       setTimeout(() => {
+        console.log("[WebRTCCalls] Executing delayed cleanup after end call");
         resetCallState();
       }, 3000);
     } catch (error) {
       console.error("[WebRTCCalls] Error ending call:", error);
+      
+      // Even on error, make sure we clean up
+      resetCallState();
     }
-  }, [endCall, resetCallState]);
+  }, [rawEndCall, resetCallState]);
 
   return {
     isCalling,

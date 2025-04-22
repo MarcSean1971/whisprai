@@ -20,48 +20,71 @@ export function useCallSession(
   const [stopRingtone, setStopRingtone] = useState<(() => void) | null>(null);
 
   const resetCallState = useCallback(() => {
-    console.log("[WebRTC] Resetting call state");
+    console.log("[WebRTC] Resetting call state - full cleanup");
     setIsCalling(false);
     setIncomingCall(null);
     setSignaling(null);
     setRemoteSignal(null);
+    setStatus(null);
     
+    // Always stop ringtone when resetting state
     if (stopRingtone) {
+      console.log("[WebRTC] Stopping ringtone in resetCallState");
       stopRingtone();
       setStopRingtone(null);
     }
   }, [stopRingtone]);
 
   const handleCallStatus = useCallback((status: string | undefined) => {
+    console.log(`[WebRTC] Call status change: ${status}`);
+    setStatus(status || null);
+    
     if (status === "connected") {
       console.log("[WebRTC] Call connected, updating state immediately");
       setIsCalling(true);
       setIncomingCall(null);
       
+      // Always stop ringtone when call status changes to connected
       if (stopRingtone) {
-        console.log("[WebRTC] Stopping ringtone immediately");
+        console.log("[WebRTC] Stopping ringtone for connected call");
         stopRingtone();
         setStopRingtone(null);
       }
       
       toast.success("Call connected");
     } else if (status === "ended" || status === "rejected") {
+      console.log(`[WebRTC] Call ${status}, running full cleanup`);
       resetCallState();
       toast.info(status === "ended" ? "Call ended" : "Call rejected");
     } else if (status === "missed") {
+      console.log("[WebRTC] Call missed, running full cleanup");
       resetCallState();
       toast.error("Call missed");
     } else if (status === "pending") {
-      if (!stopRingtone && incomingCall) {
+      // Only start ringtone if:
+      // 1. We don't already have a ringtone playing
+      // 2. There's an incoming call
+      // 3. We're not already in a call
+      if (!stopRingtone && incomingCall && !isCalling) {
+        console.log("[WebRTC] Starting ringtone for pending call");
         const stopSound = playRingtoneSound();
         setStopRingtone(() => stopSound);
       }
     }
-  }, [incomingCall, playRingtoneSound, resetCallState, stopRingtone]);
+  }, [incomingCall, isCalling, playRingtoneSound, resetCallState, stopRingtone]);
+
+  // Automatically fetch call history when component mounts
+  useEffect(() => {
+    if (conversationId) {
+      fetchCallHistory();
+    }
+  }, [conversationId]);
 
   useEffect(() => {
     if (!conversationId) return;
 
+    console.log(`[WebRTC] Setting up realtime subscription for calls in conversation: ${conversationId}`);
+    
     const channel = supabase
       .channel(`calls:${conversationId}`)
       .on(
@@ -78,7 +101,7 @@ export function useCallSession(
           
           if (!newRow) return;
           
-          console.log("Call session update:", { eventType, newRow });
+          console.log("[WebRTC] Call session update:", { eventType, newRow });
 
           if (eventType === "INSERT") {
             handleInsertEvent(newRow, currentUserId);
@@ -89,11 +112,11 @@ export function useCallSession(
       )
       .subscribe();
 
-    fetchCallHistory();
-
     return () => {
+      console.log("[WebRTC] Cleaning up realtime subscription and ringtone");
       if (stopRingtone) {
         stopRingtone();
+        setStopRingtone(null);
       }
       supabase.removeChannel(channel);
     };
@@ -103,6 +126,7 @@ export function useCallSession(
     if (newRow.status === "pending" && newRow.recipient_id === currentUserId) {
       console.log("[WebRTC] Incoming call detected:", { 
         callType: newRow.call_type,
+        callerId: newRow.caller_id,
         status: newRow.status 
       });
       
@@ -110,7 +134,9 @@ export function useCallSession(
       setStatus("incoming");
       setCallSession(newRow as CallSession); // Set call session immediately for incoming calls
       
-      if (!stopRingtone) {
+      // Only start ringtone if we're not already on a call
+      if (!isCalling && !stopRingtone) {
+        console.log("[WebRTC] Starting ringtone for incoming call");
         const stopSound = playRingtoneSound();
         setStopRingtone(() => stopSound);
       }
@@ -124,7 +150,7 @@ export function useCallSession(
       setStatus(newRow.status || null);
       setIsCalling(true);
     }
-  }, [callSession, playRingtoneSound, stopRingtone]);
+  }, [callSession, isCalling, playRingtoneSound, stopRingtone]);
 
   const handleUpdateEvent = useCallback((
     newRow: Partial<CallSession>, 
@@ -134,8 +160,8 @@ export function useCallSession(
     if ((newRow.caller_id === currentUserId || newRow.recipient_id === currentUserId)) {
       console.log("[WebRTC] Call session updated:", newRow.status);
       setCallSession(newRow as CallSession);
-      setStatus(newRow.status || null);
       
+      // Always call handleCallStatus to ensure state is properly updated
       handleCallStatus(newRow.status);
       
       if (newRow.signaling_data && newRow.signaling_data !== currentSignaling) {
@@ -153,6 +179,7 @@ export function useCallSession(
 
   const fetchCallHistory = async () => {
     try {
+      console.log(`[WebRTC] Fetching call history for conversation: ${conversationId}`);
       const { data, error } = await supabase
         .from("call_sessions")
         .select("*")
@@ -161,15 +188,16 @@ export function useCallSession(
         .limit(10);
         
       if (error) {
-        console.error("Error fetching call history:", error);
+        console.error("[WebRTC] Error fetching call history:", error);
         return;
       }
       
       if (data) {
+        console.log(`[WebRTC] Found ${data.length} call history records`);
         setCallHistory(data as CallSession[]);
       }
     } catch (err) {
-      console.error("Failed to fetch call history:", err);
+      console.error("[WebRTC] Failed to fetch call history:", err);
     }
   };
 
@@ -182,6 +210,8 @@ export function useCallSession(
     setSignaling,
     remoteSignal,
     callHistory,
-    resetCallState
+    resetCallState,
+    stopRingtone,
+    fetchCallHistory
   };
 }

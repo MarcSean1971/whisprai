@@ -57,6 +57,8 @@ export interface UseCallSessionReturn {
   remoteSignal: any;
   callHistory: CallSession[];
   resetCallState: () => void;
+  stopRingtone?: (() => void) | null;
+  fetchCallHistory: () => Promise<void>;
 }
 
 export interface UseCallActionsReturn {
