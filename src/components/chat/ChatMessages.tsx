@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, useState, createRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -65,18 +64,6 @@ export function ChatMessages({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
-  // Populate refs for each message
-  useEffect(() => {
-    if (Array.isArray(messages)) {
-      messages.forEach(message => {
-        if (message?.id && !messageRefs.current[message.id]) {
-          messageRefs.current[message.id] = null;
-        }
-      });
-    }
-  }, [messages]);
-
-  // Set up intersection observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -85,7 +72,7 @@ export function ChatMessages({
           refetch?.();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.1 }
     );
 
     const currentLoadMoreRef = loadMoreRef.current;
@@ -100,7 +87,6 @@ export function ChatMessages({
     };
   }, [refetch]);
 
-  // Provides a scrollToMessage function down the tree
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
     if (ref && typeof ref.scrollIntoView === "function") {
@@ -164,7 +150,6 @@ export function ChatMessages({
   );
 }
 
-// Separate component that uses the translation hooks inside the provider
 function TranslationConsumer({
   messages,
   currentUserId,
@@ -200,10 +185,8 @@ function TranslationConsumer({
     onTranslation
   );
 
-  // Only show reply input for the current reply target and not its parent (if also rendered)
   function shouldShowReplyInput(message: any) {
     if (replyToMessageId !== message.id) return false;
-    // If the parent is present and rendered, do NOT show the input here
     const target = messages.find((m: any) => m.id === replyToMessageId);
     if (target && target.parent && target.parent.id) {
       const parentIsVisible = messages.some((m: any) => m.id === target.parent.id);
