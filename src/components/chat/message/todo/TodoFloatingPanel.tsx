@@ -8,6 +8,7 @@ interface TodoFloatingPanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (assignedTo: string, dueDate: Date) => void;
+  onCloseMenu?: () => void;
 }
 
 export function TodoFloatingPanel({
@@ -15,6 +16,7 @@ export function TodoFloatingPanel({
   open,
   onOpenChange,
   onSubmit,
+  onCloseMenu = () => {},
 }: TodoFloatingPanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +30,7 @@ export function TodoFloatingPanel({
         !(event.target as Element)?.closest('[data-radix-popper-content-wrapper]')
       ) {
         onOpenChange(false);
+        onCloseMenu();
       }
     }
 
@@ -36,7 +39,7 @@ export function TodoFloatingPanel({
     return () => {
       document.removeEventListener("mousedown", onClickOutside, true);
     };
-  }, [open, onOpenChange]);
+  }, [open, onOpenChange, onCloseMenu]);
 
   if (!open || !anchorRect) return null;
 
@@ -61,6 +64,7 @@ export function TodoFloatingPanel({
       <TodoDialog
         onSubmit={onSubmit}
         onClose={() => onOpenChange(false)}
+        onCloseMenu={onCloseMenu}
       />
     </div>,
     document.body

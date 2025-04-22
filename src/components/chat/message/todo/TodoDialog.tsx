@@ -7,9 +7,10 @@ import { DateSelect } from "./components/DateSelect";
 interface TodoDialogProps {
   onSubmit: (assignedTo: string, dueDate: Date) => void;
   onClose: () => void;
+  onCloseMenu: () => void;
 }
 
-export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
+export function TodoDialog({ onSubmit, onClose, onCloseMenu }: TodoDialogProps) {
   const [date, setDate] = useState<Date>();
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -25,6 +26,7 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
         setDate(undefined);
         setSelectedContactId(undefined);
         onClose();
+        onCloseMenu();
       } catch (error) {
         console.error('Error submitting todo:', error);
       } finally {
@@ -61,6 +63,7 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
           onClick={(e) => {
             e.stopPropagation();
             onClose();
+            onCloseMenu();
           }}
           onMouseDown={(e) => e.stopPropagation()}
           disabled={isSubmitting}
