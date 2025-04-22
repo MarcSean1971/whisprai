@@ -6,7 +6,7 @@ import { isToday, isThisWeek, isThisMonth } from "date-fns";
 import { useProfile } from "@/hooks/use-profile";
 
 export function TodoList() {
-  const { todos, isLoading, updateTodoStatus, updateTodo } = useTodos();
+  const { todos, isLoading, updateTodoStatus, updateTodo, deleteTodo } = useTodos();
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState<TodoFilter>({
     status: 'all',
@@ -29,18 +29,15 @@ export function TodoList() {
 
   const filterTodos = (todos: any[]) => {
     return todos.filter(todo => {
-      // Search filter - check both message_content and messages.content
       const messageContent = todo.messages?.content || todo.message_content;
       if (searchQuery && !messageContent?.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
 
-      // Status filter
       if (filter.status !== 'all' && todo.status !== filter.status) {
         return false;
       }
 
-      // Due date filter
       if (filter.dueDate !== 'all') {
         const dueDate = new Date(todo.due_date);
         if (filter.dueDate === 'today' && !isToday(dueDate)) return false;
@@ -48,7 +45,6 @@ export function TodoList() {
         if (filter.dueDate === 'month' && !isThisMonth(dueDate)) return false;
       }
 
-      // Assignee filter
       if (filter.assignee !== 'all') {
         if (filter.assignee === 'me' && todo.assigned_to !== profile?.id) return false;
         if (filter.assignee === 'others' && todo.assigned_to === profile?.id) return false;
@@ -83,6 +79,7 @@ export function TodoList() {
                 onUpdate={(id, data) => {
                   updateTodo({ id, ...data });
                 }}
+                onDelete={deleteTodo}
               />
             ))}
           </div>
@@ -102,6 +99,7 @@ export function TodoList() {
                   onUpdate={(id, data) => {
                     updateTodo({ id, ...data });
                   }}
+                  onDelete={deleteTodo}
                 />
               ))}
             </div>

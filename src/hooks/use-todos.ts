@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,7 +42,6 @@ export function useTodos() {
   const { data: todos, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
-      // First fetch todos
       const { data: todosData, error: todosError } = await supabase
         .from('todos')
         .select('*')
@@ -54,7 +52,6 @@ export function useTodos() {
         throw todosError;
       }
 
-      // Then fetch profile data for each todo's assigned_to user
       const userIds = [...new Set(todosData.map(todo => todo.assigned_to))];
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -66,7 +63,6 @@ export function useTodos() {
         // Don't throw, we'll just have todos without profile data
       }
 
-      // Then fetch message data for each todo that has a message_id
       const messageIds = [...new Set(todosData.filter(todo => todo.message_id).map(todo => todo.message_id))];
       const { data: messagesData, error: messagesError } = await supabase
         .from('messages')
@@ -78,7 +74,6 @@ export function useTodos() {
         // Don't throw, we'll just have todos without message data
       }
 
-      // Create maps for easier lookups
       const profilesMap = (profilesData || []).reduce((acc, profile) => {
         acc[profile.id] = profile;
         return acc;
@@ -89,7 +84,6 @@ export function useTodos() {
         return acc;
       }, {} as Record<string, { id: string; content: string }>);
 
-      // Combine data
       const enrichedTodos = todosData.map(todo => {
         const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
         const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
@@ -187,11 +181,31 @@ export function useTodos() {
     },
   });
 
+  const deleteTodo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('todos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Todo deleted successfully');
+    },
+    onError: (error) => {
+      console.error('Error deleting todo:', error);
+      toast.error('Failed to delete todo');
+    },
+  });
+
   return {
     todos,
     isLoading,
     createTodo: createTodo.mutate,
     updateTodoStatus: updateTodoStatus.mutate,
     updateTodo: updateTodo.mutate,
+    deleteTodo: deleteTodo.mutate,
   };
 }
