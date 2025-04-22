@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -47,13 +48,18 @@ export function useTodos() {
         .select(`
           *,
           messages (content),
-          profiles:profiles(first_name, last_name)
+          profiles:profiles!todos_assigned_to_fkey(first_name, last_name)
         `)
         .order('due_date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching todos:', error);
+        throw error;
+      }
 
-      return data as unknown as (Todo & { 
+      console.log('Fetched todos:', data);
+      
+      return data as (Todo & { 
         profiles: { first_name: string | null; last_name: string | null } 
       })[];
     },
