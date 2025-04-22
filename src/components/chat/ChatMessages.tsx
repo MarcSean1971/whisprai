@@ -37,7 +37,7 @@ export function ChatMessages({
   isFetchingNextPage
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const { currentUserId, isLoading, error } = useCurrentUserId();
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
