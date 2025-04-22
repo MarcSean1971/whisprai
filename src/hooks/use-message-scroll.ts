@@ -3,11 +3,12 @@ import { useEffect, useRef, useState } from "react";
 interface UseMessageScrollProps {
   messages: any[];
   refetch?: () => void;
+  hasNextPage?: boolean;
 }
 
 const PULL_THRESHOLD = 100; // pixels needed to trigger refresh
 
-export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
+export function useMessageScroll({ messages, refetch, hasNextPage = false }: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -16,26 +17,24 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
   
-  // New states for pull-to-refresh
   const [pullProgress, setPullProgress] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const initialScrollTop = useRef<number | null>(null);
 
-  // Handle pull-to-refresh touch events
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop === 0) {
+      if (container.scrollTop === 0 && hasNextPage) {
         touchStartY.current = e.touches[0].clientY;
         initialScrollTop.current = container.scrollTop;
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!touchStartY.current) return;
+      if (!touchStartY.current || !hasNextPage) return;
       
       const touchY = e.touches[0].clientY;
       const diff = touchY - touchStartY.current;
@@ -49,7 +48,7 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     };
 
     const handleTouchEnd = async () => {
-      if (pullProgress >= 100 && refetch && !isLoadingMore) {
+      if (pullProgress >= 100 && refetch && !isLoadingMore && hasNextPage) {
         setIsLoadingMore(true);
         await refetch();
         setTimeout(() => {
@@ -72,9 +71,8 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
       container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [pullProgress, refetch, isLoadingMore]);
+  }, [pullProgress, refetch, isLoadingMore, hasNextPage]);
 
-  // Scroll to bottom only for new messages at the end
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       const container = scrollContainerRef.current;
@@ -87,7 +85,6 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
-  // Save scroll position before loading more messages
   useEffect(() => {
     if (scrollContainerRef.current) {
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
@@ -95,7 +92,6 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     }
   }, [messages.length]);
 
-  // Preserve scroll position when loading older messages
   useEffect(() => {
     if (scrollContainerRef.current && !isLoadingMore) {
       const container = scrollContainerRef.current;
@@ -108,14 +104,13 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     }
   }, [messages.length, isLoadingMore]);
 
-  // Handle infinite scroll for older messages at the top
   useEffect(() => {
     if (!refetch) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
-        if (first.isIntersecting && !isLoadingMore && refetch) {
+        if (first.isIntersecting && !isLoadingMore && refetch && hasNextPage) {
           setIsLoadingMore(true);
           refetch();
           setTimeout(() => {
@@ -139,7 +134,7 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, isLoadingMore]);
+  }, [refetch, isLoadingMore, hasNextPage]);
 
   return {
     scrollContainerRef,

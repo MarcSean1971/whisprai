@@ -23,6 +23,7 @@ interface ChatMessagesProps {
   cancelReply?: () => void;
   refetch?: () => void;
   isFetchingNextPage?: boolean;
+  hasNextPage?: boolean;
 }
 
 export function ChatMessages({ 
@@ -35,7 +36,8 @@ export function ChatMessages({
   sendReply,
   cancelReply,
   refetch,
-  isFetchingNextPage
+  isFetchingNextPage,
+  hasNextPage = false
 }: ChatMessagesProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -50,7 +52,8 @@ export function ChatMessages({
     isPulling
   } = useMessageScroll({
     messages,
-    refetch
+    refetch,
+    hasNextPage
   });
 
   const scrollToMessage = (messageId: string) => {
@@ -96,6 +99,7 @@ export function ChatMessages({
             pullProgress={pullProgress}
             isLoading={isLoadingMore}
             isPulling={isPulling}
+            hasNextPage={hasNextPage}
           />
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 

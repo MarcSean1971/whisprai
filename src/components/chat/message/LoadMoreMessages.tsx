@@ -7,13 +7,16 @@ interface LoadMoreMessagesProps {
   pullProgress: number
   isLoading: boolean
   isPulling: boolean
+  hasNextPage: boolean
 }
 
-export function LoadMoreMessages({ pullProgress, isLoading, isPulling }: LoadMoreMessagesProps) {
-  const shouldShow = isPulling || isLoading
-  const message = pullProgress >= 100 
-    ? "Release to load more messages" 
-    : "Pull down to load more messages"
+export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPage }: LoadMoreMessagesProps) {
+  const shouldShow = (isPulling || isLoading) && hasNextPage;
+  const message = !hasNextPage 
+    ? "No more messages to load" 
+    : pullProgress >= 100 
+      ? "Release to load more messages" 
+      : "Pull down to load more messages";
 
   return (
     <div 
