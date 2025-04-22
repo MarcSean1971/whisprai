@@ -1,4 +1,6 @@
+
 import { useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface UseMessageScrollProps {
   messages: any[];
@@ -9,6 +11,7 @@ interface UseMessageScrollProps {
 
 const PULL_THRESHOLD = 60;
 const SCROLL_TOLERANCE = 5;
+const INTERSECTION_MARGIN = '500px';
 
 export function useMessageScroll({ 
   messages, 
@@ -16,6 +19,7 @@ export function useMessageScroll({
   hasNextPage = false,
   isFetchingNextPage = false 
 }: UseMessageScrollProps) {
+  const isMobile = useIsMobile();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -56,11 +60,14 @@ export function useMessageScroll({
         container.scrollTop = previousScrollTop.current + heightDifference;
       }
     }
+    setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
+  // Mobile pull-to-refresh handling
   useEffect(() => {
+    if (!isMobile || !scrollContainerRef.current) return;
+
     const container = scrollContainerRef.current;
-    if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (container.scrollTop <= SCROLL_TOLERANCE && hasNextPage) {
@@ -96,10 +103,9 @@ export function useMessageScroll({
       const shouldRefetch = pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage;
       
       if (shouldRefetch) {
-        console.log('Fetching more messages...');
+        console.log('Fetching more messages via pull-to-refresh...');
         try {
           await refetch();
-          console.log('Messages fetched successfully');
         } catch (err) {
           console.error('Error fetching messages:', err);
         }
@@ -123,24 +129,13 @@ export function useMessageScroll({
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [pullProgress, refetch, isFetchingNextPage, hasNextPage]);
+  }, [pullProgress, refetch, isFetchingNextPage, hasNextPage, isMobile]);
 
+  // Desktop infinite scroll handling
   useEffect(() => {
-    if (scrollContainerRef.current && messages.length > previousMessagesLength) {
-      const container = scrollContainerRef.current;
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      
-      if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-    setPreviousMessagesLength(messages.length);
-  }, [messages.length, previousMessagesLength]);
+    if (isMobile || !refetch || !hasNextPage) return;
 
-  useEffect(() => {
-    if (!refetch || !hasNextPage) return;
-
-    console.log("Setting up Intersection Observer");
+    console.log("Setting up Intersection Observer for desktop");
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
@@ -150,9 +145,8 @@ export function useMessageScroll({
         }
       },
       { 
-        root: scrollContainerRef.current,
         threshold: 0.1,
-        rootMargin: '100px 0px 0px 0px'
+        rootMargin: INTERSECTION_MARGIN + ' 0px 0px 0px'
       }
     );
 
@@ -167,7 +161,19 @@ export function useMessageScroll({
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, isFetchingNextPage, hasNextPage]);
+  }, [refetch, isFetchingNextPage, hasNextPage, isMobile]);
+
+  // Auto-scroll to bottom for new messages
+  useEffect(() => {
+    if (scrollContainerRef.current && messages.length > previousMessagesLength) {
+      const container = scrollContainerRef.current;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages.length, previousMessagesLength]);
 
   return {
     scrollContainerRef,

@@ -2,6 +2,7 @@
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { Loader2 } from "lucide-react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface LoadMoreMessagesProps {
   pullProgress: number
@@ -11,12 +12,15 @@ interface LoadMoreMessagesProps {
 }
 
 export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPage }: LoadMoreMessagesProps) {
-  const shouldShow = (isPulling || isLoading) && hasNextPage;
+  const isMobile = useIsMobile();
+  const shouldShow = isMobile ? (isPulling || isLoading) && hasNextPage : isLoading && hasNextPage;
   const message = !hasNextPage 
     ? "No more messages to load" 
-    : pullProgress >= 100 
-      ? "Release to load more messages" 
-      : "Pull down to load more messages";
+    : isMobile 
+      ? pullProgress >= 100 
+        ? "Release to load more messages" 
+        : "Pull down to load more messages"
+      : "Loading more messages...";
 
   return (
     <div 
@@ -27,19 +31,21 @@ export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPa
         shouldShow ? "opacity-100 h-24" : "opacity-0 h-0"
       )}
       style={{
-        transform: `translateY(${Math.min(pullProgress / 2, 50)}%)`,
+        transform: isMobile ? `translateY(${Math.min(pullProgress / 2, 50)}%)` : 'none',
       }}
     >
       <div className="flex items-center gap-3">
         {isLoading ? (
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         ) : (
-          <div className="w-44">
-            <Progress value={pullProgress} className="h-2" />
-          </div>
+          isMobile && (
+            <div className="w-44">
+              <Progress value={pullProgress} className="h-2" />
+            </div>
+          )
         )}
         <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
-          {isLoading ? "Loading messages..." : message}
+          {message}
         </span>
       </div>
     </div>
