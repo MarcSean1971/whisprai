@@ -22,11 +22,21 @@ export function TodoFloatingPanel({
     if (!open) return;
 
     function onClickOutside(event: MouseEvent) {
+      if (!panelRef.current) return;
+
+      // Check if the click is on a popover, calendar, or select element
+      const target = event.target as HTMLElement;
+      const isPopover = target.closest('[role="dialog"]');
+      const isCalendar = target.closest('.rdp');
+      const isSelect = target.closest('select');
+      
+      // Don't close if clicking within these elements
+      if (isPopover || isCalendar || isSelect) {
+        return;
+      }
+
       // Check if click was outside the panel
-      if (
-        panelRef.current &&
-        !panelRef.current.contains(event.target as Node)
-      ) {
+      if (!panelRef.current.contains(event.target as Node)) {
         event.preventDefault();
         event.stopPropagation();
         onOpenChange(false);
@@ -66,6 +76,7 @@ export function TodoFloatingPanel({
         // Prevent click from propagating to parent elements
         e.stopPropagation();
       }}
+      className="bg-background rounded-lg border shadow-lg"
     >
       <TodoDialog
         onSubmit={onSubmit}

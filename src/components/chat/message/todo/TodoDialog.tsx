@@ -44,68 +44,80 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
   };
 
   return (
-    <div className="bg-background rounded-lg border shadow-lg">
-      <div className="p-6 pb-2">
-        <h2 className="text-lg font-semibold leading-none tracking-tight">Add to Todo List</h2>
+    <div className="p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+      <h2 className="text-lg font-semibold leading-none tracking-tight mb-4">Add to Todo List</h2>
+      
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Assign to</label>
+        <select
+          className="w-full rounded-md border p-2"
+          value={selectedContactId || ""}
+          onChange={(e) => {
+            e.stopPropagation();
+            setSelectedContactId(e.target.value);
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <option value="">Select a contact</option>
+          {contacts?.map((contact) => (
+            <option key={contact.contact_id} value={contact.contact_id}>
+              {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
+            </option>
+          ))}
+        </select>
       </div>
-      <div className="p-6 pt-2 space-y-4">
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Assign to</label>
-          <select
-            className="w-full rounded-md border p-2"
-            value={selectedContactId || ""}
-            onChange={(e) => setSelectedContactId(e.target.value)}
+      
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Due Date</label>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !date && "text-muted-foreground"
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {date ? format(date, "PPP") : <span>Pick a date</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="w-auto p-0" 
+            align="start"
+            onOpenAutoFocus={(e) => e.preventDefault()}
+            onPointerDownOutside={(e) => e.preventDefault()}
+            onClick={(e) => e.stopPropagation()}
           >
-            <option value="">Select a contact</option>
-            {contacts?.map((contact) => (
-              <option key={contact.contact_id} value={contact.contact_id}>
-                {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
-              </option>
-            ))}
-          </select>
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Due Date</label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {date ? format(date, "PPP") : <span>Pick a date</span>}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                initialFocus
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              initialFocus
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
 
-        <div className="flex justify-end gap-2 pt-4">
-          <Button 
-            variant="outline" 
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!date || !selectedContactId || isSubmitting}
-          >
-            {isSubmitting ? "Adding..." : "Add Todo"}
-          </Button>
-        </div>
+      <div className="flex justify-end gap-2 pt-4">
+        <Button 
+          variant="outline" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          disabled={isSubmitting}
+        >
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSubmit}
+          disabled={!date || !selectedContactId || isSubmitting}
+        >
+          {isSubmitting ? "Adding..." : "Add Todo"}
+        </Button>
       </div>
     </div>
   );
