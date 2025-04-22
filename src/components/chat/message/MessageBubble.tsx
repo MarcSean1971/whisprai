@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { MessageReactions } from "./reactions/MessageReactions";
@@ -70,7 +71,7 @@ export function MessageBubble({
           ? "bg-primary text-primary-foreground"
           : isAIMessage
           ? "bg-violet-500/20 border border-violet-500/20"
-          : "bg-secondary"
+          : "bg-[#D3E4FD] border border-blue-200/50 text-gray-800 dark:bg-blue-900/20 dark:text-gray-100"
       )}>
         {parent && parent.id && parent.content && (
           <ParentMessagePreview
