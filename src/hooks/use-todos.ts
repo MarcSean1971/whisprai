@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -52,6 +53,27 @@ export function useTodos() {
         throw todosError;
       }
 
+      // Get all unique conversation IDs from todos
+      const conversationIds = [...new Set(todosData.map(todo => todo.conversation_id))];
+
+      // Fetch participants for all conversations
+      const { data: participantsData, error: participantsError } = await supabase
+        .from('conversation_participants')
+        .select(`
+          conversation_id,
+          user_id,
+          profiles!conversation_participants_user_id_fkey(
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .in('conversation_id', conversationIds);
+
+      if (participantsError) {
+        console.error('Error fetching participants:', participantsError);
+      }
+
       const userIds = [...new Set(todosData.map(todo => todo.assigned_to))];
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -60,7 +82,6 @@ export function useTodos() {
 
       if (profilesError) {
         console.error('Error fetching profiles:', profilesError);
-        // Don't throw, we'll just have todos without profile data
       }
 
       const messageIds = [...new Set(todosData.filter(todo => todo.message_id).map(todo => todo.message_id))];
@@ -71,9 +92,9 @@ export function useTodos() {
 
       if (messagesError) {
         console.error('Error fetching messages:', messagesError);
-        // Don't throw, we'll just have todos without message data
       }
 
+      // Create maps for easier lookup
       const profilesMap = (profilesData || []).reduce((acc, profile) => {
         acc[profile.id] = profile;
         return acc;
@@ -84,9 +105,21 @@ export function useTodos() {
         return acc;
       }, {} as Record<string, { id: string; content: string }>);
 
+      // Group participants by conversation
+      const participantsByConversation = (participantsData || []).reduce((acc, participant) => {
+        if (!acc[participant.conversation_id]) {
+          acc[participant.conversation_id] = [];
+        }
+        if (participant.profiles) {
+          acc[participant.conversation_id].push(participant.profiles);
+        }
+        return acc;
+      }, {} as Record<string, Array<{ id: string; first_name: string | null; last_name: string | null }>>);
+
       const enrichedTodos = todosData.map(todo => {
         const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
         const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
+        const conversationParticipants = participantsByConversation[todo.conversation_id] || [];
 
         return {
           ...todo,
@@ -94,14 +127,16 @@ export function useTodos() {
           profiles: {
             first_name: profileData.first_name,
             last_name: profileData.last_name
-          }
+          },
+          conversation_participants: conversationParticipants
         };
       });
 
-      console.log('Fetched todos:', enrichedTodos);
+      console.log('Fetched todos with participants:', enrichedTodos);
       
       return enrichedTodos as (Todo & { 
-        profiles: { first_name: string | null; last_name: string | null } 
+        profiles: { first_name: string | null; last_name: string | null },
+        conversation_participants: Array<{ id: string; first_name: string | null; last_name: string | null }>
       })[];
     },
   });

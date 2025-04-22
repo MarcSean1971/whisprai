@@ -20,7 +20,10 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface TodoItemProps {
-  todo: Todo & { profiles: { first_name: string | null; last_name: string | null } };
+  todo: Todo & { 
+    profiles: { first_name: string | null; last_name: string | null },
+    conversation_participants: Array<{ id: string; first_name: string | null; last_name: string | null }>
+  };
   onStatusChange: (id: string, status: 'pending' | 'completed') => void;
   onUpdate: (id: string, data: { 
     assigned_to?: string; 
@@ -45,6 +48,14 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
     ? `${todo.profiles.first_name} ${todo.profiles.last_name || ''}`
     : 'Unknown';
 
+  // Get the counterparty name (other participants in the conversation)
+  const counterpartyNames = todo.conversation_participants
+    .map(participant => participant.first_name 
+      ? `${participant.first_name} ${participant.last_name || ''}` 
+      : 'Unknown'
+    )
+    .join(', ');
+
   return (
     <div className="space-y-2">
       <div className="flex items-start space-x-2 p-3 hover:bg-whispr-purple-light/10 hover:text-whispr-purple-dark rounded-lg transition-colors duration-200 ease-in-out">
@@ -61,6 +72,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
                 {messageContent}
               </p>
               <p className="text-sm font-medium text-whispr-purple">Assigned to: {assigneeName}</p>
+              <p className="text-sm text-muted-foreground">From chat with: {counterpartyNames}</p>
             </div>
             <div className="flex items-center space-x-1">
               <Button
