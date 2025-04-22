@@ -88,6 +88,11 @@ export function ChatMessages({
     }
   };
 
+  // Create a callback ref function for the infinite loader
+  const setLoadMoreRef = (node: HTMLDivElement | null) => {
+    loadMoreRef.current = node;
+  };
+
   if (error && refetch) {
     return <MessagesErrorState error={error} refetch={refetch} />;
   }
@@ -102,7 +107,7 @@ export function ChatMessages({
         <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
           <MessagesInfiniteLoader 
             isFetchingNextPage={isFetchingNextPage || false}
-            loaderRef={loadMoreRef}
+            loaderRef={setLoadMoreRef}
           />
           <TranslationConsumer 
             messages={messages} 
