@@ -28,9 +28,19 @@ export function usePeerInit({ initiator, localStream }: UsePeerInitProps) {
     }
 
     console.log("[WebRTC] Creating new peer connection, initiator:", initiator);
-    console.log("[WebRTC] Using ICE servers:", iceServers);
     
-    if (!iceServers || iceServers.length === 0) {
+    // Log the ICE servers in detail
+    if (iceServers && iceServers.length > 0) {
+      console.log("[WebRTC] Using ICE servers:");
+      iceServers.forEach((server, index) => {
+        const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+        console.log(`[WebRTC] Server #${index + 1}:`, {
+          urls: urls,
+          type: urls[0].startsWith('stun') ? 'STUN' : 'TURN',
+          hasCredentials: !!(server.username && server.credential)
+        });
+      });
+    } else {
       console.warn("[WebRTC] No ICE servers available, refreshing...");
       refreshIceServers();
     }
@@ -55,14 +65,35 @@ export function usePeerInit({ initiator, localStream }: UsePeerInitProps) {
       },
       sdpTransform: (sdp: string) => {
         // Log SDP for debugging
-        console.log("[WebRTC] SDP:", sdp.substring(0, 100) + "...");
+        console.log("[WebRTC] SDP first 100 chars:", sdp.substring(0, 100) + "...");
+        // Log if SDP contains TURN server references
+        const hasTurn = sdp.includes('relay');
+        console.log("[WebRTC] SDP includes TURN relay candidates:", hasTurn);
         return sdp;
       }
     };
     
     try {
+      console.log("[WebRTC] Peer options:", JSON.stringify({
+        initiator,
+        trickle: true,
+        iceServersCount: enhancedIceServers.length,
+        iceTransportPolicy: 'all',
+        iceCandidatePoolSize: 10
+      }));
+      
       const peer = new Peer(peerOptions);
       console.log("[WebRTC] Peer created successfully");
+      
+      // Enable additional logging on the peer object
+      peer.on('error', err => {
+        console.error('[WebRTC] Peer error event:', err.message);
+      });
+      
+      peer.on('close', () => {
+        console.log('[WebRTC] Peer close event');
+      });
+      
       return peer;
     } catch (error) {
       console.error("[WebRTC] Error creating peer:", error);

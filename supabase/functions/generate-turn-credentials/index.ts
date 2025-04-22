@@ -25,14 +25,19 @@ Deno.serve(async (req) => {
   }
 
   try {
+    console.log("[TURN] Starting generate-turn-credentials function");
+    
     // Get Twilio credentials from environment variables
     const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
     const authToken = Deno.env.get('TWILIO_AUTH_TOKEN')
     
     if (!accountSid || !authToken) {
+      console.error("[TURN] Missing Twilio credentials");
       throw new Error('Missing Twilio credentials')
     }
 
+    console.log("[TURN] Calling Twilio API for token generation");
+    
     // Instead of using the Twilio SDK directly, we'll use a direct API call
     const twilioBaseUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Tokens.json`
     
@@ -46,17 +51,22 @@ Deno.serve(async (req) => {
     
     if (!response.ok) {
       const errorText = await response.text()
+      console.error(`[TURN] Twilio API error: ${response.status} - ${errorText}`);
       throw new Error(`Twilio API error: ${response.status} - ${errorText}`)
     }
     
     const tokenData = await response.json()
+    console.log("[TURN] Received Twilio token data");
     
     // Format Twilio ice servers data
-    const iceServers = tokenData.ice_servers.map((server: any) => ({
-      urls: Array.isArray(server.url) ? server.url : [server.url],
-      username: server.username || '',
-      credential: server.credential || ''
-    }))
+    const iceServers = tokenData.ice_servers.map((server: any) => {
+      const formattedServer = {
+        urls: Array.isArray(server.url) ? server.url : [server.url],
+        username: server.username || '',
+        credential: server.credential || ''
+      };
+      return formattedServer;
+    });
     
     // Add standard STUN servers to improve connectivity
     const standardStunServers = [
@@ -70,7 +80,7 @@ Deno.serve(async (req) => {
       timestamp: Date.now()
     }
     
-    console.log(`Generated ICE servers successfully. Server count: ${responseData.ice_servers.length}`)
+    console.log(`[TURN] Generated ICE servers successfully. Server count: ${responseData.ice_servers.length}`);
     
     // Return the formatted response
     return new Response(JSON.stringify(responseData), {
@@ -81,9 +91,10 @@ Deno.serve(async (req) => {
     })
     
   } catch (error) {
-    console.error(`Error generating TURN credentials: ${error.message}`)
+    console.error(`[TURN] Error generating TURN credentials: ${error.message}`);
     return new Response(JSON.stringify({ 
-      error: error.message || 'Failed to generate TURN credentials' 
+      error: error.message || 'Failed to generate TURN credentials',
+      timestamp: Date.now()
     }), {
       status: 500,
       headers: { 

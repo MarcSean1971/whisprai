@@ -68,15 +68,32 @@ export function useIceServers() {
         setTimeout(() => reject(new Error('ICE servers fetch timeout')), FETCH_TIMEOUT);
       });
       
+      // Add detailed logging for the edge function call
+      console.log('[WebRTC] Calling generate-turn-credentials edge function');
       const fetchPromise = supabase.functions.invoke('generate-turn-credentials');
       
-      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      const result = await Promise.race([fetchPromise, timeoutPromise]);
+      console.log('[WebRTC] Edge function response:', result);
       
-      if (error) throw error;
+      const { data, error } = result;
+      
+      if (error) {
+        console.error('[WebRTC] Edge function error:', error);
+        throw error;
+      }
       
       if (data?.ice_servers) {
         console.log('[WebRTC] Successfully fetched ICE servers:', 
           data.ice_servers.length, 'servers');
+        
+        // Log each ICE server for debugging
+        data.ice_servers.forEach((server: IceServer, index: number) => {
+          const urls = Array.isArray(server.urls) ? server.urls : [server.urls];
+          console.log(`[WebRTC] ICE Server #${index + 1}:`, {
+            urls,
+            hasCredentials: !!(server.username && server.credential)
+          });
+        });
         
         setIceServers(data.ice_servers);
         if (data.ttl) {
@@ -85,8 +102,10 @@ export function useIceServers() {
             expiresAt: Date.now() + (data.ttl * 1000)
           };
           localStorage.setItem(ICE_SERVERS_CACHE_KEY, JSON.stringify(cache));
+          console.log('[WebRTC] Cached ICE servers with TTL:', data.ttl, 'seconds');
         }
       } else {
+        console.warn('[WebRTC] No ICE servers returned from server:', data);
         throw new Error('No ICE servers returned from server');
       }
     } catch (err) {
@@ -95,6 +114,7 @@ export function useIceServers() {
       
       // Use fallback servers on error
       const fallbackServers = getIceServers();
+      console.warn('[WebRTC] Using fallback ICE servers:', fallbackServers);
       setIceServers(fallbackServers);
       
       // Retry logic
