@@ -1,5 +1,5 @@
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -9,12 +9,28 @@ import type { Message } from "./use-messages/types";
 // Re-export the Message type for other components to use
 export type { Message } from "./use-messages/types";
 
+const PAGE_SIZE = 20;
+
 /**
- * Fetches messages for a conversationId using react-query and real-time subscription.
+ * Fetches paginated messages for a conversationId using react-query and real-time subscription.
  */
 export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+
+  const result = useInfiniteQuery({
+    queryKey: ['messages', conversationId],
+    queryFn: ({ pageParam }) => fetchMessages(conversationId, PAGE_SIZE, pageParam),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    select: (data) => ({
+      pages: data.pages.map(page => page.messages),
+      pageParams: data.pageParams,
+    }),
+  });
+
+  // Flatten messages for easier access
+  const messages = result.data?.pages.flat() || [];
 
   useEffect(() => {
     if (!conversationId) {
@@ -67,14 +83,6 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId, queryClient]);
 
-  const result = useQuery<Message[], Error>({
-    queryKey: ['messages', conversationId],
-    queryFn: () => fetchMessages(conversationId),
-    retry: 2,
-    retryDelay: 1000,
-    refetchOnWindowFocus: false
-  });
-
   // Combine subscription errors with query errors
   const error = result.error || subscriptionError;
   
@@ -85,6 +93,10 @@ export function useMessages(conversationId: string) {
 
   return {
     ...result,
-    error
+    messages,
+    error,
+    fetchNextPage: result.fetchNextPage,
+    hasNextPage: result.hasNextPage,
+    isFetchingNextPage: result.isFetchingNextPage
   };
 }

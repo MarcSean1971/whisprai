@@ -38,6 +38,7 @@ export function ChatMessages({
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   // Build a ref map for message ids
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -74,6 +75,30 @@ export function ChatMessages({
       }
     });
   }, [messages]);
+
+  // Set up intersection observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting) {
+          refetch?.();
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    const currentLoadMoreRef = loadMoreRef.current;
+    if (currentLoadMoreRef) {
+      observer.observe(currentLoadMoreRef);
+    }
+
+    return () => {
+      if (currentLoadMoreRef) {
+        observer.unobserve(currentLoadMoreRef);
+      }
+    };
+  }, [refetch]);
 
   // Provides a scrollToMessage function down the tree
   const scrollToMessage = (messageId: string) => {
@@ -117,6 +142,7 @@ export function ChatMessages({
     <ErrorBoundary>
       <TranslationProvider>
         <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
+          <div ref={loadMoreRef} className="h-4" />
           <TranslationConsumer 
             messages={messages} 
             currentUserId={currentUserId}

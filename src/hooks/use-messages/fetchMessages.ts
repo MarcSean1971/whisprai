@@ -5,33 +5,57 @@ import { getProfiles } from "./getProfiles";
 import { getParentMessages } from "./getParentMessages";
 import type { Message } from "./types";
 
+export interface FetchMessagesResponse {
+  messages: Message[];
+  nextCursor?: string;
+}
+
 /**
- * Fetches messages for a conversation and enriches them with sender and parent profiles.
+ * Fetches paginated messages for a conversation and enriches them with sender and parent profiles.
  */
-export async function fetchMessages(conversationId: string): Promise<Message[]> {
+export async function fetchMessages(
+  conversationId: string,
+  pageSize: number = 20,
+  cursor?: string
+): Promise<FetchMessagesResponse> {
   if (!conversationId) throw new Error("No conversation ID provided");
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
 
-  const { data: messages, error: messagesError } = await supabase
+  let query = supabase
     .from("messages")
     .select("*, parent_id")
     .eq("conversation_id", conversationId)
     .or(
       `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
     )
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false })
+    .limit(pageSize);
+
+  // Add cursor pagination
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data: messages, error: messagesError } = await query;
 
   if (messagesError) {
     console.error("Error fetching messages:", messagesError);
     toast.error("Failed to load messages");
     throw messagesError;
   }
+
   if (!messages) {
     console.warn("No messages returned from query");
-    return [];
+    return { messages: [] };
   }
+
+  // Get the next cursor (timestamp of the oldest message)
+  const nextCursor = messages.length === pageSize ? 
+    messages[messages.length - 1].created_at : 
+    undefined;
+
   // Fetch user profiles
   const senderIds: string[] = messages
     .map((m: any) => m.sender_id)
@@ -49,7 +73,7 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
   const parentMessages = await getParentMessages(parentIds);
 
   // Format result as array of Message
-  return messages
+  const formattedMessages = messages
     .map((message: any) => {
       if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
         console.error("Invalid message structure:", message);
@@ -84,4 +108,9 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
       } as Message;
     })
     .filter(Boolean) as Message[];
+
+  return { 
+    messages: formattedMessages,
+    nextCursor 
+  };
 }
