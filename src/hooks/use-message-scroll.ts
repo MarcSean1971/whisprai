@@ -13,6 +13,8 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const [hasInitialScroll, setHasInitialScroll] = useState(false);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const previousScrollHeight = useRef<number>(0);
+  const previousScrollTop = useRef<number>(0);
 
   // Initial scroll to bottom
   useEffect(() => {
@@ -22,7 +24,7 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     }
   }, [hasInitialScroll, messages.length]);
 
-  // Scroll to bottom on new messages
+  // Preserve scroll position when loading older messages
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       const container = scrollContainerRef.current;
@@ -32,8 +34,27 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     }
+
+    if (scrollContainerRef.current && messages.length > previousMessagesLength && !isLoadingMore) {
+      const container = scrollContainerRef.current;
+      const newScrollHeight = container.scrollHeight;
+      const heightDifference = newScrollHeight - previousScrollHeight.current;
+      
+      if (heightDifference > 0) {
+        container.scrollTop = previousScrollTop.current + heightDifference;
+      }
+    }
+
     setPreviousMessagesLength(messages.length);
-  }, [messages.length, previousMessagesLength]);
+  }, [messages.length, previousMessagesLength, isLoadingMore]);
+
+  // Save scroll position before loading more messages
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
+      previousScrollTop.current = scrollContainerRef.current.scrollTop;
+    }
+  }, [messages.length]);
 
   // Handle infinite scroll for older messages at the top
   useEffect(() => {
@@ -45,15 +66,14 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
         if (first.isIntersecting && !isLoadingMore && refetch) {
           setIsLoadingMore(true);
           refetch();
-          // Reset loading state after a short delay
           setTimeout(() => {
             setIsLoadingMore(false);
           }, 500);
         }
       },
       { 
-        threshold: 0.1,
-        rootMargin: '50px 0px 0px 0px' // Adjusted to focus on top loading
+        threshold: 0.2,
+        rootMargin: '200px 0px 0px 0px' // Increased top margin to detect earlier
       }
     );
 

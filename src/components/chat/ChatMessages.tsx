@@ -82,10 +82,10 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar"
+          className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar"
         >
-          <div ref={loadMoreRef} className="h-1" />
           {isFetchingNextPage && <LoadingMessages />}
+          <div ref={loadMoreRef} className="h-16 -mt-8" />
           <TranslationConsumer 
             messages={messages} 
             currentUserId={currentUserId}
