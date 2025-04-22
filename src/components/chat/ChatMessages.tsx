@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -82,24 +83,29 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar"
+          className="absolute inset-0 overflow-y-auto no-scrollbar"
         >
-          {isFetchingNextPage && <LoadingMessages />}
-          <div ref={loadMoreRef} className="h-16 -mt-8" />
-          <TranslationConsumer 
-            messages={messages} 
-            currentUserId={currentUserId}
-            userLanguage={userLanguage}
-            onNewReceivedMessage={onNewReceivedMessage}
-            onTranslation={onTranslation}
-            onReply={onReply}
-            replyToMessageId={replyToMessageId}
-            sendReply={sendReply}
-            cancelReply={cancelReply}
-            refetch={refetch}
-            messageRefs={messageRefs}
-            scrollToMessage={scrollToMessage}
-          />
+          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
+            <div ref={loadMoreRef} className="h-12 flex items-center justify-center">
+              {isFetchingNextPage && <LoadingMessages />}
+            </div>
+          </div>
+          <div className="px-4 py-2 space-y-4">
+            <TranslationConsumer 
+              messages={messages} 
+              currentUserId={currentUserId}
+              userLanguage={userLanguage}
+              onNewReceivedMessage={onNewReceivedMessage}
+              onTranslation={onTranslation}
+              onReply={onReply}
+              replyToMessageId={replyToMessageId}
+              sendReply={sendReply}
+              cancelReply={cancelReply}
+              refetch={refetch}
+              messageRefs={messageRefs}
+              scrollToMessage={scrollToMessage}
+            />
+          </div>
           <div ref={messagesEndRef} />
         </div>
       </TranslationProvider>
