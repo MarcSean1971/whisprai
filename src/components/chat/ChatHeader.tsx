@@ -1,3 +1,4 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -86,6 +87,14 @@ export function ChatHeader({
     callType: currentCallType
   });
 
+  // Define callStatus before using it in console.log
+  const callStatus = incomingCall ? "incoming" : 
+                    isConnecting ? "connecting" :
+                    peerStatus === "connected" && callSessionStatus === "connected" ? "connected" :
+                    callSessionStatus === "rejected" ? "rejected" :
+                    callSessionStatus === "ended" ? "ended" :
+                    peerStatus;
+
   console.log("[ChatHeader] Computed call status:", { 
     callStatus, 
     isConnecting,
@@ -108,13 +117,6 @@ export function ChatHeader({
       disconnectCall();
     }
   }, [callSession?.status, disconnectCall]);
-
-  const callStatus = incomingCall ? "incoming" : 
-                    isConnecting ? "connecting" :
-                    peerStatus === "connected" && callSessionStatus === "connected" ? "connected" :
-                    callSessionStatus === "rejected" ? "rejected" :
-                    callSessionStatus === "ended" ? "ended" :
-                    peerStatus;
 
   const handleEndCall = async () => {
     console.log("[ChatHeader] Ending call with cleanup");
