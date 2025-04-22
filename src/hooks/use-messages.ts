@@ -1,3 +1,4 @@
+
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
@@ -39,8 +40,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     }),
   });
 
-  // Flatten messages but don't reverse since we're getting them in DESC order
-  const messages = result.data?.pages.flat() || [];
+  // Flatten messages and reverse to show newest at bottom
+  const messages = (result.data?.pages.flat() || []).reverse();
   console.log('Messages loaded:', {
     totalMessages: messages.length,
     hasNextPage: result.hasNextPage,

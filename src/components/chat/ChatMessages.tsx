@@ -97,13 +97,10 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none"
+          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col"
         >
-          <LoadMoreMessages 
-            isLoading={isFetchingNextPage}
-            hasNextPage={hasNextPage}
-          />
           <div ref={loadMoreRef} className="h-4" />
+          <div className="flex-1" /> {/* This pushes content to the bottom */}
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 
               messages={messages} 
