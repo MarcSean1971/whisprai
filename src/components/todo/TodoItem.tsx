@@ -71,8 +71,14 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
               <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                 {messageContent}
               </p>
-              <p className="text-sm text-muted-foreground truncate">Assigned to: {assigneeName}</p>
-              <p className="text-sm text-muted-foreground truncate">From chat with: {counterpartyNames}</p>
+              <div className="flex space-x-2 text-sm text-muted-foreground truncate">
+                <span className="font-semibold">Assigned:</span>
+                <span className="truncate flex-1">{assigneeName}</span>
+              </div>
+              <div className="flex space-x-2 text-sm text-muted-foreground truncate">
+                <span className="font-semibold">Chat:</span>
+                <span className="truncate flex-1">{counterpartyNames}</span>
+              </div>
             </div>
             <div className="flex items-center space-x-1">
               <Button
