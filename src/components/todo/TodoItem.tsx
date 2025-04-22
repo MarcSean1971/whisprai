@@ -67,12 +67,12 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
         />
         <div className="flex-1 space-y-1 cursor-pointer" onClick={() => setIsEditing(true)}>
           <div className="flex items-start justify-between">
-            <div className="space-y-1">
+            <div className="space-y-1 w-full">
               <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                 {messageContent}
               </p>
-              <p className="text-sm text-muted-foreground">Assigned to: {assigneeName}</p>
-              <p className="text-sm text-muted-foreground">From chat with: {counterpartyNames}</p>
+              <p className="text-sm text-muted-foreground truncate">Assigned to: {assigneeName}</p>
+              <p className="text-sm text-muted-foreground truncate">From chat with: {counterpartyNames}</p>
             </div>
             <div className="flex items-center space-x-1">
               <Button
