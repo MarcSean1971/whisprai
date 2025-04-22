@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -52,6 +51,14 @@ export function ChatHeader({
   const shouldShowCallUI = !!callSession || !!incomingCall;
   const isCaller = callSession && profile?.id && callSession.caller_id === profile.id;
   const currentCallType = callSession?.call_type as "audio" | "video" || "video";
+  
+  console.log("[ChatHeader] Call state:", { 
+    shouldShowCallUI,
+    isCaller,
+    callType: currentCallType,
+    callSessionStatus,
+    incomingCall: !!incomingCall
+  });
 
   const {
     localStream,
@@ -79,7 +86,13 @@ export function ChatHeader({
     callType: currentCallType
   });
 
-  // Reinitialize peer connection when signaled to do so
+  console.log("[ChatHeader] Computed call status:", { 
+    callStatus, 
+    isConnecting,
+    peerStatus,
+    callSessionStatus 
+  });
+
   useEffect(() => {
     if (shouldInitiatePeer) {
       if (callSession?.status === "connected") {
@@ -89,7 +102,6 @@ export function ChatHeader({
     }
   }, [shouldInitiatePeer, setupPeerConnection, callSession]);
 
-  // Handle call cleanup
   useEffect(() => {
     if (callSession?.status === "rejected" || callSession?.status === "ended") {
       console.log("[ChatHeader] Call ended/rejected, cleaning up");

@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Phone, PhoneOff } from "lucide-react";
+import { Phone, PhoneOff, Video, VideoOff } from "lucide-react";
 
 interface CallStatusProps {
   callStatus: string;
@@ -16,6 +16,8 @@ export function CallStatus({
   onRejectCall,
   callType = "video"
 }: CallStatusProps) {
+  console.log("[CallStatus] Rendering with:", { callStatus, callType });
+
   if (callStatus === "incoming") {
     return (
       <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-white/90 text-center transition-all animate-fade-in">
@@ -28,7 +30,7 @@ export function CallStatus({
             className="bg-green-600 hover:bg-green-700 text-white gap-2"
             size="lg"
           >
-            <Phone className="h-5 w-5" />
+            {callType === "video" ? <Video className="h-5 w-5" /> : <Phone className="h-5 w-5" />}
             Accept
           </Button>
           <Button
@@ -36,7 +38,7 @@ export function CallStatus({
             className="bg-red-600 hover:bg-red-700 text-white gap-2"
             size="lg"
           >
-            <PhoneOff className="h-5 w-5" />
+            {callType === "video" ? <VideoOff className="h-5 w-5" /> : <PhoneOff className="h-5 w-5" />}
             Decline
           </Button>
         </div>

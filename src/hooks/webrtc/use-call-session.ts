@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -100,9 +101,14 @@ export function useCallSession(
 
   const handleInsertEvent = useCallback((newRow: Partial<CallSession>, currentUserId: string) => {
     if (newRow.status === "pending" && newRow.recipient_id === currentUserId) {
-      console.log("[WebRTC] Incoming call detected");
+      console.log("[WebRTC] Incoming call detected:", { 
+        callType: newRow.call_type,
+        status: newRow.status 
+      });
+      
       setIncomingCall(newRow as CallSession);
       setStatus("incoming");
+      setCallSession(newRow as CallSession); // Set call session immediately for incoming calls
       
       if (!stopRingtone) {
         const stopSound = playRingtoneSound();
@@ -110,7 +116,7 @@ export function useCallSession(
       }
       
       if (callSession?.status === "connected") {
-        console.log("Already in a call, should auto-reject incoming call");
+        console.log("[WebRTC] Already in a call, should auto-reject incoming call");
       }
     } else if (newRow.caller_id === currentUserId) {
       console.log("[WebRTC] Call session created by current user");
