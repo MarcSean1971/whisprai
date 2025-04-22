@@ -1,6 +1,5 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.1'
-import { Twilio } from 'https://esm.sh/twilio@4.34.0?deno-std=0.177.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -34,15 +33,27 @@ Deno.serve(async (req) => {
       throw new Error('Missing Twilio credentials')
     }
 
-    // Initialize Twilio client
-    const twilio = new Twilio(accountSid, authToken)
+    // Instead of using the Twilio SDK directly, we'll use a direct API call
+    const twilioBaseUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Tokens.json`
     
-    // Get Network Traversal Service tokens
-    const token = await twilio.tokens.create()
+    const response = await fetch(twilioBaseUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa(`${accountSid}:${authToken}`),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      }
+    })
     
-    // Format response
-    const iceServers = token.iceServers.map(server => ({
-      urls: Array.isArray(server.urls) ? server.urls : [server.urls],
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`Twilio API error: ${response.status} - ${errorText}`)
+    }
+    
+    const tokenData = await response.json()
+    
+    // Format Twilio ice servers data
+    const iceServers = tokenData.ice_servers.map((server: any) => ({
+      urls: Array.isArray(server.url) ? server.url : [server.url],
       username: server.username || '',
       credential: server.credential || ''
     }))
