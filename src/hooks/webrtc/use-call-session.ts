@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -19,7 +18,6 @@ export function useCallSession(
   const { playRingtoneSound } = useMessageSound();
   const [stopRingtone, setStopRingtone] = useState<(() => void) | null>(null);
 
-  // Reset call state function
   const resetCallState = useCallback(() => {
     console.log("[WebRTC] Resetting call state");
     setIsCalling(false);
@@ -27,37 +25,30 @@ export function useCallSession(
     setSignaling(null);
     setRemoteSignal(null);
     
-    // Stop ringtone if playing
     if (stopRingtone) {
       stopRingtone();
       setStopRingtone(null);
     }
   }, [stopRingtone]);
 
-  // Handle call status changes
   const handleCallStatus = useCallback((status: string | undefined) => {
     if (status === "connected") {
       setIsCalling(true);
       setIncomingCall(null);
       
-      // Stop ringtone if playing
       if (stopRingtone) {
         stopRingtone();
         setStopRingtone(null);
       }
       
       toast.success("Call connected");
-    } else if (status === "ended") {
+    } else if (status === "ended" || status === "rejected") {
       resetCallState();
-      toast.info("Call ended");
-    } else if (status === "rejected") {
-      resetCallState();
-      toast.error("Call rejected");
+      toast.info(status === "ended" ? "Call ended" : "Call rejected");
     } else if (status === "missed") {
       resetCallState();
       toast.error("Call missed");
     } else if (status === "pending") {
-      // Start ringtone for incoming calls
       if (!stopRingtone && incomingCall) {
         const stopSound = playRingtoneSound();
         setStopRingtone(() => stopSound);
@@ -65,7 +56,6 @@ export function useCallSession(
     }
   }, [incomingCall, playRingtoneSound, resetCallState, stopRingtone]);
 
-  // Subscribe to real-time updates for call_sessions
   useEffect(() => {
     if (!conversationId) return;
 
@@ -112,14 +102,12 @@ export function useCallSession(
       setIncomingCall(newRow as CallSession);
       setStatus("incoming");
       
-      // Start ringtone for incoming calls
       if (!stopRingtone) {
         const stopSound = playRingtoneSound();
         setStopRingtone(() => stopSound);
       }
       
       if (callSession?.status === "connected") {
-        // Auto-reject if already in a call
         console.log("Already in a call, should auto-reject incoming call");
       }
     } else if (newRow.caller_id === currentUserId) {
@@ -148,7 +136,7 @@ export function useCallSession(
           (newRow.recipient_id !== currentUserId && newRow.recipient_id);
           
         if (isFromOther) {
-          console.log("Received remote signal from the other party");
+          console.log("[WebRTC] Received remote signal from other party");
           setRemoteSignal(newRow.signaling_data);
         }
       }

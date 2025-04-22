@@ -129,12 +129,24 @@ export function useCallActions(
   const rejectCall = useCallback(async () => {
     if (!incomingCall) return;
     
-    const { error } = await supabase
-      .from("call_sessions")
-      .update({ status: "rejected", updated_at: new Date().toISOString() })
-      .eq("id", incomingCall.id);
-      
-    if (error) {
+    console.log("[WebRTC] Rejecting call immediately");
+    
+    try {
+      const { error } = await supabase
+        .from("call_sessions")
+        .update({ 
+          status: "rejected", 
+          updated_at: new Date().toISOString(),
+          signaling_data: null // Clear signaling data immediately
+        })
+        .eq("id", incomingCall.id);
+        
+      if (error) {
+        console.error("[WebRTC] Failed to reject call:", error);
+        toast.error("Failed to reject call.");
+      }
+    } catch (err) {
+      console.error("[WebRTC] Error rejecting call:", err);
       toast.error("Failed to reject call.");
     }
   }, [incomingCall]);

@@ -24,24 +24,43 @@ export function useCallCleanup({
   setCallDuration
 }: UseCallCleanupProps) {
   const endCall = useCallback(() => {
-    console.log("[WebRTC] Ending call");
+    console.log("[WebRTC] Ending call immediately");
+    
+    // Clear duration timer first
     if (durationTimerRef.current) {
       clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
     }
     
+    // Destroy peer connection immediately
     destroyPeer();
     
+    // Stop all tracks in the local stream
     if (localStream) {
-      localStream.getTracks().forEach(t => t.stop());
+      localStream.getTracks().forEach(track => {
+        track.stop();
+        localStream.removeTrack(track);
+      });
     }
     
+    // Clean up screen sharing
     cleanupScreenShare();
     
+    // Reset all streams and states synchronously
     setLocalStream(null);
     setRemoteStream(null);
     setConnectionStatus("ended");
     setCallDuration(0);
-  }, [localStream, cleanupScreenShare, durationTimerRef, setLocalStream, setCallDuration, destroyPeer, setRemoteStream, setConnectionStatus]);
+  }, [
+    localStream, 
+    cleanupScreenShare, 
+    durationTimerRef, 
+    setLocalStream,
+    setCallDuration,
+    destroyPeer,
+    setRemoteStream,
+    setConnectionStatus
+  ]);
 
   return { endCall };
 }

@@ -8,6 +8,14 @@ interface CallUIRingtoneProps {
 export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  const stopRingtone = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+  };
+
   useEffect(() => {
     // Play ringtone when connecting, ringing or incoming
     if (callStatus === 'connecting' || callStatus === 'ringing' || callStatus === 'incoming') {
@@ -17,25 +25,18 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
       }
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(e => {
-        // In browsers where autoplay is not allowed, it's fine to be silent
         console.log('Ringtone autoplay blocked:', e);
       });
     } else {
-      // Pause and reset ringtone if status is not calling/ringing/incoming
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
+      // Immediately stop ringtone for any other status
+      stopRingtone();
     }
     
     // Clean up on unmount
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-      }
+      stopRingtone();
     };
   }, [callStatus]);
 
-  return null; // Only handles sound
+  return null;
 }
