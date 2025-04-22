@@ -28,43 +28,112 @@ export function usePeerEvents({
   clearConnectionTimeout,
 }: UsePeerEventsProps) {
   const setupPeerEvents = useCallback((peer: Peer.Instance) => {
+    // Track if we've already called onConnect to prevent duplicate calls
+    let connectionEstablished = false;
+    
     peer.on("signal", data => {
-      console.log("[WebRTC] Generated signal:", data.type || "ICE candidate");
-      onSignal(data);
-      
-      if (data.type === 'candidate') {
-        connectionStatsRef.current.iceCandidates++;
-        connectionStatsRef.current.lastActivity = Date.now();
-        setIceCandidate(prev => prev + 1);
+      try {
+        console.log("[WebRTC] Generated signal:", data.type || "ICE candidate");
+        onSignal(data);
+        
+        if (data.type === 'candidate') {
+          connectionStatsRef.current.iceCandidates++;
+          connectionStatsRef.current.lastActivity = Date.now();
+          setIceCandidate(prev => prev + 1);
+        }
+      } catch (err) {
+        console.error("[WebRTC] Error in signal event handler:", err);
       }
     });
 
     peer.on("connect", () => {
-      console.log("[WebRTC] Peer connection established!");
-      setConnectionStatus("connected");
-      onConnect();
-      clearConnectionTimeout();
-      toast.success("Call connected");
+      try {
+        if (connectionEstablished) {
+          console.log("[WebRTC] Ignoring duplicate connect event");
+          return;
+        }
+        
+        connectionEstablished = true;
+        console.log("[WebRTC] Peer connection established!");
+        setConnectionStatus("connected");
+        onConnect();
+        clearConnectionTimeout();
+        toast.success("Call connected");
+      } catch (err) {
+        console.error("[WebRTC] Error in connect event handler:", err);
+      }
     });
 
     peer.on("stream", remote => {
-      console.log("[WebRTC] Received remote stream");
-      onStream(remote);
+      try {
+        console.log("[WebRTC] Received remote stream");
+        if (remote && remote.getTracks().length > 0) {
+          onStream(remote);
+        } else {
+          console.warn("[WebRTC] Received empty remote stream");
+        }
+      } catch (err) {
+        console.error("[WebRTC] Error in stream event handler:", err);
+      }
     });
 
     peer.on("error", err => {
-      console.error("[WebRTC] Peer connection error:", err);
-      toast.error(`Connection error: ${err.message}`);
-      setConnectionStatus("error");
-      onError(err);
+      try {
+        console.error("[WebRTC] Peer connection error:", err);
+        
+        // Check if the error is fatal
+        const errorMessage = err.message.toLowerCase();
+        const isFatal = errorMessage.includes("failed") || 
+                       errorMessage.includes("closed") ||
+                       errorMessage.includes("cannot read property");
+        
+        if (isFatal) {
+          toast.error(`Connection error: ${err.message}`);
+          setConnectionStatus("error");
+          onError(err);
+        } else {
+          // Non-fatal errors may be recoverable
+          console.warn("[WebRTC] Non-fatal error, continuing");
+        }
+      } catch (innerErr) {
+        console.error("[WebRTC] Error in error event handler:", innerErr);
+        setConnectionStatus("error");
+      }
     });
 
     peer.on("close", () => {
-      console.log("[WebRTC] Peer connection closed");
-      setConnectionStatus("ended");
-      onClose();
+      try {
+        console.log("[WebRTC] Peer connection closed");
+        setConnectionStatus("ended");
+        onClose();
+      } catch (err) {
+        console.error("[WebRTC] Error in close event handler:", err);
+      }
     });
-  }, [onSignal, onConnect, onStream, onClose, onError, setConnectionStatus, connectionStatsRef, setIceCandidate, clearConnectionTimeout]);
+    
+    // Track negotiation needed events
+    try {
+      const rtcPeerConnection = (peer as any)._pc;
+      if (rtcPeerConnection) {
+        rtcPeerConnection.onnegotiationneeded = () => {
+          console.log("[WebRTC] Negotiation needed event");
+          connectionStatsRef.current.lastActivity = Date.now();
+        };
+      }
+    } catch (err) {
+      console.error("[WebRTC] Error setting up negotiation handler:", err);
+    }
+  }, [
+    onSignal, 
+    onConnect, 
+    onStream, 
+    onClose, 
+    onError, 
+    setConnectionStatus, 
+    connectionStatsRef, 
+    setIceCandidate, 
+    clearConnectionTimeout
+  ]);
 
   return { setupPeerEvents };
 }

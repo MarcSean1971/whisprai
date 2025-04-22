@@ -1,7 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getIceServers } from './get-ice-servers';
+import { toast } from 'sonner';
 
 interface IceServer {
   urls: string | string[];
@@ -16,6 +17,7 @@ interface IceServersCache {
 
 const ICE_SERVERS_CACHE_KEY = 'webrtc-ice-servers-cache';
 const CACHE_BUFFER_TIME = 60 * 60 * 1000; // 1 hour buffer before expiration
+const FETCH_TIMEOUT = 10000; // 10 seconds timeout for fetching credentials
 
 // Retrieve cached ICE servers if available and not expired
 const getCachedIceServers = (): IceServersCache | null => {
@@ -58,84 +60,83 @@ export function useIceServers() {
   const [iceServers, setIceServers] = useState<IceServer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [fetchAttempt, setFetchAttempt] = useState(0);
 
-  useEffect(() => {
-    const fetchIceServers = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Check for cached servers first
+  const fetchIceServers = useCallback(async (forceRefresh = false) => {
+    try {
+      setIsLoading(true);
+      
+      // Check for cached servers first, unless force refresh is requested
+      if (!forceRefresh) {
         const cachedServers = getCachedIceServers();
         if (cachedServers) {
           setIceServers(cachedServers.servers);
           setIsLoading(false);
           return;
         }
-        
-        // Fetch fresh servers from edge function
-        console.log('[WebRTC] Fetching fresh ICE servers from edge function');
-        const { data, error } = await supabase.functions.invoke('generate-turn-credentials');
-        
-        if (error) {
-          throw new Error(`Failed to fetch ICE servers: ${error.message}`);
-        }
-        
-        if (data && data.ice_servers) {
-          setIceServers(data.ice_servers);
-          
-          // Cache the servers
-          if (data.ttl) {
-            cacheIceServers(data.ice_servers, data.ttl);
-          }
-        } else {
-          console.warn('[WebRTC] No ICE servers returned, using fallback servers');
-          setIceServers(getIceServers());
-        }
-      } catch (err) {
-        console.error('[WebRTC] Error in useIceServers:', err);
-        setError(err instanceof Error ? err : new Error('Failed to fetch ICE servers'));
-        
-        // Use fallback servers on error
-        console.warn('[WebRTC] Using fallback ICE servers');
-        setIceServers(getIceServers());
-      } finally {
-        setIsLoading(false);
       }
-    };
-    
-    fetchIceServers();
-  }, []);
-  
-  // Force refresh ice servers - useful when a connection fails
-  const refreshIceServers = async () => {
-    localStorage.removeItem(ICE_SERVERS_CACHE_KEY);
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-turn-credentials');
+      
+      // Fetch fresh servers from edge function with timeout
+      console.log('[WebRTC] Fetching fresh ICE servers from edge function');
+      
+      // Create a promise that rejects after timeout
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('ICE servers fetch timeout')), FETCH_TIMEOUT);
+      });
+      
+      // Create the fetch promise
+      const fetchPromise = supabase.functions.invoke('generate-turn-credentials');
+      
+      // Race the fetch against the timeout
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
       
       if (error) {
-        throw new Error(`Failed to refresh ICE servers: ${error.message}`);
+        throw new Error(`Failed to fetch ICE servers: ${error.message}`);
       }
       
       if (data && data.ice_servers) {
+        console.log('[WebRTC] Successfully fetched ICE servers:', data.ice_servers.length);
         setIceServers(data.ice_servers);
         
+        // Cache the servers
         if (data.ttl) {
           cacheIceServers(data.ice_servers, data.ttl);
         }
       } else {
-        // Fallback if the edge function doesn't return proper data
-        setIceServers(getIceServers());
+        console.warn('[WebRTC] No ICE servers returned, using fallback servers');
+        const fallbackServers = getIceServers();
+        setIceServers(fallbackServers);
       }
     } catch (err) {
-      console.error('[WebRTC] Error refreshing ICE servers:', err);
-      setError(err instanceof Error ? err : new Error('Failed to refresh ICE servers'));
-      setIceServers(getIceServers());
+      console.error('[WebRTC] Error in useIceServers:', err);
+      setError(err instanceof Error ? err : new Error('Failed to fetch ICE servers'));
+      
+      // Use fallback servers on error
+      console.warn('[WebRTC] Using fallback ICE servers');
+      const fallbackServers = getIceServers();
+      setIceServers(fallbackServers);
+      
+      if (fetchAttempt === 0) {
+        toast.error('Network connection issue. Using fallback servers.', {
+          id: 'ice-servers-error',
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [fetchAttempt]);
+  
+  useEffect(() => {
+    fetchIceServers();
+  }, [fetchIceServers]);
+  
+  // Force refresh ice servers - useful when a connection fails
+  const refreshIceServers = useCallback(async () => {
+    console.log('[WebRTC] Forcing refresh of ICE servers');
+    localStorage.removeItem(ICE_SERVERS_CACHE_KEY);
+    setFetchAttempt(prev => prev + 1);
+    await fetchIceServers(true);
+  }, [fetchIceServers]);
   
   return { iceServers, isLoading, error, refreshIceServers };
 }

@@ -1,5 +1,5 @@
 
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
 import { ConnectionStatus } from "./types";
@@ -32,6 +32,9 @@ export function usePeerConnection({
   setConnectionStatus,
 }: UsePeerConnectionProps) {
   const peerRef = useRef<Peer.Instance | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const signalQueueRef = useRef<any[]>([]);
+  const processingSignalRef = useRef(false);
   
   const {
     isIceGathering,
@@ -63,14 +66,57 @@ export function usePeerConnection({
     toast
   });
 
+  // Process the signal queue one by one
+  const processSignalQueue = useCallback(() => {
+    if (processingSignalRef.current || signalQueueRef.current.length === 0 || !peerRef.current) {
+      return;
+    }
+    
+    processingSignalRef.current = true;
+    const signal = signalQueueRef.current.shift();
+    
+    try {
+      console.log("[WebRTC] Applying queued signal:", signal.type || "ICE candidate");
+      peerRef.current.signal(signal);
+      connectionStatsRef.current.lastActivity = Date.now();
+    } catch (e) {
+      console.error("[WebRTC] Error applying queued signal:", e);
+    }
+    
+    processingSignalRef.current = false;
+    
+    // Process next item in queue if any
+    if (signalQueueRef.current.length > 0) {
+      setTimeout(processSignalQueue, 50); // Small delay between processing signals
+    }
+  }, [connectionStatsRef]);
+
   const setupPeerConnection = useCallback(() => {
     if (!localStream) return;
 
     console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     clearConnectionTimeout();
     
+    // Clean up any existing peer
+    if (peerRef.current) {
+      try {
+        peerRef.current.destroy();
+      } catch (e) {
+        console.error("[WebRTC] Error destroying existing peer:", e);
+      }
+      peerRef.current = null;
+    }
+    
+    // Clear signal queue
+    signalQueueRef.current = [];
+    processingSignalRef.current = false;
+    
     const p = createPeer();
-    if (!p) return;
+    if (!p) {
+      console.error("[WebRTC] Failed to create peer");
+      setConnectionStatus("error");
+      return;
+    }
     
     peerRef.current = p;
     
@@ -89,18 +135,22 @@ export function usePeerConnection({
     const rtcPeerConnection = (p as any)._pc;
     if (rtcPeerConnection) {
       setupRTCConnection(rtcPeerConnection);
+    } else {
+      console.warn("[WebRTC] RTCPeerConnection not available");
     }
 
+    // Apply any pending remote signal immediately
     if (remoteSignal) {
       try {
-        console.log("[WebRTC] Applying remote signal:", remoteSignal.type || "ICE candidate");
+        console.log("[WebRTC] Applying initial remote signal:", remoteSignal.type || "ICE candidate");
         p.signal(remoteSignal);
         setConnectionStatus("connecting" as ConnectionStatus);
       } catch (e) {
-        console.error("[WebRTC] Error applying remote signal:", e);
+        console.error("[WebRTC] Error applying initial remote signal:", e);
       }
     }
     
+    // Set connection timeout
     connectionTimeoutRef.current = window.setTimeout(() => {
       if (peerRef.current && connectionStatsRef.current.connectionState !== 'connected') {
         console.warn("[WebRTC] Connection timeout after 15 seconds");
@@ -117,6 +167,14 @@ export function usePeerConnection({
         
         toast.error("Call connection timed out. Please try again.");
         
+        // Attempt reconnection if this is the first timeout
+        if (reconnectAttemptsRef.current < 1) {
+          reconnectAttemptsRef.current++;
+          console.log("[WebRTC] Attempting reconnection, attempt:", reconnectAttemptsRef.current);
+          setupPeerConnection();
+          return;
+        }
+        
         try {
           p.destroy();
           setConnectionStatus("error" as ConnectionStatus);
@@ -129,9 +187,9 @@ export function usePeerConnection({
     return () => {
       clearConnectionTimeout();
       try {
-        p.destroy();
+        if (p) p.destroy();
       } catch (e) {
-        console.error("[WebRTC] Error destroying peer:", e);
+        console.error("[WebRTC] Error destroying peer in cleanup:", e);
       }
     };
   }, [
@@ -149,26 +207,42 @@ export function usePeerConnection({
   ]);
 
   const signalPeer = useCallback((signal: any) => {
-    if (peerRef.current) {
-      try {
-        console.log("[WebRTC] Applying new remote signal:", signal.type || "ICE candidate");
-        peerRef.current.signal(signal);
-        connectionStatsRef.current.lastActivity = Date.now();
-      } catch (e) {
-        console.error("[WebRTC] Error applying remote signal:", e);
-      }
+    if (!peerRef.current) {
+      console.warn("[WebRTC] Received signal but peer is not initialized");
+      return;
     }
-  }, [connectionStatsRef]);
+    
+    // Add signal to queue
+    signalQueueRef.current.push(signal);
+    console.log("[WebRTC] Added signal to queue:", signal.type || "ICE candidate", 
+                "Queue length:", signalQueueRef.current.length);
+    
+    // Process the queue
+    processSignalQueue();
+    
+    connectionStatsRef.current.lastActivity = Date.now();
+  }, [connectionStatsRef, processSignalQueue]);
+
+  // Process signal queue whenever peer changes
+  useEffect(() => {
+    if (peerRef.current && signalQueueRef.current.length > 0) {
+      processSignalQueue();
+    }
+  }, [processSignalQueue]);
 
   const destroyPeer = useCallback(() => {
     clearConnectionTimeout();
     if (peerRef.current) {
       try {
         peerRef.current.destroy();
+        peerRef.current = null;
       } catch (e) {
         console.error("[WebRTC] Error destroying peer:", e);
       }
     }
+    reconnectAttemptsRef.current = 0;
+    signalQueueRef.current = [];
+    processingSignalRef.current = false;
   }, [clearConnectionTimeout]);
 
   const getConnectionState = useCallback(() => {
@@ -177,7 +251,7 @@ export function usePeerConnection({
       iceCandidate,
       ...connectionStatsRef.current
     };
-  }, [isIceGathering, iceCandidate]);
+  }, [isIceGathering, iceCandidate, connectionStatsRef]);
 
   return {
     setupPeerConnection,
