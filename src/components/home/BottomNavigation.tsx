@@ -10,7 +10,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface BottomNavigationProps { 
-  activeTab?: 'chats' | 'contacts' | 'settings' | 'admin';
+  activeTab?: 'chats' | 'contacts' | 'profile' | 'admin';
   isAdmin?: boolean | null;
   isLoading?: boolean;
 }
@@ -29,7 +29,7 @@ export function BottomNavigation({
   
   if (!currentTab) {
     if (currentPath.includes('/profile-setup')) {
-      currentTab = 'settings';
+      currentTab = 'profile';
     } else if (currentPath.includes('/admin')) {
       currentTab = 'admin';
     } else if (currentPath.includes('/contacts')) {
@@ -59,12 +59,12 @@ export function BottomNavigation({
           <span className="text-xs truncate">Contacts</span>
         </Button>
         <Button
-          variant={currentTab === 'settings' ? 'default' : 'ghost'}
+          variant={currentTab === 'profile' ? 'default' : 'ghost'}
           className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
           onClick={() => navigate('/profile-setup')}
         >
           <Settings className="h-5 w-5" />
-          <span className="text-xs truncate">Settings</span>
+          <span className="text-xs truncate">Profile</span>
         </Button>
         {isLoading ? (
           <Button
@@ -89,3 +89,4 @@ export function BottomNavigation({
     </div>
   );
 }
+
