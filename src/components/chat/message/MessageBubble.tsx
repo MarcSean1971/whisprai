@@ -4,6 +4,7 @@ import { ReactNode } from "react";
 import { MessageReactions } from "./reactions/MessageReactions";
 import { ParentMessagePreview } from "./ParentMessagePreview";
 import { MessageAttachments } from "./MessageAttachments";
+import { formatMessageDateTime } from "@/lib/utils";
 
 interface MessageBubbleProps {
   id: string;
@@ -40,9 +41,9 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ 
   id,
-  content = "", // Provide default empty string
-  timestamp = "", // Provide default empty string
-  isOwn = false, // Provide defaults
+  content = "",
+  timestamp = "",
+  isOwn = false,
   isAIMessage = false,
   children, 
   attachment,
@@ -51,7 +52,6 @@ export function MessageBubble({
   parent,
   scrollToMessage
 }: MessageBubbleProps) {
-  // Validate required props
   if (!id) {
     console.error("MessageBubble missing required id prop");
     return null;
@@ -86,7 +86,7 @@ export function MessageBubble({
           </div>
           <div className="flex-1 flex justify-end">
             <span className="text-[10px] opacity-70 text-right">
-              {timestamp}
+              {formatMessageDateTime(timestamp)}
             </span>
           </div>
         </div>
