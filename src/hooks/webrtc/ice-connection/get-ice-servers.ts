@@ -5,9 +5,9 @@
  * some level of connectivity as a last resort.
  */
 export function getIceServers() {
-  console.log("[WebRTC] Using fallback ICE servers");
+  console.warn("[WebRTC] Using fallback ICE servers - this may affect connection quality");
   
-  return [
+  const servers = [
     // Public STUN servers (these don't require credentials)
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
@@ -28,4 +28,12 @@ export function getIceServers() {
       credential: 'w1WpNFQTkjWFX26gXEXmuPxx/LhKNiC8vci8jQhzBvY='
     }
   ];
+  
+  // Log the fallback servers for debugging
+  console.log("[WebRTC] Fallback servers configured:", {
+    stunCount: servers.filter(s => s.urls.toString().includes('stun:')).length,
+    turnCount: servers.filter(s => s.urls.toString().includes('turn:')).length
+  });
+  
+  return servers;
 }
