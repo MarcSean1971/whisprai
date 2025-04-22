@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface UseMessageScrollProps {
@@ -33,10 +32,31 @@ export function useMessageScroll({
   // Store scroll position before loading new messages
   useEffect(() => {
     if (scrollContainerRef.current) {
+      console.log("Storing scroll position", {
+        scrollHeight: scrollContainerRef.current.scrollHeight,
+        scrollTop: scrollContainerRef.current.scrollTop
+      });
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
       previousScrollTop.current = scrollContainerRef.current.scrollTop;
     }
   }, [messages.length]);
+
+  // Restore scroll position after loading older messages
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container && messages.length > previousMessagesLength) {
+      const heightDifference = container.scrollHeight - previousScrollHeight.current;
+      if (heightDifference > 0) {
+        console.log("Restoring scroll position", {
+          prevHeight: previousScrollHeight.current,
+          newHeight: container.scrollHeight,
+          difference: heightDifference,
+          prevScroll: previousScrollTop.current
+        });
+        container.scrollTop = previousScrollTop.current + heightDifference;
+      }
+    }
+  }, [messages.length, previousMessagesLength]);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -105,7 +125,6 @@ export function useMessageScroll({
     };
   }, [pullProgress, refetch, isFetchingNextPage, hasNextPage]);
 
-  // Scroll handling for new messages
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       const container = scrollContainerRef.current;
@@ -118,26 +137,28 @@ export function useMessageScroll({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
-  // Intersection Observer for infinite loading
   useEffect(() => {
     if (!refetch || !hasNextPage) return;
 
+    console.log("Setting up Intersection Observer");
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
         if (first.isIntersecting && !isFetchingNextPage && hasNextPage) {
-          console.log('Intersection observed, fetching more messages...');
+          console.log('Loading more messages via intersection');
           refetch();
         }
       },
       { 
+        root: scrollContainerRef.current,
         threshold: 0.1,
-        rootMargin: '500px 0px 0px 0px' // Increased margin for earlier loading
+        rootMargin: '100px 0px 0px 0px'
       }
     );
 
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
+      console.log("Observing load more element");
       observer.observe(currentLoadMoreRef);
     }
 
