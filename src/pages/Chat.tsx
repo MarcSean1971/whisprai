@@ -178,5 +178,3 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     </div>
   );
 }
-
-export default Chat;
