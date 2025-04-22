@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -9,7 +8,7 @@ import { AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMessageScroll } from "@/hooks/use-message-scroll";
-import { LoadingMessages } from "./message/LoadingMessages";
+import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
 
@@ -42,7 +41,14 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
-  const { scrollContainerRef, loadMoreRef, messagesEndRef } = useMessageScroll({
+  const { 
+    scrollContainerRef, 
+    loadMoreRef, 
+    messagesEndRef,
+    isLoadingMore,
+    pullProgress,
+    isPulling
+  } = useMessageScroll({
     messages,
     refetch
   });
@@ -83,13 +89,14 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar"
+          className="absolute inset-0 overflow-y-auto no-scrollbar touch-pan-y"
         >
-          <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm">
-            <div ref={loadMoreRef} className="h-12 flex items-center justify-center">
-              {isFetchingNextPage && <LoadingMessages />}
-            </div>
-          </div>
+          <div ref={loadMoreRef} />
+          <LoadMoreMessages 
+            pullProgress={pullProgress}
+            isLoading={isLoadingMore}
+            isPulling={isPulling}
+          />
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 
               messages={messages} 

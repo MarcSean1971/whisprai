@@ -1,10 +1,11 @@
-
 import { useEffect, useRef, useState } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
   refetch?: () => void;
 }
+
+const PULL_THRESHOLD = 100; // pixels needed to trigger refresh
 
 export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -14,6 +15,64 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
+  
+  // New states for pull-to-refresh
+  const [pullProgress, setPullProgress] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const touchStartY = useRef<number | null>(null);
+  const initialScrollTop = useRef<number | null>(null);
+
+  // Handle pull-to-refresh touch events
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (container.scrollTop === 0) {
+        touchStartY.current = e.touches[0].clientY;
+        initialScrollTop.current = container.scrollTop;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!touchStartY.current) return;
+      
+      const touchY = e.touches[0].clientY;
+      const diff = touchY - touchStartY.current;
+      
+      if (diff > 0 && container.scrollTop === 0) {
+        setIsPulling(true);
+        const progress = Math.min((diff / PULL_THRESHOLD) * 100, 100);
+        setPullProgress(progress);
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchEnd = async () => {
+      if (pullProgress >= 100 && refetch && !isLoadingMore) {
+        setIsLoadingMore(true);
+        await refetch();
+        setTimeout(() => {
+          setIsLoadingMore(false);
+        }, 1000);
+      }
+      
+      touchStartY.current = null;
+      initialScrollTop.current = null;
+      setIsPulling(false);
+      setPullProgress(0);
+    };
+
+    container.addEventListener('touchstart', handleTouchStart);
+    container.addEventListener('touchmove', handleTouchMove, { passive: false });
+    container.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
+      container.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [pullProgress, refetch, isLoadingMore]);
 
   // Scroll to bottom only for new messages at the end
   useEffect(() => {
@@ -66,7 +125,7 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
       },
       { 
         threshold: 0.1,
-        rootMargin: '300px 0px 0px 0px' // Larger top margin for earlier detection
+        rootMargin: '300px 0px 0px 0px'
       }
     );
 
@@ -86,6 +145,8 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
     scrollContainerRef,
     loadMoreRef,
     messagesEndRef,
-    isLoadingMore
+    isLoadingMore,
+    pullProgress,
+    isPulling
   };
 }
