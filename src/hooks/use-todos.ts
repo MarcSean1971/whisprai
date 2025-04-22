@@ -40,21 +40,36 @@ export function useTodos() {
   const { data: todos, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
+      // First, fetch todos
       const { data, error } = await supabase
         .from('todos')
-        .select('*, profiles:assigned_to(first_name, last_name)')
+        .select('*')
         .order('due_date', { ascending: true });
 
       if (error) throw error;
       
-      // Ensure profiles is properly typed
-      return data.map(todo => ({
-        ...todo,
-        profiles: {
-          first_name: todo.profiles?.first_name || null,
-          last_name: todo.profiles?.last_name || null
-        }
-      })) as (Todo & { profiles: { first_name: string | null; last_name: string | null } })[];
+      // Then for each todo, get the profile info separately to avoid relation errors
+      const todosWithProfiles = await Promise.all(
+        data.map(async (todo) => {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', todo.assigned_to)
+            .single();
+          
+          return {
+            ...todo,
+            profiles: profileError ? { 
+              first_name: null, 
+              last_name: null 
+            } : profileData
+          };
+        })
+      );
+      
+      return todosWithProfiles as (Todo & { 
+        profiles: { first_name: string | null; last_name: string | null } 
+      })[];
     },
   });
 
