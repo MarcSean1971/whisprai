@@ -59,7 +59,7 @@ export function MessageField({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full overflow-y-auto",
+          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm"
         )}
