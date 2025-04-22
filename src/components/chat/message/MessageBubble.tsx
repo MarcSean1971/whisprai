@@ -57,6 +57,11 @@ export function MessageBubble({
     return null;
   }
 
+  // Debug the raw timestamp to see what we're getting
+  console.log(`MessageBubble for ${id} received timestamp:`, timestamp);
+  
+  const formattedTime = formatMessageDateTime(timestamp);
+
   return (
     <div className="space-y-2">
       <div className={cn(
@@ -86,7 +91,7 @@ export function MessageBubble({
           </div>
           <div className="flex-1 flex justify-end">
             <span className="text-[10px] opacity-70 text-right">
-              {formatMessageDateTime(timestamp)}
+              {formattedTime}
             </span>
           </div>
         </div>

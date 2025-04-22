@@ -1,5 +1,4 @@
 
-import { format } from "date-fns";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Message } from "@/hooks/use-messages";
 
@@ -55,14 +54,8 @@ export function MessageList({
 
       const translatedContent = needsTranslation ? translatedContents[message.id] : undefined;
       
-      // Safely format the timestamp
-      let formattedTimestamp;
-      try {
-        formattedTimestamp = format(new Date(message.created_at), 'HH:mm');
-      } catch (error) {
-        console.error("Error formatting timestamp:", error, message.created_at);
-        formattedTimestamp = "Invalid time";
-      }
+      // Pass the full timestamp from created_at field
+      const timestamp = message.created_at;
 
       const location = message.metadata?.location ? {
         latitude: message.metadata.location.latitude,
@@ -82,7 +75,7 @@ export function MessageList({
           key={message.id}
           id={message.id}
           content={message.content}
-          timestamp={formattedTimestamp}
+          timestamp={timestamp}
           isOwn={isOwn}
           isAI={isAI || isAIPrompt}
           status={message.status as any}
