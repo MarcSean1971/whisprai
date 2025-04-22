@@ -34,12 +34,20 @@ export function usePeerEvents({
     peer.on("signal", data => {
       try {
         console.log("[WebRTC] Generated signal:", data.type || "ICE candidate");
-        onSignal(data);
         
+        // Buffer ICE candidates to avoid overwhelming the signaling channel
         if (data.type === 'candidate') {
           connectionStatsRef.current.iceCandidates++;
           connectionStatsRef.current.lastActivity = Date.now();
           setIceCandidate(prev => prev + 1);
+          
+          // Throttle ICE candidate signaling to avoid overwhelming
+          setTimeout(() => {
+            onSignal(data);
+          }, 50);
+        } else {
+          // Send offer/answer immediately
+          onSignal(data);
         }
       } catch (err) {
         console.error("[WebRTC] Error in signal event handler:", err);
@@ -54,7 +62,7 @@ export function usePeerEvents({
         }
         
         connectionEstablished = true;
-        console.log("[WebRTC] Peer connection established!");
+        console.log("[WebRTC] Peer connection established successfully!");
         setConnectionStatus("connected");
         onConnect();
         clearConnectionTimeout();

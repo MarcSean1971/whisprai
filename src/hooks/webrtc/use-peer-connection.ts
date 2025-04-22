@@ -33,6 +33,7 @@ export function usePeerConnection({
 }: UsePeerConnectionProps) {
   const peerRef = useRef<any>(null);
   const reconnectAttemptsRef = useRef(0);
+  const connectionEstablishedRef = useRef(false);
   
   const {
     isIceGathering,
@@ -41,7 +42,8 @@ export function usePeerConnection({
     setIceCandidate,
     connectionStatsRef,
     connectionTimeoutRef,
-    clearConnectionTimeout
+    clearConnectionTimeout,
+    startConnectionTimeout
   } = useConnectionState();
 
   const { createPeer } = usePeerInit({ initiator, localStream });
@@ -63,7 +65,12 @@ export function usePeerConnection({
     toast: undefined
   });
 
-  const { processSignalQueue, addSignalToQueue } = useSignalQueue(peerRef, connectionStatsRef);
+  const { 
+    processSignalQueue, 
+    addSignalToQueue, 
+    resetSignalState,
+    signalQueueRef 
+  } = useSignalQueue(peerRef, connectionStatsRef);
   
   const {
     isConnecting,
@@ -73,13 +80,25 @@ export function usePeerConnection({
   } = useConnectionStateManager({ peerRef, connectionStatsRef });
 
   const setupPeerConnection = useCallback(() => {
-    if (!localStream) return;
+    if (!localStream) {
+      console.error("[WebRTC] Cannot setup peer connection without local stream");
+      return;
+    }
+
+    // If we already have a connected peer, don't reinitialize
+    if (peerRef.current && connectionEstablishedRef.current) {
+      console.log("[WebRTC] Peer already connected, not reinitializing");
+      return;
+    }
 
     console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     clearConnectionTimeout();
+    resetSignalState();
     
+    // Destroy any existing peer
     if (peerRef.current) {
       try {
+        console.log("[WebRTC] Destroying existing peer before creating new one");
         peerRef.current.destroy();
       } catch (e) {
         console.error("[WebRTC] Error destroying existing peer:", e);
@@ -87,6 +106,8 @@ export function usePeerConnection({
       peerRef.current = null;
     }
     
+    // Create new peer
+    console.log("[WebRTC] Creating new peer");
     const p = createPeer();
     if (!p) {
       console.error("[WebRTC] Failed to create peer");
@@ -94,9 +115,11 @@ export function usePeerConnection({
       return;
     }
     
+    // Set up the peer
     peerRef.current = p;
     setupPeerEvents(p);
     
+    // Set up the RTC peer connection
     const rtcPeerConnection = (p as any)._pc;
     if (rtcPeerConnection) {
       setupRTCConnection(rtcPeerConnection);
@@ -104,10 +127,20 @@ export function usePeerConnection({
       console.warn("[WebRTC] RTCPeerConnection not available");
     }
 
+    // Process any existing remote signals
     if (remoteSignal) {
+      console.log("[WebRTC] Received new remote signal, applying to peer");
       addSignalToQueue(remoteSignal);
       setConnectionStatus("connecting");
     }
+    
+    // Start connection timeout
+    startConnectionTimeout(() => {
+      if (!connectionEstablishedRef.current) {
+        console.warn("[WebRTC] Connection timed out");
+        setConnectionStatus("error");
+      }
+    }, 30000); // 30 second timeout
     
     return () => {
       clearConnectionTimeout();
@@ -126,11 +159,17 @@ export function usePeerConnection({
     createPeer,
     setupPeerEvents,
     setupRTCConnection,
-    addSignalToQueue
+    addSignalToQueue,
+    resetSignalState,
+    startConnectionTimeout
   ]);
 
   const destroyPeer = useCallback(() => {
+    console.log("[WebRTC] Destroying peer connection");
     clearConnectionTimeout();
+    resetSignalState();
+    connectionEstablishedRef.current = false;
+    
     if (peerRef.current) {
       try {
         peerRef.current.destroy();
@@ -140,11 +179,16 @@ export function usePeerConnection({
       }
     }
     reconnectAttemptsRef.current = 0;
-  }, [clearConnectionTimeout]);
+  }, [clearConnectionTimeout, resetSignalState]);
 
   useEffect(() => {
     if (remoteSignal) {
-      addSignalToQueue(remoteSignal);
+      if (peerRef.current) {
+        console.log("[WebRTC] Received remote signal, adding to queue");
+        addSignalToQueue(remoteSignal);
+      } else {
+        console.warn("[WebRTC] Received remote signal but peer is not initialized");
+      }
     }
   }, [remoteSignal, addSignalToQueue]);
 

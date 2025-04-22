@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Phone, Video } from "lucide-react";
 import { toast } from "sonner";
@@ -17,9 +18,16 @@ export function ChatCallActions({
 }: ChatCallActionsProps) {
   const handleCall = (type: "audio" | "video") => {
     if (!isOnline) {
-      toast.error("Recipient is offline");
+      toast.error(`${recipientName} is offline. Try again later.`);
       return;
     }
+    
+    if (isCalling) {
+      toast.info("Already in a call");
+      return;
+    }
+    
+    console.log(`[WebRTC] Starting ${type} call with ${recipientName}`);
     onStartCall(type);
   };
 

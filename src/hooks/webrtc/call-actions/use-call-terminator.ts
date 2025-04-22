@@ -10,9 +10,10 @@ export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
       return;
     }
     
-    console.log("[WebRTC] Ending call with immediate cleanup");
+    console.log(`[WebRTC] Ending call (${sessionId}) with status: ${endStatus}`);
     
     try {
+      // First update the session in the database
       const { error } = await supabase
         .from("call_sessions")
         .update({ 
@@ -28,11 +29,18 @@ export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
         return;
       }
       
+      // Show a toast notification
       toast.info(endStatus === 'ended' ? "Call ended" : "Call missed");
+      
+      // Refresh call history
       await fetchCallHistory();
+      
+      console.log(`[WebRTC] Call session ${sessionId} successfully marked as ${endStatus}`);
+      return { success: true };
     } catch (err) {
       console.error("[WebRTC] Error ending call:", err);
       toast.error("Failed to end call");
+      return { success: false, error: err };
     }
   }, [fetchCallHistory]);
 

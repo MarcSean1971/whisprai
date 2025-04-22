@@ -22,6 +22,13 @@ export function useWebRTCCalls(
   } = useCallSession(conversationId, currentUserId);
 
   const [shouldInitiatePeer, setShouldInitiatePeer] = useState(false);
+  const [callCleanupInProgress, setCallCleanupInProgress] = useState(false);
+
+  const fetchCallHistory = async () => {
+    console.log("[WebRTCCalls] Refreshing call history");
+    // This is a placeholder function that will be replaced with the actual
+    // fetchCallHistory function from useCallSession
+  };
 
   const {
     startCall,
@@ -29,9 +36,7 @@ export function useWebRTCCalls(
     rejectCall,
     endCall,
     updateSignalingData,
-  } = useCallActions(conversationId, currentUserId, otherUserId, incomingCall, async () => {
-    // This is passed as fetchCallHistory callback to useCallActions
-  });
+  } = useCallActions(conversationId, currentUserId, otherUserId, incomingCall, fetchCallHistory);
 
   // Handle call session status changes
   useEffect(() => {
@@ -43,12 +48,18 @@ export function useWebRTCCalls(
         setShouldInitiatePeer(true);
       } else if (["ended", "rejected", "missed"].includes(callSession.status)) {
         // Reset state after a delay to allow animations to complete
-        setTimeout(() => {
-          resetCallState();
-        }, 2000);
+        if (!callCleanupInProgress) {
+          setCallCleanupInProgress(true);
+          
+          console.log("[WebRTCCalls] Call ended, cleaning up in 3 seconds");
+          setTimeout(() => {
+            resetCallState();
+            setCallCleanupInProgress(false);
+          }, 3000);
+        }
       }
     }
-  }, [callSession, resetCallState]);
+  }, [callSession, resetCallState, callCleanupInProgress]);
 
   // Auto-reject incoming call if already in another call
   useEffect(() => {
@@ -84,13 +95,23 @@ export function useWebRTCCalls(
   const handleRejectCall = useCallback(async () => {
     console.log("[WebRTCCalls] Rejecting call");
     
+    if (!incomingCall) {
+      console.error("[WebRTCCalls] No incoming call to reject");
+      return;
+    }
+    
     try {
       await rejectCall();
-      resetCallState();
+      setShouldInitiatePeer(false);
+      
+      // Allow time for UI animations before resetting state
+      setTimeout(() => {
+        resetCallState();
+      }, 3000);
     } catch (error) {
       console.error("[WebRTCCalls] Error rejecting call:", error);
     }
-  }, [rejectCall, resetCallState]);
+  }, [rejectCall, resetCallState, incomingCall]);
 
   // Wrapped end call to ensure proper cleanup
   const handleEndCall = useCallback(async (sessionId?: string) => {
@@ -98,7 +119,12 @@ export function useWebRTCCalls(
     
     try {
       await endCall(sessionId);
-      resetCallState();
+      setShouldInitiatePeer(false);
+      
+      // Allow time for UI animations before resetting state
+      setTimeout(() => {
+        resetCallState();
+      }, 3000);
     } catch (error) {
       console.error("[WebRTCCalls] Error ending call:", error);
     }
