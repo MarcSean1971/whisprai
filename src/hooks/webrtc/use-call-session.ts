@@ -33,10 +33,12 @@ export function useCallSession(
 
   const handleCallStatus = useCallback((status: string | undefined) => {
     if (status === "connected") {
+      console.log("[WebRTC] Call connected, updating state immediately");
       setIsCalling(true);
       setIncomingCall(null);
       
       if (stopRingtone) {
+        console.log("[WebRTC] Stopping ringtone immediately");
         stopRingtone();
         setStopRingtone(null);
       }

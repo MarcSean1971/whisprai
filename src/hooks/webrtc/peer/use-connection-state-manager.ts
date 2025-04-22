@@ -19,7 +19,13 @@ export function useConnectionStateManager({ peerRef, connectionStatsRef }: UseCo
   useEffect(() => {
     const intervalId = setInterval(() => {
       if (peerRef.current) {
-        setConnectionDetails(getConnectionState());
+        const currentState = getConnectionState();
+        setConnectionDetails(currentState);
+        
+        // Update connection status based on peer state
+        if (currentState?.iceConnectionState === 'connected') {
+          setIsConnecting(false);
+        }
       }
     }, 1000);
 

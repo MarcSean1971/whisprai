@@ -18,8 +18,8 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
   };
 
   useEffect(() => {
-    // Play ringtone only for active call states
-    if (callStatus === 'connecting' || callStatus === 'ringing' || callStatus === 'incoming') {
+    // Only play ringtone for active call states
+    if (callStatus === "connecting" || callStatus === "ringing" || callStatus === "incoming") {
       if (!audioRef.current) {
         console.log("[Ringtone] Starting ringtone");
         audioRef.current = new Audio('/sounds/ringtone.mp3');

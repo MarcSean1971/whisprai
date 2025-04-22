@@ -116,14 +116,24 @@ export function useCallActions(
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
     
+    console.log("[WebRTC] Accepting call immediately");
+    
     const { error } = await supabase
       .from("call_sessions")
-      .update({ status: "connected", updated_at: new Date().toISOString() })
+      .update({ 
+        status: "connected", 
+        updated_at: new Date().toISOString() 
+      })
       .eq("id", incomingCall.id);
       
     if (error) {
+      console.error("[WebRTC] Failed to accept call:", error);
       toast.error("Failed to accept call.");
+      return;
     }
+
+    // Immediate feedback
+    toast.success("Call connected");
   }, [incomingCall]);
 
   const rejectCall = useCallback(async () => {
