@@ -22,6 +22,11 @@ export function useConnectionState() {
     }
   };
 
+  const startConnectionTimeout = (callback: () => void, timeout: number) => {
+    clearConnectionTimeout();
+    connectionTimeoutRef.current = window.setTimeout(callback, timeout);
+  };
+
   return {
     isIceGathering,
     setIsIceGathering,
@@ -29,6 +34,7 @@ export function useConnectionState() {
     setIceCandidate,
     connectionStatsRef,
     connectionTimeoutRef,
-    clearConnectionTimeout
+    clearConnectionTimeout,
+    startConnectionTimeout
   };
 }

@@ -36,11 +36,9 @@ export function useCallTerminator(fetchCallHistory: () => Promise<void>) {
       await fetchCallHistory();
       
       console.log(`[WebRTC] Call session ${sessionId} successfully marked as ${endStatus}`);
-      return { success: true };
     } catch (err) {
       console.error("[WebRTC] Error ending call:", err);
       toast.error("Failed to end call");
-      return { success: false, error: err };
     }
   }, [fetchCallHistory]);
 
