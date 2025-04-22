@@ -62,7 +62,7 @@ export function useTodos() {
         .select(`
           conversation_id,
           user_id,
-          profiles!conversation_participants_user_id_fkey(
+          profiles:user_id(
             id,
             first_name,
             last_name
@@ -110,9 +110,22 @@ export function useTodos() {
         if (!acc[participant.conversation_id]) {
           acc[participant.conversation_id] = [];
         }
-        if (participant.profiles) {
-          acc[participant.conversation_id].push(participant.profiles);
+        
+        // Safe access to profiles data with type checking
+        if (participant.profiles && typeof participant.profiles === 'object') {
+          const profile = participant.profiles as { 
+            id: string; 
+            first_name: string | null; 
+            last_name: string | null 
+          };
+          
+          acc[participant.conversation_id].push({
+            id: profile.id,
+            first_name: profile.first_name,
+            last_name: profile.last_name
+          });
         }
+        
         return acc;
       }, {} as Record<string, Array<{ id: string; first_name: string | null; last_name: string | null }>>);
 
