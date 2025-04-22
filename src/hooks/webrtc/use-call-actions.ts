@@ -107,7 +107,7 @@ export function useCallActions(
         .eq("id", sessionId);
         
       if (error) {
-        console.error("Failed to send signaling data:", error);
+        console.error("[WebRTC] Failed to send signaling data:", error);
       }
     },
     []
@@ -129,9 +129,10 @@ export function useCallActions(
   const rejectCall = useCallback(async () => {
     if (!incomingCall) return;
     
-    console.log("[WebRTC] Rejecting call immediately");
+    console.log("[WebRTC] Rejecting call with immediate cleanup");
     
     try {
+      // Update call session status immediately
       const { error } = await supabase
         .from("call_sessions")
         .update({ 
@@ -145,24 +146,43 @@ export function useCallActions(
         console.error("[WebRTC] Failed to reject call:", error);
         toast.error("Failed to reject call.");
       }
+      
+      // No delay here - immediate feedback
+      toast.info("Call rejected");
+      
+      // Trigger call history refresh
+      await fetchCallHistory();
     } catch (err) {
       console.error("[WebRTC] Error rejecting call:", err);
       toast.error("Failed to reject call.");
     }
-  }, [incomingCall]);
+  }, [incomingCall, fetchCallHistory]);
 
   const endCall = useCallback(async (sessionId?: string, endStatus: 'ended' | 'missed' = 'ended') => {
     if (!sessionId) return;
     
-    const { error } = await supabase
-      .from("call_sessions")
-      .update({ status: endStatus, updated_at: new Date().toISOString() })
-      .eq("id", sessionId);
-      
-    if (error) {
+    console.log("[WebRTC] Ending call with immediate cleanup");
+    
+    try {
+      const { error } = await supabase
+        .from("call_sessions")
+        .update({ 
+          status: endStatus, 
+          updated_at: new Date().toISOString(),
+          signaling_data: null // Clear signaling data immediately
+        })
+        .eq("id", sessionId);
+        
+      if (error) {
+        toast.error("Failed to end call.");
+      } else {
+        // No delay, immediate feedback and cleanup
+        toast.info(endStatus === 'ended' ? "Call ended" : "Call missed");
+        await fetchCallHistory();
+      }
+    } catch (err) {
+      console.error("[WebRTC] Error ending call:", err);
       toast.error("Failed to end call.");
-    } else {
-      fetchCallHistory();
     }
   }, [fetchCallHistory]);
 
@@ -174,4 +194,3 @@ export function useCallActions(
     updateSignalingData,
   };
 }
-

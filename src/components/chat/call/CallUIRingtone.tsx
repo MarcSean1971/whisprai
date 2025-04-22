@@ -10,6 +10,7 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
 
   const stopRingtone = () => {
     if (audioRef.current) {
+      console.log("[Ringtone] Stopping ringtone immediately");
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current = null;
@@ -17,25 +18,23 @@ export function CallUIRingtone({ callStatus }: CallUIRingtoneProps) {
   };
 
   useEffect(() => {
-    // Play ringtone when connecting, ringing or incoming
+    // Play ringtone only for active call states
     if (callStatus === 'connecting' || callStatus === 'ringing' || callStatus === 'incoming') {
       if (!audioRef.current) {
+        console.log("[Ringtone] Starting ringtone");
         audioRef.current = new Audio('/sounds/ringtone.mp3');
         audioRef.current.loop = true;
       }
       audioRef.current.currentTime = 0;
       audioRef.current.play().catch(e => {
-        console.log('Ringtone autoplay blocked:', e);
+        console.error('[Ringtone] Autoplay blocked:', e);
       });
     } else {
       // Immediately stop ringtone for any other status
       stopRingtone();
     }
     
-    // Clean up on unmount
-    return () => {
-      stopRingtone();
-    };
+    return stopRingtone;
   }, [callStatus]);
 
   return null;

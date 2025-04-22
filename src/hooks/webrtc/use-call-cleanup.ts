@@ -24,18 +24,12 @@ export function useCallCleanup({
   setCallDuration
 }: UseCallCleanupProps) {
   const endCall = useCallback(() => {
-    console.log("[WebRTC] Ending call immediately");
+    console.log("[WebRTC] Ending call with immediate cleanup");
     
-    // Clear duration timer first
-    if (durationTimerRef.current) {
-      clearInterval(durationTimerRef.current);
-      durationTimerRef.current = null;
-    }
-    
-    // Destroy peer connection immediately
+    // Immediate cleanup of peer connection
     destroyPeer();
     
-    // Stop all tracks in the local stream
+    // Stop all tracks in the local stream synchronously
     if (localStream) {
       localStream.getTracks().forEach(track => {
         track.stop();
@@ -43,8 +37,14 @@ export function useCallCleanup({
       });
     }
     
-    // Clean up screen sharing
+    // Cleanup screen sharing
     cleanupScreenShare();
+    
+    // Clear duration timer
+    if (durationTimerRef.current) {
+      clearInterval(durationTimerRef.current);
+      durationTimerRef.current = null;
+    }
     
     // Reset all streams and states synchronously
     setLocalStream(null);
