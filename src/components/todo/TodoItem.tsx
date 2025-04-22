@@ -22,7 +22,7 @@ import {
 interface TodoItemProps {
   todo: Todo & { 
     profiles: { first_name: string | null; last_name: string | null },
-    conversation_participants: Array<{ id: string; first_name: string | null; last_name: string | null }>
+    conversation_participants?: Array<{ id: string; first_name: string | null; last_name: string | null }>
   };
   onStatusChange: (id: string, status: 'pending' | 'completed') => void;
   onUpdate: (id: string, data: { 
@@ -49,12 +49,15 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
     : 'Unknown';
 
   // Get the counterparty name (other participants in the conversation)
-  const counterpartyNames = todo.conversation_participants
-    .map(participant => participant.first_name 
-      ? `${participant.first_name} ${participant.last_name || ''}` 
-      : 'Unknown'
-    )
-    .join(', ');
+  // Add a fallback for when conversation_participants is undefined
+  const counterpartyNames = todo.conversation_participants && todo.conversation_participants.length > 0
+    ? todo.conversation_participants
+        .map(participant => participant.first_name 
+          ? `${participant.first_name} ${participant.last_name || ''}` 
+          : 'Unknown'
+        )
+        .join(', ')
+    : 'Unknown chat';
 
   return (
     <div className="space-y-2">

@@ -132,6 +132,8 @@ export function useTodos() {
       const enrichedTodos = todosData.map(todo => {
         const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
         const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
+        
+        // Make sure conversation_participants is always defined, even if empty
         const conversationParticipants = participantsByConversation[todo.conversation_id] || [];
 
         return {
