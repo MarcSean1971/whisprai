@@ -36,7 +36,7 @@ export function ChatMessages({
   sendReply,
   cancelReply,
   refetch,
-  isFetchingNextPage,
+  isFetchingNextPage = false,
   hasNextPage = false
 }: ChatMessagesProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -47,13 +47,13 @@ export function ChatMessages({
     scrollContainerRef, 
     loadMoreRef, 
     messagesEndRef,
-    isLoadingMore,
     pullProgress,
     isPulling
   } = useMessageScroll({
     messages,
     refetch,
-    hasNextPage
+    hasNextPage,
+    isFetchingNextPage
   });
 
   const scrollToMessage = (messageId: string) => {
@@ -95,13 +95,12 @@ export function ChatMessages({
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none"
           style={{
             WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-y pinch-zoom',
           }}
         >
-          <div ref={loadMoreRef} />
+          <div ref={loadMoreRef} className="h-1" />
           <LoadMoreMessages 
             pullProgress={pullProgress}
-            isLoading={isLoadingMore}
+            isLoading={isFetchingNextPage}
             isPulling={isPulling}
             hasNextPage={hasNextPage}
           />

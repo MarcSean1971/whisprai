@@ -1,19 +1,25 @@
+
 import { useEffect, useRef, useState } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
   refetch?: () => void;
   hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
-const PULL_THRESHOLD = 80; // Reduced threshold for better mobile UX
+const PULL_THRESHOLD = 60; // Reduced threshold for better mobile UX
 
-export function useMessageScroll({ messages, refetch, hasNextPage = false }: UseMessageScrollProps) {
+export function useMessageScroll({ 
+  messages, 
+  refetch, 
+  hasNextPage = false,
+  isFetchingNextPage = false 
+}: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
   
@@ -29,7 +35,8 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
     if (!container) return;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop <= 0 && hasNextPage) {
+      // Allow pull even when slightly scrolled down
+      if (container.scrollTop <= 5 && hasNextPage) {
         touchStartY.current = e.touches[0].clientY;
         lastTouchY.current = e.touches[0].clientY;
         initialScrollTop.current = container.scrollTop;
@@ -48,7 +55,7 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
       }
       lastTouchY.current = touchY;
       
-      if (diff > 0 && container.scrollTop <= 0) {
+      if (diff > 0 && container.scrollTop <= 5) {
         setIsPulling(true);
         const rubberBandedDiff = Math.pow(diff, 0.8);
         const progress = Math.min((rubberBandedDiff / PULL_THRESHOLD) * 100, 100);
@@ -63,18 +70,13 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
     const handleTouchEnd = async () => {
       if (!touchStartY.current) return;
 
-      const shouldRefetch = pullProgress >= 100 && refetch && !isLoadingMore && hasNextPage;
-      
-      const finalProgress = pullProgress + (pullVelocity.current * 2);
+      const shouldRefetch = pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage;
       
       if (shouldRefetch) {
-        setIsLoadingMore(true);
         try {
           await refetch();
-        } finally {
-          setTimeout(() => {
-            setIsLoadingMore(false);
-          }, 1000);
+        } catch (err) {
+          console.error('Error fetching more messages:', err);
         }
       }
       
@@ -97,8 +99,9 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
       container.removeEventListener('touchend', handleTouchEnd);
       container.removeEventListener('touchcancel', handleTouchEnd);
     };
-  }, [pullProgress, refetch, isLoadingMore, hasNextPage]);
+  }, [pullProgress, refetch, isFetchingNextPage, hasNextPage]);
 
+  // Scroll handling for new messages
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       const container = scrollContainerRef.current;
@@ -111,15 +114,9 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
+  // Handle scroll position preservation when loading older messages
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
-      previousScrollTop.current = scrollContainerRef.current.scrollTop;
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    if (scrollContainerRef.current && !isLoadingMore) {
+    if (scrollContainerRef.current && !isFetchingNextPage) {
       const container = scrollContainerRef.current;
       const newScrollHeight = container.scrollHeight;
       const heightDifference = newScrollHeight - previousScrollHeight.current;
@@ -128,20 +125,18 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
         container.scrollTop = previousScrollTop.current + heightDifference;
       }
     }
-  }, [messages.length, isLoadingMore]);
+  }, [messages.length, isFetchingNextPage]);
 
+  // Intersection Observer for infinite loading
   useEffect(() => {
     if (!refetch) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
-        if (first.isIntersecting && !isLoadingMore && refetch && hasNextPage) {
-          setIsLoadingMore(true);
+        if (first.isIntersecting && !isFetchingNextPage && hasNextPage) {
+          console.log('Intersection observed, fetching more messages...');
           refetch();
-          setTimeout(() => {
-            setIsLoadingMore(false);
-          }, 1000);
         }
       },
       { 
@@ -160,13 +155,13 @@ export function useMessageScroll({ messages, refetch, hasNextPage = false }: Use
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, isLoadingMore, hasNextPage]);
+  }, [refetch, isFetchingNextPage, hasNextPage]);
 
   return {
     scrollContainerRef,
     loadMoreRef,
     messagesEndRef,
-    isLoadingMore,
+    isLoadingMore: isFetchingNextPage,
     pullProgress,
     isPulling
   };
