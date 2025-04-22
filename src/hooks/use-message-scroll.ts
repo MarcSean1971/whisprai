@@ -11,7 +11,6 @@ interface UseMessageScrollProps {
 
 const PULL_THRESHOLD = 60;
 const SCROLL_TOLERANCE = 5;
-const INTERSECTION_MARGIN = '500px';
 
 export function useMessageScroll({ 
   messages, 
@@ -31,17 +30,16 @@ export function useMessageScroll({
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef<number | null>(null);
   const initialScrollTop = useRef<number | null>(null);
-  const lastTouchY = useRef<number | null>(null);
 
   // Store scroll position before loading new messages
   useEffect(() => {
     if (scrollContainerRef.current) {
-      console.log("Storing scroll position", {
-        scrollHeight: scrollContainerRef.current.scrollHeight,
-        scrollTop: scrollContainerRef.current.scrollTop
-      });
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
       previousScrollTop.current = scrollContainerRef.current.scrollTop;
+      console.log("Storing scroll position:", {
+        scrollHeight: previousScrollHeight.current,
+        scrollTop: previousScrollTop.current
+      });
     }
   }, [messages.length]);
 
@@ -50,14 +48,15 @@ export function useMessageScroll({
     const container = scrollContainerRef.current;
     if (container && messages.length > previousMessagesLength) {
       const heightDifference = container.scrollHeight - previousScrollHeight.current;
+      console.log("Height difference on new messages:", heightDifference);
+      
       if (heightDifference > 0) {
-        console.log("Restoring scroll position", {
-          prevHeight: previousScrollHeight.current,
-          newHeight: container.scrollHeight,
-          difference: heightDifference,
-          prevScroll: previousScrollTop.current
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = previousScrollTop.current + heightDifference;
+            console.log("Restored scroll position:", container.scrollTop);
+          }
         });
-        container.scrollTop = previousScrollTop.current + heightDifference;
       }
     }
     setPreviousMessagesLength(messages.length);
@@ -66,13 +65,12 @@ export function useMessageScroll({
   // Mobile pull-to-refresh handling
   useEffect(() => {
     if (!isMobile || !scrollContainerRef.current) return;
-
+    
     const container = scrollContainerRef.current;
 
     const handleTouchStart = (e: TouchEvent) => {
       if (container.scrollTop <= SCROLL_TOLERANCE && hasNextPage) {
         touchStartY.current = e.touches[0].clientY;
-        lastTouchY.current = e.touches[0].clientY;
         initialScrollTop.current = container.scrollTop;
         console.log('Touch start:', { scrollTop: container.scrollTop });
       }
@@ -103,7 +101,7 @@ export function useMessageScroll({
       const shouldRefetch = pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage;
       
       if (shouldRefetch) {
-        console.log('Fetching more messages via pull-to-refresh...');
+        console.log('Fetching more messages via pull-to-refresh');
         try {
           await refetch();
         } catch (err) {
@@ -114,7 +112,6 @@ export function useMessageScroll({
       setPullProgress(0);
       setIsPulling(false);
       touchStartY.current = null;
-      lastTouchY.current = null;
       initialScrollTop.current = null;
     };
 
@@ -133,26 +130,33 @@ export function useMessageScroll({
 
   // Desktop infinite scroll handling
   useEffect(() => {
-    if (isMobile || !refetch || !hasNextPage) return;
+    if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
-    console.log("Setting up Intersection Observer for desktop");
+    console.log("Setting up Intersection Observer");
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
+        console.log("Intersection Observer entry:", {
+          isIntersecting: first.isIntersecting,
+          isFetchingNextPage,
+          hasNextPage
+        });
+        
         if (first.isIntersecting && !isFetchingNextPage && hasNextPage) {
           console.log('Loading more messages via intersection');
           refetch();
         }
       },
       { 
-        threshold: 0.1,
-        rootMargin: INTERSECTION_MARGIN + ' 0px 0px 0px'
+        root: scrollContainerRef.current,
+        threshold: 0,
+        rootMargin: '500px 0px 0px 0px'
       }
     );
 
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
-      console.log("Observing load more element");
+      console.log("Starting to observe load more element");
       observer.observe(currentLoadMoreRef);
     }
 
@@ -161,19 +165,7 @@ export function useMessageScroll({
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, isFetchingNextPage, hasNextPage, isMobile]);
-
-  // Auto-scroll to bottom for new messages
-  useEffect(() => {
-    if (scrollContainerRef.current && messages.length > previousMessagesLength) {
-      const container = scrollContainerRef.current;
-      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      
-      if (isNearBottom) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-      }
-    }
-  }, [messages.length, previousMessagesLength]);
+  }, [refetch, isFetchingNextPage, hasNextPage]);
 
   return {
     scrollContainerRef,

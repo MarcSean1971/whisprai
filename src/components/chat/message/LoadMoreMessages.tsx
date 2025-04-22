@@ -13,7 +13,8 @@ interface LoadMoreMessagesProps {
 
 export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPage }: LoadMoreMessagesProps) {
   const isMobile = useIsMobile();
-  const shouldShow = isMobile ? (isPulling || isLoading) && hasNextPage : isLoading && hasNextPage;
+  const shouldShow = (isMobile ? (isPulling || isLoading) : isLoading) && hasNextPage;
+  
   const message = !hasNextPage 
     ? "No more messages to load" 
     : isMobile 
@@ -31,14 +32,14 @@ export function LoadMoreMessages({ pullProgress, isLoading, isPulling, hasNextPa
         shouldShow ? "opacity-100 h-24" : "opacity-0 h-0"
       )}
       style={{
-        transform: isMobile ? `translateY(${Math.min(pullProgress / 2, 50)}%)` : 'none',
+        transform: isMobile && isPulling ? `translateY(${Math.min(pullProgress / 2, 50)}%)` : 'none',
       }}
     >
       <div className="flex items-center gap-3">
         {isLoading ? (
           <Loader2 className="h-6 w-6 animate-spin text-primary" />
         ) : (
-          isMobile && (
+          isMobile && isPulling && (
             <div className="w-44">
               <Progress value={pullProgress} className="h-2" />
             </div>
