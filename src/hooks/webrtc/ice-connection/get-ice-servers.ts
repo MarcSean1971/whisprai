@@ -1,4 +1,9 @@
 
+/**
+ * This function provides fallback ICE servers when the dynamic TURN credential
+ * generation fails. This is less reliable than the dynamic approach but ensures
+ * some level of connectivity as a last resort.
+ */
 export function getIceServers() {
   return [
     { urls: 'stun:stun.l.google.com:19302' },
