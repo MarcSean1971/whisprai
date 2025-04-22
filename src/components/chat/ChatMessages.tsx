@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { MessagesContainer } from "./message/MessagesContainer";
 import { MessagesError } from "./message/MessagesError";
 import { MessagesLoading } from "./message/MessagesLoading";
+import { MessageContent } from "./message/MessageContent";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -26,6 +27,7 @@ interface ChatMessagesProps {
   sendReply?: (content: string) => Promise<boolean>;
   cancelReply?: () => void;
   refetch?: () => void;
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function ChatMessages({
@@ -40,7 +42,8 @@ export function ChatMessages({
   replyToMessageId,
   sendReply,
   cancelReply,
-  refetch
+  refetch,
+  scrollToMessage
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -70,6 +73,7 @@ export function ChatMessages({
               sendReply={sendReply}
               cancelReply={cancelReply}
               refetch={refetch}
+              scrollToMessage={scrollToMessage}
             />
             <div ref={messagesEndRef} />
           </ScrollArea>

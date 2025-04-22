@@ -59,7 +59,7 @@ export function useMessages(conversationId: string) {
             }
           }
         )
-        .subscribe((status) => {
+        .subscribe((status: string) => {
           console.log(`Subscription status for messages:${conversationId}:`, status);
           if (status === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));

@@ -1,7 +1,7 @@
 
 import { useMessageProcessor } from "@/hooks/use-message-processor";
 import { MessageList } from "./MessageList";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 
 interface MessageContentProps {
   messages: any[];
@@ -13,6 +13,7 @@ interface MessageContentProps {
   sendReply?: (content: string) => Promise<boolean>;
   cancelReply?: () => void;
   refetch?: () => void;
+  scrollToMessage?: (messageId: string) => void;
 }
 
 export function MessageContent({
@@ -24,7 +25,8 @@ export function MessageContent({
   replyToMessageId,
   sendReply,
   cancelReply,
-  refetch
+  refetch,
+  scrollToMessage
 }: MessageContentProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   
@@ -56,6 +58,7 @@ export function MessageContent({
           translatedContents={translatedContents}
           onReply={onReply}
           replyToMessageId={replyToMessageId}
+          scrollToMessage={scrollToMessage}
         />
       ))}
     </>

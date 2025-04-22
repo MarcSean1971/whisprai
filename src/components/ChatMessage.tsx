@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { MessageContent } from "./chat/message/MessageContent";
+import { MessageContent } from "./MessageContent";
 import { VoiceMessagePlayer } from "./chat/message/VoiceMessagePlayer";
 import { MessageWrapper } from "./chat/message/MessageWrapper";
 import { useVoiceMessageDeletion } from "./chat/message/voice-player/useVoiceMessageDeletion";
