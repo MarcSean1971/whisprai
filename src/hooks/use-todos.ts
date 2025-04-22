@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -43,6 +42,9 @@ export function useTodos() {
   const { data: todos, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       const { data: todosData, error: todosError } = await supabase
         .from('todos')
         .select('*')
@@ -53,10 +55,8 @@ export function useTodos() {
         throw todosError;
       }
 
-      // Get all unique conversation IDs from todos
       const conversationIds = [...new Set(todosData.map(todo => todo.conversation_id))];
 
-      // Fetch participants for all conversations
       const { data: participantsData, error: participantsError } = await supabase
         .from('conversation_participants')
         .select(`
@@ -94,7 +94,6 @@ export function useTodos() {
         console.error('Error fetching messages:', messagesError);
       }
 
-      // Create maps for easier lookup
       const profilesMap = (profilesData || []).reduce((acc, profile) => {
         acc[profile.id] = profile;
         return acc;
@@ -105,14 +104,14 @@ export function useTodos() {
         return acc;
       }, {} as Record<string, { id: string; content: string }>);
 
-      // Group participants by conversation
       const participantsByConversation = (participantsData || []).reduce((acc, participant) => {
         if (!acc[participant.conversation_id]) {
           acc[participant.conversation_id] = [];
         }
         
-        // Safe access to profiles data with type checking
-        if (participant.profiles && typeof participant.profiles === 'object') {
+        if (participant.profiles && 
+            typeof participant.profiles === 'object' && 
+            participant.user_id !== user.id) {
           const profile = participant.profiles as { 
             id: string; 
             first_name: string | null; 
@@ -133,7 +132,6 @@ export function useTodos() {
         const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
         const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
         
-        // Make sure conversation_participants is always defined, even if empty
         const conversationParticipants = participantsByConversation[todo.conversation_id] || [];
 
         return {
