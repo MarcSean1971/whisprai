@@ -10,12 +10,11 @@ export function TodoListButton({ onClick }: TodoListButtonProps) {
   return (
     <Button 
       variant="ghost" 
-      size="icon" 
+      className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
       onClick={onClick}
-      className="flex items-center gap-2 px-3"
     >
-      <ListTodo className="h-4 w-4" />
-      <span className="text-sm hidden sm:inline">Tasks</span>
+      <ListTodo className="h-5 w-5" />
+      <span className="text-xs truncate">Tasks</span>
     </Button>
   );
 }
