@@ -14,7 +14,7 @@ export function TodoListButton({ onClick }: TodoListButtonProps) {
       onClick={onClick}
     >
       <ListTodo className="h-5 w-5" />
-      <span className="text-xs truncate">Tasks</span>
+      <span className="text-xs truncate">To Do</span>
     </Button>
   );
 }

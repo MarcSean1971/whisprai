@@ -1,13 +1,15 @@
-
 import { Button } from "@/components/ui/button";
 import { 
   MessageSquarePlus, 
   Users, 
   Settings, 
   Shield,
-  Loader2
+  Loader2,
+  ListTodo
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useState } from "react";
+import { TodoListDrawer } from "@/components/todo/TodoListDrawer";
 
 interface BottomNavigationProps { 
   activeTab?: 'chats' | 'contacts' | 'profile' | 'admin';
@@ -22,6 +24,7 @@ export function BottomNavigation({
 }: BottomNavigationProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
   
   // Use location to determine active tab if not explicitly provided
   const currentPath = location.pathname;
@@ -59,6 +62,14 @@ export function BottomNavigation({
           <span className="text-xs truncate">Contacts</span>
         </Button>
         <Button
+          variant="ghost"
+          className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
+          onClick={() => setTodoDrawerOpen(true)}
+        >
+          <ListTodo className="h-5 w-5" />
+          <span className="text-xs truncate">To Do</span>
+        </Button>
+        <Button
           variant={currentTab === 'profile' ? 'default' : 'ghost'}
           className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
           onClick={() => navigate('/profile-setup')}
@@ -86,7 +97,10 @@ export function BottomNavigation({
           </Button>
         ) : null}
       </div>
+      <TodoListDrawer 
+        open={todoDrawerOpen}
+        onOpenChange={setTodoDrawerOpen}
+      />
     </div>
   );
 }
-

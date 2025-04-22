@@ -2,9 +2,6 @@ import { Logo } from "@/components/Logo";
 import { SearchBar } from "./SearchBar";
 import { useLocation } from "react-router-dom";
 import { ShareButton } from "@/components/shared/ShareButton";
-import { TodoListButton } from "@/components/todo/TodoListButton";
-import { useState } from "react";
-import { TodoListDrawer } from "@/components/todo/TodoListDrawer";
 
 interface HeaderProps {
   isSearching: boolean;
@@ -21,7 +18,6 @@ export function Header({
   onSearchToggle,
   rightAction
 }: HeaderProps) {
-  const [todoDrawerOpen, setTodoDrawerOpen] = useState(false);
   const location = useLocation();
   
   const getHeaderContent = () => {
@@ -60,15 +56,9 @@ export function Header({
           />
         </div>
         <div className="flex items-center gap-2">
-          <TodoListButton onClick={() => setTodoDrawerOpen(true)} />
           {rightAction}
         </div>
       </div>
-
-      <TodoListDrawer 
-        open={todoDrawerOpen}
-        onOpenChange={setTodoDrawerOpen}
-      />
     </header>
   );
 }
