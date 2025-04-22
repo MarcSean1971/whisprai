@@ -34,3 +34,13 @@ export interface Message {
   };
   parent?: ParentMessage | null;
 }
+
+export interface PaginatedMessagesResponse {
+  messages: Message[];
+  nextCursor: string | null;
+}
+
+export interface MessagePage {
+  messages: Message[];
+  nextCursor: string | null;
+}

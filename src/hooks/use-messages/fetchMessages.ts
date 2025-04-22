@@ -3,37 +3,60 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getProfiles } from "./getProfiles";
 import { getParentMessages } from "./getParentMessages";
-import type { Message } from "./types";
+import type { Message, PaginatedMessagesResponse } from "./types";
 
 /**
- * Fetches messages for a conversation and enriches them with sender and parent profiles.
+ * Fetches paginated messages for a conversation and enriches them with sender and parent profiles.
  */
-export async function fetchMessages(conversationId: string): Promise<Message[]> {
+export async function fetchMessages(
+  conversationId: string, 
+  { limit = 20, cursor }: { limit?: number; cursor?: string } = {}
+): Promise<PaginatedMessagesResponse> {
   if (!conversationId) throw new Error("No conversation ID provided");
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
 
-  const { data: messages, error: messagesError } = await supabase
+  // Build query with pagination
+  let query = supabase
     .from("messages")
     .select("*, parent_id")
     .eq("conversation_id", conversationId)
     .or(
       `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
     )
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false }) // Reversed order for pagination
+    .limit(limit + 1); // Fetch one extra to determine if there's a next page
+
+  // Apply cursor if provided
+  if (cursor) {
+    query = query.lt("created_at", cursor);
+  }
+
+  const { data: messages, error: messagesError } = await query;
 
   if (messagesError) {
     console.error("Error fetching messages:", messagesError);
     toast.error("Failed to load messages");
     throw messagesError;
   }
+  
   if (!messages) {
     console.warn("No messages returned from query");
-    return [];
+    return { messages: [], nextCursor: null };
   }
+
+  // Determine if there's a next page
+  let nextCursor = null;
+  let actualMessages = messages;
+  
+  if (messages.length > limit) {
+    actualMessages = messages.slice(0, limit);
+    nextCursor = actualMessages[actualMessages.length - 1]?.created_at;
+  }
+
   // Fetch user profiles
-  const senderIds: string[] = messages
+  const senderIds: string[] = actualMessages
     .map((m: any) => m.sender_id)
     .filter(Boolean)
     .filter((v, i, a) => a.indexOf(v) === i);
@@ -41,7 +64,7 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
   const profiles = await getProfiles(senderIds);
 
   // Fetch parent messages
-  const parentIds: string[] = messages
+  const parentIds: string[] = actualMessages
     .map((m: any) => m.parent_id)
     .filter(Boolean)
     .filter((v, i, a) => a.indexOf(v) === i);
@@ -49,7 +72,7 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
   const parentMessages = await getParentMessages(parentIds);
 
   // Format result as array of Message
-  return messages
+  const formattedMessages = actualMessages
     .map((message: any) => {
       if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
         console.error("Invalid message structure:", message);
@@ -84,4 +107,10 @@ export async function fetchMessages(conversationId: string): Promise<Message[]> 
       } as Message;
     })
     .filter(Boolean) as Message[];
+  
+  // Reverse the messages back to ascending order for display
+  return { 
+    messages: formattedMessages.reverse(), 
+    nextCursor 
+  };
 }

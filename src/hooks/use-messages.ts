@@ -1,20 +1,23 @@
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { fetchMessages } from "./use-messages/fetchMessages";
-import type { Message } from "./use-messages/types";
+import type { Message, PaginatedMessagesResponse } from "./use-messages/types";
 
 // Re-export the Message type for other components to use
 export type { Message } from "./use-messages/types";
 
+const PAGE_SIZE = 20;
+
 /**
- * Fetches messages for a conversationId using react-query and real-time subscription.
+ * Fetches messages for a conversationId using react-query infinite queries and real-time subscription.
  */
 export function useMessages(conversationId: string) {
   const queryClient = useQueryClient();
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+  const [newMessageCount, setNewMessageCount] = useState(0);
 
   useEffect(() => {
     if (!conversationId) {
@@ -38,9 +41,20 @@ export function useMessages(conversationId: string) {
           (payload) => {
             console.log('Messages event received:', payload);
             try {
-              queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+              if (payload.eventType === 'INSERT') {
+                // For new messages, increment the counter
+                setNewMessageCount(count => count + 1);
+                
+                // After a short delay, invalidate the query to fetch new messages
+                setTimeout(() => {
+                  queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+                }, 500);
+              } else {
+                // For updates and deletes, immediately invalidate
+                queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+              }
             } catch (err) {
-              console.error('Error invalidating queries:', err);
+              console.error('Error handling realtime message update:', err);
               setSubscriptionError(err instanceof Error ? err : new Error('Failed to process message update'));
             }
           }
@@ -67,13 +81,25 @@ export function useMessages(conversationId: string) {
     };
   }, [conversationId, queryClient]);
 
-  const result = useQuery<Message[], Error>({
+  const result = useInfiniteQuery<PaginatedMessagesResponse, Error>({
     queryKey: ['messages', conversationId],
-    queryFn: () => fetchMessages(conversationId),
+    queryFn: ({ pageParam }) => fetchMessages(conversationId, { 
+      limit: PAGE_SIZE, 
+      cursor: pageParam 
+    }),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
+    refetchOnWindowFocus: false,
     retry: 2,
     retryDelay: 1000,
-    refetchOnWindowFocus: false
   });
+  
+  // Reset new message counter when data is refetched
+  useEffect(() => {
+    if (!result.isLoading && !result.isFetching) {
+      setNewMessageCount(0);
+    }
+  }, [result.isLoading, result.isFetching, result.dataUpdatedAt]);
 
   // Combine subscription errors with query errors
   const error = result.error || subscriptionError;
@@ -83,8 +109,14 @@ export function useMessages(conversationId: string) {
     toast.error('Failed to load messages');
   }
 
+  // Flatten the pages of messages into a single array
+  const messages = result.data?.pages.flatMap(page => page.messages) || [];
+
   return {
     ...result,
-    error
+    messages,
+    error,
+    newMessageCount,
+    resetNewMessageCount: () => setNewMessageCount(0)
   };
 }

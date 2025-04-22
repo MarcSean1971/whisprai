@@ -9,9 +9,14 @@ import { MessageReplyInput } from "./message/MessageReplyInput";
 import { AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { MessagesInfiniteLoader } from "./message/MessagesInfiniteLoader";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatMessagesProps {
   messages: any[];
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
+  fetchNextPage: () => void;
   userLanguage?: string;
   onNewReceivedMessage?: () => void;
   onTranslation?: (messageId: string, translatedContent: string) => void;
@@ -24,6 +29,9 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ 
   messages = [], 
+  hasNextPage,
+  isFetchingNextPage,
+  fetchNextPage,
   userLanguage = 'en',
   onNewReceivedMessage,
   onTranslation,
@@ -38,6 +46,7 @@ export function ChatMessages({
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
   const [error, setError] = useState<Error | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Build a ref map for message ids
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -103,7 +112,7 @@ export function ChatMessages({
     );
   }
 
-  if (isLoading || messages.length === 0) {
+  if (isLoading) {
     return (
       <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-4 no-scrollbar">
         <MessageSkeleton />
@@ -116,22 +125,34 @@ export function ChatMessages({
   return (
     <ErrorBoundary>
       <TranslationProvider>
-        <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
-          <TranslationConsumer 
-            messages={messages} 
-            currentUserId={currentUserId}
-            userLanguage={userLanguage}
-            onNewReceivedMessage={onNewReceivedMessage}
-            onTranslation={onTranslation}
-            onReply={onReply}
-            replyToMessageId={replyToMessageId}
-            sendReply={sendReply}
-            cancelReply={cancelReply}
-            refetch={refetch}
-            messageRefs={messageRefs}
-            scrollToMessage={scrollToMessage}
-          />
-          <div ref={messagesEndRef} />
+        <div className="absolute inset-0">
+          <ScrollArea
+            ref={scrollAreaRef}
+            className="h-full px-4 py-2 space-y-2"
+          >
+            {hasNextPage && (
+              <MessagesInfiniteLoader
+                onLoadMore={fetchNextPage}
+                hasMore={hasNextPage}
+                isLoading={isFetchingNextPage}
+              />
+            )}
+            <TranslationConsumer 
+              messages={messages} 
+              currentUserId={currentUserId}
+              userLanguage={userLanguage}
+              onNewReceivedMessage={onNewReceivedMessage}
+              onTranslation={onTranslation}
+              onReply={onReply}
+              replyToMessageId={replyToMessageId}
+              sendReply={sendReply}
+              cancelReply={cancelReply}
+              refetch={refetch}
+              messageRefs={messageRefs}
+              scrollToMessage={scrollToMessage}
+            />
+            <div ref={messagesEndRef} />
+          </ScrollArea>
         </div>
       </TranslationProvider>
     </ErrorBoundary>
