@@ -21,19 +21,33 @@ export function VideoStatusOverlay({
         connectionDetails.iceGatheringState === "complete" &&
         connectionDetails.iceConnectionState === "checking"
       ) {
-        return "Testing connection...";
+        return "Testing connection paths...";
       } else if (connectionDetails.iceConnectionState === "failed") {
-        return "Connection failed. Networks may be incompatible.";
+        return "Connection failed. Check your network settings.";
       } else if (connectionDetails.iceConnectionState === "disconnected") {
-        return "Connection was lost. Reconnecting...";
+        return "Connection lost. Attempting to reconnect...";
       }
-      return "Connecting...";
+      return "Establishing secure connection...";
     }
     return callStatus === "incoming"
       ? "Incoming call..."
       : callStatus === "calling"
       ? "Calling..."
       : "Ringing...";
+  };
+
+  const getDetailedMessage = () => {
+    if (connectionDetails) {
+      if (connectionDetails.iceConnectionState === "checking") {
+        return "Testing direct connection routes between devices...";
+      } else if (connectionDetails.iceConnectionState === "failed") {
+        return "Failed to establish a connection. Check your firewall settings or try using a different network.";
+      } else if (connectionDetails.connectionState === "connecting") {
+        const candidates = connectionDetails.iceCandidates || 0;
+        return `Found ${candidates} possible connection ${candidates === 1 ? 'path' : 'paths'}`;
+      }
+    }
+    return "";
   };
 
   if (!isConnecting) return null;
@@ -48,12 +62,7 @@ export function VideoStatusOverlay({
 
         {connectionDetails && (
           <div className="mt-4 text-xs text-[#4b3a6b] max-w-[280px] text-center">
-            {connectionDetails.iceConnectionState === "checking" &&
-              "Testing direct connection routes between devices..."}
-            {connectionDetails.iceConnectionState === "failed" &&
-              "Failed to establish a direct connection. A relay server may be needed."}
-            {connectionDetails.connectionState === "connecting" &&
-              `Found ${connectionDetails.iceCandidates} possible connection paths.`}
+            {getDetailedMessage()}
           </div>
         )}
       </div>
