@@ -10,32 +10,43 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const [hasScrolledToBottom, setHasScrolledToBottom] = useState(false);
+  const [hasInitialScroll, setHasInitialScroll] = useState(false);
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Initial scroll to bottom
   useEffect(() => {
-    if (!hasScrolledToBottom && scrollContainerRef.current) {
+    if (!hasInitialScroll && scrollContainerRef.current && messages.length > 0) {
       messagesEndRef.current?.scrollIntoView();
-      setHasScrolledToBottom(true);
+      setHasInitialScroll(true);
     }
-  }, [hasScrolledToBottom]);
+  }, [hasInitialScroll, messages.length]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
     if (scrollContainerRef.current && messages.length > previousMessagesLength) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      const container = scrollContainerRef.current;
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      if (isNearBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     }
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
   // Handle infinite scroll for older messages
   useEffect(() => {
+    if (!refetch) return;
+
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
-        if (first.isIntersecting && refetch) {
-          refetch();
+        if (first.isIntersecting && !isLoadingMore && refetch) {
+          setIsLoadingMore(true);
+          refetch().finally(() => {
+            setIsLoadingMore(false);
+          });
         }
       },
       { threshold: 0.1, rootMargin: '100px' }
@@ -51,11 +62,12 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch]);
+  }, [refetch, isLoadingMore]);
 
   return {
     scrollContainerRef,
     loadMoreRef,
-    messagesEndRef
+    messagesEndRef,
+    isLoadingMore
   };
 }
