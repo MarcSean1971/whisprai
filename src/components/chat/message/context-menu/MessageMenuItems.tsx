@@ -3,8 +3,8 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { toast } from "sonner";
-import { TodoDialog } from "../todo/TodoDialog";
-import { useState } from "react";
+import { TodoFloatingPanel } from "../todo/TodoFloatingPanel";
+import { useState, useRef } from "react";
 import { useTodos } from "@/hooks/use-todos";
 
 interface MessageMenuItemsProps {
@@ -30,6 +30,8 @@ export function MessageMenuItems({
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
   const [todoDialogOpen, setTodoDialogOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const todoButtonRef = useRef<HTMLDivElement>(null);
   const { createTodo } = useTodos();
 
   const handleEmojiSelect = async (emojiData: any) => {
@@ -49,6 +51,18 @@ export function MessageMenuItems({
       due_date: dueDate,
       conversation_id: window.location.pathname.split('/').pop() || '',
     });
+    setTodoDialogOpen(false);
+    onCloseMenu();
+  };
+
+  const handleTodoClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (todoButtonRef.current) {
+      const rect = todoButtonRef.current.getBoundingClientRect();
+      setAnchorRect(rect);
+      setTodoDialogOpen(true);
+    }
     onCloseMenu();
   };
 
@@ -62,13 +76,15 @@ export function MessageMenuItems({
         <span>Reply</span>
       </DropdownMenuItem>
 
-      <DropdownMenuItem className="cursor-pointer" onClick={() => {
-        setTodoDialogOpen(true);
-        onCloseMenu();
-      }}>
-        <ListTodo className="mr-2 h-4 w-4" />
-        <span>Add to Todo List</span>
-      </DropdownMenuItem>
+      <div ref={todoButtonRef}>
+        <DropdownMenuItem 
+          className="cursor-pointer" 
+          onClick={handleTodoClick}
+        >
+          <ListTodo className="mr-2 h-4 w-4" />
+          <span>Add to Todo List</span>
+        </DropdownMenuItem>
+      </div>
 
       <EmojiPickerPopover
         onEmojiSelect={handleEmojiSelect}
@@ -99,7 +115,8 @@ export function MessageMenuItems({
         </DropdownMenuItem>
       )}
 
-      <TodoDialog 
+      <TodoFloatingPanel 
+        anchorRect={anchorRect}
         open={todoDialogOpen}
         onOpenChange={setTodoDialogOpen}
         onSubmit={handleAddTodo}
