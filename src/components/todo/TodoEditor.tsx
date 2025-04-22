@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
+import { ContactSelect } from "../chat/message/todo/components/ContactSelect";
 
 interface TodoEditorProps {
   todo: Todo & { 
@@ -26,15 +27,18 @@ interface TodoEditorProps {
 export function TodoEditor({ todo, onUpdate, onClose }: TodoEditorProps) {
   const [date, setDate] = useState<Date | undefined>(new Date(todo.due_date));
   const [comment, setComment] = useState(todo.comment || '');
+  const [selectedContactId, setSelectedContactId] = useState<string>(todo.assigned_to);
 
   const handleSave = () => {
     const updates: {
       due_date?: Date;
       comment?: string;
+      assigned_to?: string;
     } = {};
 
     if (date) updates.due_date = date;
     if (comment !== todo.comment) updates.comment = comment;
+    if (selectedContactId !== todo.assigned_to) updates.assigned_to = selectedContactId;
 
     onUpdate(updates);
     onClose();
@@ -42,6 +46,14 @@ export function TodoEditor({ todo, onUpdate, onClose }: TodoEditorProps) {
 
   return (
     <div className="p-4 space-y-4">
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Assigned To</label>
+        <ContactSelect
+          selectedContactId={selectedContactId}
+          onSelect={setSelectedContactId}
+        />
+      </div>
+
       <div className="space-y-2">
         <label className="text-sm font-medium">Due Date</label>
         <Popover>
