@@ -34,8 +34,7 @@ interface MessageContentProps {
         last_name?: string | null;
       }
     }
-  };
-  scrollToMessage?: (messageId: string) => void;
+  }
 }
 
 export function MessageContent({
@@ -54,8 +53,7 @@ export function MessageContent({
   isDeleting,
   onReply,
   attachments,
-  parent,
-  scrollToMessage
+  parent
 }: MessageContentProps) {
   return (
     <MessageContextMenu
@@ -74,7 +72,6 @@ export function MessageContent({
         attachments={attachments}
         onReply={onReply}
         parent={parent}
-        scrollToMessage={scrollToMessage}
       />
     </MessageContextMenu>
   );

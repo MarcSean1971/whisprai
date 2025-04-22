@@ -44,18 +44,7 @@ export default function Chat() {
 }
 
 function ChatContent({ conversationId }: { conversationId: string }) {
-  const { 
-    messages, 
-    isLoading, 
-    error, 
-    refetch, 
-    fetchNextPage, 
-    hasNextPage, 
-    isFetchingNextPage,
-    newMessageCount,
-    resetNewMessageCount
-  } = useMessages(conversationId);
-  
+  const { data: messages = [], isLoading, error, refetch } = useMessages(conversationId);
   const { profile, isLoading: isLoadingProfile } = useProfile();
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
@@ -76,7 +65,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   ) => {
     await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
-    resetNewMessageCount();
     refetch();
   };
 
@@ -92,13 +80,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
       [messageId]: translatedContent
     }));
   }, []);
-
-  // Auto-scroll to bottom when new messages arrive
-  useEffect(() => {
-    if (newMessageCount > 0) {
-      resetNewMessageCount();
-    }
-  }, [newMessageCount, resetNewMessageCount]);
 
   if (error) {
     return (
@@ -163,9 +144,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           }>
             <ChatMessages 
               messages={messages} 
-              hasNextPage={!!hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
-              fetchNextPage={fetchNextPage}
               userLanguage={profile?.language}
               onNewReceivedMessage={handleNewReceivedMessage}
               onTranslation={handleTranslation}
