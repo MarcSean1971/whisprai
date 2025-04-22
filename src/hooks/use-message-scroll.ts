@@ -1,6 +1,5 @@
 
-import { useEffect, useRef, useState } from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useEffect, useRef } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
@@ -15,14 +14,15 @@ export function useMessageScroll({
   hasNextPage = false,
   isFetchingNextPage = false 
 }: UseMessageScrollProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
-  const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Store previous scroll info
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
 
-  // Store and restore scroll position when loading older messages
+  // Preserve scroll position when loading older messages
   useEffect(() => {
     if (scrollContainerRef.current) {
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
@@ -30,12 +30,14 @@ export function useMessageScroll({
     }
   }, [messages.length]);
 
+  // Restore scroll position after loading older messages
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container && messages.length > previousMessagesLength) {
+    if (container) {
       const heightDifference = container.scrollHeight - previousScrollHeight.current;
-      
       if (heightDifference > 0) {
+        console.log('Restoring scroll position after loading more messages');
+        console.log('Height difference:', heightDifference);
         requestAnimationFrame(() => {
           if (container) {
             container.scrollTop = previousScrollTop.current + heightDifference;
@@ -43,17 +45,22 @@ export function useMessageScroll({
         });
       }
     }
-    setPreviousMessagesLength(messages.length);
-  }, [messages.length, previousMessagesLength]);
+  }, [messages.length]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
+    console.log('Setting up Intersection Observer', {
+      hasNextPage,
+      isFetchingNextPage,
+      refetchAvailable: !!refetch
+    });
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          console.log('Loading more messages via Intersection Observer');
+          console.log('Loading more messages - intersection detected');
           refetch();
         }
       },
@@ -74,7 +81,7 @@ export function useMessageScroll({
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, isFetchingNextPage, hasNextPage]);
+  }, [refetch, hasNextPage, isFetchingNextPage]);
 
   return {
     scrollContainerRef,

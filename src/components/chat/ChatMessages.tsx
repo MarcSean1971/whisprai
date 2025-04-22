@@ -43,6 +43,13 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
+  console.log('ChatMessages render:', {
+    messagesCount: messages.length,
+    isFetchingNextPage,
+    hasNextPage,
+    refetchAvailable: !!refetch
+  });
+  
   const { 
     scrollContainerRef, 
     loadMoreRef, 
