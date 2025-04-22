@@ -40,7 +40,8 @@ export function usePeerConnection({
     isIceGathering,
     setIsIceGathering,
     connectionStatsRef,
-    clearConnectionTimeout
+    clearConnectionTimeout,
+    startConnectionTimeout
   } = useConnectionState();
 
   const { createPeer } = usePeerInit({ initiator, localStream });
@@ -59,8 +60,7 @@ export function usePeerConnection({
 
   const { setupRTCConnection } = useRTCConnection({
     setIsIceGathering,
-    connectionStatsRef,
-    toast: undefined
+    connectionStatsRef
   });
 
   const { 
