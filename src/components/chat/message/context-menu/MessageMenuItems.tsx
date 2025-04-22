@@ -51,7 +51,9 @@ export function MessageMenuItems({
       due_date: dueDate,
       conversation_id: window.location.pathname.split('/').pop() || '',
     });
+    // First set the dialog state to false
     setTodoDialogOpen(false);
+    // Then close the parent menu
     onCloseMenu();
   };
 
@@ -120,6 +122,7 @@ export function MessageMenuItems({
         open={todoDialogOpen}
         onOpenChange={setTodoDialogOpen}
         onSubmit={handleAddTodo}
+        onCloseMenu={onCloseMenu}
       />
     </>
   );
