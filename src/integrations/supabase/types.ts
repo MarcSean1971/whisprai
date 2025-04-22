@@ -360,6 +360,57 @@ export type Database = {
         }
         Relationships: []
       }
+      todos: {
+        Row: {
+          assigned_to: string
+          conversation_id: string
+          created_at: string
+          creator_id: string
+          due_date: string
+          id: string
+          message_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to: string
+          conversation_id: string
+          created_at?: string
+          creator_id: string
+          due_date: string
+          id?: string
+          message_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string
+          conversation_id?: string
+          created_at?: string
+          creator_id?: string
+          due_date?: string
+          id?: string
+          message_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todos_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_locations: {
         Row: {
           accuracy: number | null

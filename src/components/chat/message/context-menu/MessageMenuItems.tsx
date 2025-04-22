@@ -1,9 +1,11 @@
-
-import { Reply, Languages, Trash2 } from "lucide-react";
+import { Reply, Languages, Trash2, ListTodo } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { toast } from "sonner";
+import { TodoDialog } from "../todo/TodoDialog";
+import { useState } from "react";
+import { useTodos } from "@/hooks/use-todos";
 
 interface MessageMenuItemsProps {
   onReply: () => void;
@@ -27,8 +29,9 @@ export function MessageMenuItems({
   onCloseMenu
 }: MessageMenuItemsProps) {
   const { addReaction } = useMessageReactions(messageId);
+  const [todoDialogOpen, setTodoDialogOpen] = useState(false);
+  const { createTodo } = useTodos();
 
-  // Ensure that addReaction is called and awaited before closing the menu.
   const handleEmojiSelect = async (emojiData: any) => {
     try {
       await addReaction({ emoji: emojiData.emoji });
@@ -36,6 +39,16 @@ export function MessageMenuItems({
       console.error("Error adding reaction:", error);
       toast.error("Failed to add reaction");
     }
+    onCloseMenu();
+  };
+
+  const handleAddTodo = (assignedTo: string, dueDate: Date) => {
+    createTodo({
+      message_id: messageId,
+      assigned_to: assignedTo,
+      due_date: dueDate,
+      conversation_id: window.location.pathname.split('/').pop() || '',
+    });
     onCloseMenu();
   };
 
@@ -48,10 +61,20 @@ export function MessageMenuItems({
         <Reply className="mr-2 h-4 w-4" />
         <span>Reply</span>
       </DropdownMenuItem>
+
+      <DropdownMenuItem className="cursor-pointer" onClick={() => {
+        setTodoDialogOpen(true);
+        onCloseMenu();
+      }}>
+        <ListTodo className="mr-2 h-4 w-4" />
+        <span>Add to Todo List</span>
+      </DropdownMenuItem>
+
       <EmojiPickerPopover
         onEmojiSelect={handleEmojiSelect}
         onAfterClose={onCloseMenu}
       />
+
       {showTranslationToggle && (
         <DropdownMenuItem className="cursor-pointer" onClick={() => {
           onToggleTranslation?.();
@@ -61,6 +84,7 @@ export function MessageMenuItems({
           <span>Toggle Translation</span>
         </DropdownMenuItem>
       )}
+
       {canDelete && (
         <DropdownMenuItem
           className="cursor-pointer text-destructive hover:text-destructive"
@@ -74,6 +98,12 @@ export function MessageMenuItems({
           <span>{isDeleting ? "Deleting..." : "Delete"}</span>
         </DropdownMenuItem>
       )}
+
+      <TodoDialog 
+        open={todoDialogOpen}
+        onOpenChange={setTodoDialogOpen}
+        onSubmit={handleAddTodo}
+      />
     </>
   );
 }
