@@ -1,3 +1,4 @@
+
 import { Checkbox } from "@/components/ui/checkbox";
 import { Todo } from "@/hooks/use-todos";
 import { format } from "date-fns";
@@ -34,7 +35,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
 
   return (
     <div className="space-y-2">
-      <div className="flex items-start space-x-2 p-3 hover:bg-accent rounded-lg">
+      <div className="flex items-start space-x-2 p-3 hover:bg-whispr-purple-light/10 hover:text-whispr-purple-dark rounded-lg transition-colors duration-200 ease-in-out">
         <Checkbox
           checked={todo.status === 'completed'}
           onCheckedChange={(checked) => {
