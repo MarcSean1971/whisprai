@@ -48,9 +48,21 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
     setSelectedContactId(e.target.value);
   };
 
+  // Prevent clicks from bubbling up and closing the panel
+  const handleWrapperClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <div className="p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
-      <h2 className="text-lg font-semibold leading-none tracking-tight mb-4">Add to Todo List</h2>
+    <div 
+      className="p-6 space-y-4" 
+      onClick={handleWrapperClick}
+      onMouseDown={handleWrapperClick}
+    >
+      <h2 className="text-lg font-semibold leading-none tracking-tight mb-4">
+        Add to Todo List
+      </h2>
       
       <div className="space-y-2">
         <label className="text-sm font-medium">Assign to</label>
@@ -58,7 +70,8 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
           className="w-full rounded-md border p-2"
           value={selectedContactId || ""}
           onChange={handleSelectChange}
-          onClick={(e) => e.stopPropagation()}
+          onClick={handleWrapperClick}
+          onMouseDown={handleWrapperClick}
         >
           <option value="">Select a contact</option>
           {contacts?.map((contact) => (
@@ -79,7 +92,8 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
                 "w-full justify-start text-left font-normal",
                 !date && "text-muted-foreground"
               )}
-              onClick={(e) => e.stopPropagation()}
+              onClick={handleWrapperClick}
+              onMouseDown={handleWrapperClick}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -89,7 +103,7 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
             className="w-auto p-0" 
             align="start"
             sideOffset={4}
-            onClick={(e) => e.stopPropagation()}
+            onMouseDown={handleWrapperClick}
           >
             <Calendar
               mode="single"
@@ -109,12 +123,14 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
             e.stopPropagation();
             onClose();
           }}
+          onMouseDown={handleWrapperClick}
           disabled={isSubmitting}
         >
           Cancel
         </Button>
         <Button 
           onClick={handleSubmit}
+          onMouseDown={handleWrapperClick}
           disabled={!date || !selectedContactId || isSubmitting}
         >
           {isSubmitting ? "Adding..." : "Add Todo"}

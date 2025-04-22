@@ -22,25 +22,10 @@ export function TodoFloatingPanel({
     if (!open) return;
 
     function onClickOutside(event: MouseEvent) {
-      if (!panelRef.current) return;
-
-      const target = event.target as HTMLElement;
-
-      // Check for Radix UI popover and select elements
-      const isRadixPopover = target.closest('[data-radix-popper-content-wrapper]');
-      const isRadixSelect = target.closest('[role="listbox"]');
-      
-      // Check for date picker elements
-      const isDatePicker = target.closest('.rdp');
-      const isDatePickerButton = target.closest('[data-radix-popover-trigger]');
-      
-      // Don't close if clicking within interactive elements
-      if (isRadixPopover || isRadixSelect || isDatePicker || isDatePickerButton) {
-        return;
-      }
-
-      // Check if click was outside the panel
-      if (!panelRef.current.contains(event.target as Node)) {
+      if (
+        panelRef.current &&
+        !panelRef.current.contains(event.target as Node)
+      ) {
         onOpenChange(false);
       }
     }
@@ -54,23 +39,37 @@ export function TodoFloatingPanel({
 
   if (!open || !anchorRect) return null;
 
+  // Calculate panel position based on anchor rect
+  const style: React.CSSProperties = {
+    position: "fixed",
+    left: Math.min(anchorRect.right + 8, window.innerWidth - 400),
+    top: Math.max(Math.min(anchorRect.top, window.innerHeight - 400), 12),
+    zIndex: 99999,
+    minWidth: 400,
+    minHeight: 300,
+    pointerEvents: "auto", // Critical for interaction
+  };
+
   return createPortal(
     <div
       ref={panelRef}
-      style={{
-        position: "fixed",
-        left: Math.min(anchorRect.right + 8, window.innerWidth - 400),
-        top: Math.max(Math.min(anchorRect.top, window.innerHeight - 400), 12),
-        zIndex: 99999,
-        minWidth: 400,
-        minHeight: 300,
+      className="rounded-md border shadow-lg bg-popover"
+      style={style}
+      tabIndex={-1}
+      onMouseDown={e => {
+        // Prevent mousedown inside panel from closing it
+        e.stopPropagation();
       }}
-      className="bg-background rounded-lg border shadow-lg"
     >
-      <TodoDialog
-        onSubmit={onSubmit}
-        onClose={() => onOpenChange(false)}
-      />
+      <div 
+        className="bg-popover rounded-md"
+        style={{ background: "#221F26" }} // solid dark background
+      >
+        <TodoDialog
+          onSubmit={onSubmit}
+          onClose={() => onOpenChange(false)}
+        />
+      </div>
     </div>,
     document.body
   );
