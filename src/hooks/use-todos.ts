@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 interface Todo {
   id: string;
@@ -40,13 +41,22 @@ export function useTodos() {
 
   const createTodo = useMutation({
     mutationFn: async ({ message_id, assigned_to, due_date, conversation_id }: CreateTodoInput) => {
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+      
+      // Format the date as an ISO string (YYYY-MM-DD)
+      const formattedDate = format(due_date, "yyyy-MM-dd");
+      
       const { error } = await supabase
         .from('todos')
         .insert({
           message_id,
+          creator_id: user.id,
           assigned_to,
-          due_date,
+          due_date: formattedDate,
           conversation_id,
+          status: 'pending'
         });
 
       if (error) throw error;

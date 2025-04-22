@@ -33,6 +33,9 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
     if (date && selectedContactId) {
       onSubmit(selectedContactId, date);
       onOpenChange(false);
+      // Reset form state
+      setDate(undefined);
+      setSelectedContactId(undefined);
     }
   };
 
@@ -47,7 +50,7 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
             <label className="text-sm font-medium">Assign to</label>
             <select
               className="w-full rounded-md border p-2"
-              value={selectedContactId}
+              value={selectedContactId || ""}
               onChange={(e) => setSelectedContactId(e.target.value)}
             >
               <option value="">Select a contact</option>
