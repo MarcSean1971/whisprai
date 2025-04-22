@@ -24,7 +24,8 @@ export function TodoFloatingPanel({
     function onClickOutside(event: MouseEvent) {
       if (
         panelRef.current &&
-        !panelRef.current.contains(event.target as Node)
+        !panelRef.current.contains(event.target as Node) &&
+        !(event.target as Element)?.closest('[data-radix-popper-content-wrapper]')
       ) {
         onOpenChange(false);
       }
@@ -56,9 +57,6 @@ export function TodoFloatingPanel({
       className="rounded-md border shadow-lg bg-popover"
       style={style}
       tabIndex={-1}
-      onMouseDown={e => {
-        e.stopPropagation();
-      }}
     >
       <TodoDialog
         onSubmit={onSubmit}

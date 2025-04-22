@@ -45,7 +45,6 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
               "w-full justify-start text-left font-normal",
               !date && "text-muted-foreground"
             )}
-            onMouseDown={(e) => e.stopPropagation()}
             disabled={disabled}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
@@ -55,8 +54,6 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
         <PopoverContent 
           className="w-auto p-0 pointer-events-auto z-[99999]" 
           align="start"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex gap-2 border-b p-3">
             <Select 
@@ -71,7 +68,6 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
                   <SelectItem 
                     key={month} 
                     value={month}
-                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     {month}
                   </SelectItem>
@@ -90,7 +86,6 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
                   <SelectItem 
                     key={year} 
                     value={year.toString()}
-                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     {year}
                   </SelectItem>

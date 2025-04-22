@@ -30,14 +30,11 @@ export function ContactSelect({ selectedContactId, onSelect, disabled }: Contact
         </SelectTrigger>
         <SelectContent 
           className="pointer-events-auto z-[99999]"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
         >
           {contacts?.map((contact) => (
             <SelectItem 
               key={contact.contact_id} 
               value={contact.contact_id}
-              onMouseDown={(e) => e.stopPropagation()}
             >
               {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
             </SelectItem>
