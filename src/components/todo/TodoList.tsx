@@ -5,6 +5,9 @@ import { TodoListFilters, TodoFilter } from "./TodoListFilters";
 import { useState } from "react";
 import { isToday, isThisWeek, isThisMonth } from "date-fns";
 import { useProfile } from "@/hooks/use-profile";
+import { Card } from "@/components/ui/card";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export function TodoList() {
   const { todos, isLoading, updateTodoStatus, updateTodo, deleteTodo } = useTodos();
@@ -60,16 +63,31 @@ export function TodoList() {
   const completedTodos = filteredTodos.filter(todo => todo.status === 'completed');
 
   return (
-    <div className="space-y-2">
-      <TodoListFilters 
-        onSearchChange={setSearchQuery}
-        onFilterChange={setFilter}
-      />
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="p-4 border-b space-y-4 shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search todos..."
+            className="pl-8 w-full"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+        <TodoListFilters 
+          onSearchChange={setSearchQuery}
+          onFilterChange={setFilter}
+        />
+      </div>
 
-      <div className="space-y-4 p-4">
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium px-2">Pending ({pendingTodos.length})</h3>
-          <div className="space-y-1">
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <Card className="p-4 space-y-4">
+          <h3 className="text-sm font-medium flex items-center justify-between">
+            Pending
+            <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+              {pendingTodos.length}
+            </span>
+          </h3>
+          <div className="space-y-3">
             {pendingTodos.map((todo) => (
               <TodoItem 
                 key={todo.id} 
@@ -84,12 +102,17 @@ export function TodoList() {
               />
             ))}
           </div>
-        </div>
+        </Card>
 
         {completedTodos.length > 0 && (
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium px-2">Completed ({completedTodos.length})</h3>
-            <div className="space-y-1">
+          <Card className="p-4 space-y-4 bg-muted/50">
+            <h3 className="text-sm font-medium flex items-center justify-between">
+              Completed
+              <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-full">
+                {completedTodos.length}
+              </span>
+            </h3>
+            <div className="space-y-3">
               {completedTodos.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
@@ -104,7 +127,7 @@ export function TodoList() {
                 />
               ))}
             </div>
-          </div>
+          </Card>
         )}
       </div>
     </div>

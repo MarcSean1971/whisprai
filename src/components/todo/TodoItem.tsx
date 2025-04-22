@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Todo } from "@/hooks/use-todos";
@@ -6,6 +7,7 @@ import { MessageSquare, Link, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TodoEditor } from "./TodoEditor";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,7 +45,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
     navigate(`/chat/${todo.conversation_id}?message=${todo.message_id}`);
   };
 
-  const messageContent = todo.messages?.content || todo.message_content || todo.message_id;
+  const messageContent = todo.messages?.content || todo.message_content;
   const assigneeName = todo.profiles.first_name 
     ? `${todo.profiles.first_name} ${todo.profiles.last_name || ''}`
     : 'Unknown';
@@ -60,97 +62,91 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
         .join(', ')
     : 'Unknown chat';
 
+  const isOverdue = new Date(todo.due_date) < new Date() && todo.status === 'pending';
+  const isDueSoon = new Date(todo.due_date).getTime() - new Date().getTime() < 24 * 60 * 60 * 1000 && todo.status === 'pending';
+
   return (
-    <div className="space-y-2">
-      <div className="flex items-start space-x-3 p-4 hover:bg-whispr-purple-light/10 hover:text-whispr-purple-dark rounded-lg transition-colors duration-200 ease-in-out">
-        <Checkbox
-          className="mt-1"
-          checked={todo.status === 'completed'}
-          onCheckedChange={(checked) => {
-            onStatusChange(todo.id, checked ? 'completed' : 'pending');
-          }}
-        />
-        <div className="flex-1 space-y-2 cursor-pointer" onClick={() => setIsEditing(true)}>
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-            <div className="space-y-2 w-full">
+    <div className={`rounded-lg border ${todo.status === 'completed' ? 'bg-muted/30' : 'bg-card'} transition-colors`}>
+      <div className="p-4 space-y-4">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            className="mt-1"
+            checked={todo.status === 'completed'}
+            onCheckedChange={(checked) => {
+              onStatusChange(todo.id, checked ? 'completed' : 'pending');
+            }}
+          />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex items-start justify-between gap-2">
               <p className={`text-sm sm:text-base ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                 {messageContent}
               </p>
-              <div className="flex flex-col sm:flex-row gap-2 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Due:</span>
-                  <span>{formattedDate}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Assignee:</span>
-                  <span>{assigneeName}</span>
-                </div>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 text-xs sm:text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Created by:</span>
-                  <span>{creatorName}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">Chat:</span>
-                  <span>{counterpartyNames}</span>
-                </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={navigateToMessage}
+                >
+                  <Link className="h-4 w-4" />
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Todo</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this todo? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        className="bg-destructive hover:bg-destructive/90"
+                        onClick={() => onDelete(todo.id)}
+                      >
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
-            <div className="flex items-center gap-2 sm:flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateToMessage();
-                }}
-              >
-                <Link className="h-4 w-4" />
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 text-muted-foreground hover:text-red-600"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Todo</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this todo? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction 
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={() => onDelete(todo.id)}
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge variant={isOverdue ? "destructive" : isDueSoon ? "default" : "secondary"}>
+                {formattedDate}
+              </Badge>
+              <Badge variant="outline">
+                {assigneeName}
+              </Badge>
+              {todo.comment && (
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <MessageSquare className="h-3 w-3" />
+                  <span>{todo.comment}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground mt-2">
+              <span>Created by {creatorName}</span>
+              <span>•</span>
+              <span>{counterpartyNames}</span>
             </div>
           </div>
-          {todo.comment && (
-            <div className="flex items-start gap-2 mt-2 text-xs sm:text-sm">
-              <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
-              <p className="flex-1">{todo.comment}</p>
-            </div>
-          )}
         </div>
       </div>
 
       {isEditing && (
-        <div className="border rounded-lg mt-2">
+        <div className="border-t">
           <TodoEditor
             todo={todo}
             onUpdate={(data) => onUpdate(todo.id, data)}
