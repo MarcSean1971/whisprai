@@ -44,7 +44,7 @@ export default function Chat() {
 }
 
 function ChatContent({ conversationId }: { conversationId: string }) {
-  const { data: messages = [], isLoading, error, refetch } = useMessages(conversationId);
+  const { messages, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(conversationId);
   const { profile, isLoading: isLoadingProfile } = useProfile();
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
@@ -65,7 +65,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   ) => {
     await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
-    refetch();
+    // We don't need to call refetch anymore as the real-time subscription in useMessages 
+    // will automatically update the messages
   };
 
   const handleNewReceivedMessage = useCallback(() => {
@@ -81,6 +82,13 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     }));
   }, []);
 
+  const refetch = () => {
+    // If we have hasNextPage available, use fetchNextPage to get more messages
+    if (hasNextPage) {
+      fetchNextPage();
+    }
+  };
+
   if (error) {
     return (
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
@@ -95,7 +103,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
             title="Error loading chat"
             description={error?.message || "Failed to load the chat. Please try again."}
             action={
-              <Button onClick={() => refetch()} variant="outline">
+              <Button onClick={refetch} variant="outline">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Retry
               </Button>
