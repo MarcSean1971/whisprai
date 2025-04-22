@@ -1,7 +1,19 @@
 
-import { Todo } from "@/hooks/use-todos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
+
+// Define the Todo interface directly in this file since it's not exported from use-todos
+interface Todo {
+  id: string;
+  message_id: string;
+  creator_id: string;
+  assigned_to: string;
+  due_date: string;
+  conversation_id: string;
+  status: 'pending' | 'completed';
+  created_at: string;
+  updated_at: string;
+}
 
 interface TodoItemProps {
   todo: Todo;

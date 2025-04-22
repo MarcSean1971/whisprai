@@ -3,7 +3,7 @@ import { useTodos } from "@/hooks/use-todos";
 import { TodoItem } from "./TodoItem";
 
 export function TodoList() {
-  const { todos, isLoading, createTodo } = useTodos();
+  const { todos, isLoading, updateTodoStatus } = useTodos();
 
   if (isLoading) {
     return <div className="p-4 text-center text-muted-foreground">Loading todos...</div>;
@@ -30,8 +30,7 @@ export function TodoList() {
               key={todo.id} 
               todo={todo}
               onStatusChange={(id, status) => {
-                // Implementation will be added in the next iteration
-                console.log('Status change:', id, status);
+                updateTodoStatus({ id, status });
               }}
             />
           ))}
@@ -47,8 +46,7 @@ export function TodoList() {
                 key={todo.id} 
                 todo={todo}
                 onStatusChange={(id, status) => {
-                  // Implementation will be added in the next iteration
-                  console.log('Status change:', id, status);
+                  updateTodoStatus({ id, status });
                 }}
               />
             ))}

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
-interface Todo {
+export interface Todo {
   id: string;
   message_id: string;
   creator_id: string;
@@ -71,9 +71,29 @@ export function useTodos() {
     },
   });
 
+  const updateTodoStatus = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: 'pending' | 'completed' }) => {
+      const { error } = await supabase
+        .from('todos')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Todo status updated');
+    },
+    onError: (error) => {
+      console.error('Error updating todo status:', error);
+      toast.error('Failed to update todo status');
+    },
+  });
+
   return {
     todos,
     isLoading,
     createTodo: createTodo.mutate,
+    updateTodoStatus: updateTodoStatus.mutate,
   };
 }
