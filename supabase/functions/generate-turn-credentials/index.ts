@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.1'
-import { Twilio } from 'https://esm.sh/twilio@4.34.0'
+import { Twilio } from 'https://esm.sh/twilio@4.34.0?deno-std=0.177.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
