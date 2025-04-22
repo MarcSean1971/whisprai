@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichedTodo } from "./types";
 
@@ -40,6 +41,23 @@ export async function fetchTodos(): Promise<EnrichedTodo[]> {
 
   if (messagesError) {
     console.error('Error fetching messages:', messagesError);
+  }
+
+  const { data: participantsData, error: participantsError } = await supabase
+    .from('conversation_participants')
+    .select(`
+      conversation_id,
+      user_id,
+      profiles:user_id(
+        id,
+        first_name,
+        last_name
+      )
+    `)
+    .in('conversation_id', conversationIds);
+
+  if (participantsError) {
+    console.error('Error fetching participants:', participantsError);
   }
 
   const profilesMap = (profilesData || []).reduce((acc, profile) => {
