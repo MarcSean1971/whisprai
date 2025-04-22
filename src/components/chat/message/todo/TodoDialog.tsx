@@ -97,16 +97,11 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
     }
   };
 
-  const handleWrapperClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
   return (
     <div 
-      className="p-6 space-y-4" 
-      onClick={handleWrapperClick}
-      onMouseDown={handleWrapperClick}
+      className="p-6 space-y-4 bg-popover pointer-events-auto"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <h2 className="text-lg font-semibold leading-none tracking-tight mb-4">
         Add to Todo List
@@ -122,11 +117,16 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select a contact" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent 
+            className="pointer-events-auto z-[99999]"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+          >
             {contacts?.map((contact) => (
               <SelectItem 
                 key={contact.contact_id} 
                 value={contact.contact_id}
+                onMouseDown={(e) => e.stopPropagation()}
               >
                 {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
               </SelectItem>
@@ -145,17 +145,17 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
                 "w-full justify-start text-left font-normal",
                 !date && "text-muted-foreground"
               )}
-              onClick={handleWrapperClick}
-              onMouseDown={handleWrapperClick}
+              onMouseDown={(e) => e.stopPropagation()}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {date ? format(date, "PPP") : <span>Pick a date</span>}
             </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="w-auto p-0" 
+            className="w-auto p-0 pointer-events-auto z-[99999]" 
             align="start"
-            onMouseDown={handleWrapperClick}
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
           >
             <div className="flex gap-2 border-b p-3">
               <Select 
@@ -165,9 +165,13 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Month" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="pointer-events-auto z-[99999]">
                   {months.map((month) => (
-                    <SelectItem key={month} value={month}>
+                    <SelectItem 
+                      key={month} 
+                      value={month}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
                       {month}
                     </SelectItem>
                   ))}
@@ -180,9 +184,13 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
                 <SelectTrigger className="w-[100px]">
                   <SelectValue placeholder="Year" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="pointer-events-auto z-[99999]">
                   {years.map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
+                    <SelectItem 
+                      key={year} 
+                      value={year.toString()}
+                      onMouseDown={(e) => e.stopPropagation()}
+                    >
                       {year}
                     </SelectItem>
                   ))}
@@ -207,14 +215,14 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
             e.stopPropagation();
             onClose();
           }}
-          onMouseDown={handleWrapperClick}
+          onMouseDown={(e) => e.stopPropagation()}
           disabled={isSubmitting}
         >
           Cancel
         </Button>
         <Button 
           onClick={handleSubmit}
-          onMouseDown={handleWrapperClick}
+          onMouseDown={(e) => e.stopPropagation()}
           disabled={!date || !selectedContactId || isSubmitting}
         >
           {isSubmitting ? "Adding..." : "Add Todo"}
