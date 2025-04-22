@@ -10,11 +10,11 @@ interface TodoListDrawerProps {
 export function TodoListDrawer({ open, onOpenChange }: TodoListDrawerProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
+      <SheetContent className="w-full sm:max-w-md p-0">
+        <SheetHeader className="p-4 border-b">
           <SheetTitle>Todo List</SheetTitle>
         </SheetHeader>
-        <div className="mt-4">
+        <div className="flex-1 overflow-y-auto">
           <TodoList />
         </div>
       </SheetContent>

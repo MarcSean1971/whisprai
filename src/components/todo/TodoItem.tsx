@@ -62,36 +62,45 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
 
   return (
     <div className="space-y-2">
-      <div className="flex items-start space-x-2 p-3 hover:bg-whispr-purple-light/10 hover:text-whispr-purple-dark rounded-lg transition-colors duration-200 ease-in-out">
+      <div className="flex items-start space-x-3 p-4 hover:bg-whispr-purple-light/10 hover:text-whispr-purple-dark rounded-lg transition-colors duration-200 ease-in-out">
         <Checkbox
+          className="mt-1"
           checked={todo.status === 'completed'}
           onCheckedChange={(checked) => {
             onStatusChange(todo.id, checked ? 'completed' : 'pending');
           }}
         />
-        <div className="flex-1 space-y-1 cursor-pointer" onClick={() => setIsEditing(true)}>
-          <div className="flex items-start justify-between">
-            <div className="space-y-1 w-full">
-              <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+        <div className="flex-1 space-y-2 cursor-pointer" onClick={() => setIsEditing(true)}>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+            <div className="space-y-2 w-full">
+              <p className={`text-sm sm:text-base ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
                 {messageContent}
               </p>
-              <div className="flex space-x-2 text-sm text-muted-foreground truncate">
-                <span className="font-semibold">Assignee:</span>
-                <span className="truncate flex-1">{assigneeName}</span>
+              <div className="flex flex-col sm:flex-row gap-2 text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Due:</span>
+                  <span>{formattedDate}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Assignee:</span>
+                  <span>{assigneeName}</span>
+                </div>
               </div>
-              <div className="flex space-x-2 text-sm text-muted-foreground truncate">
-                <span className="font-semibold">Chat:</span>
-                <span className="truncate flex-1">{counterpartyNames}</span>
-              </div>
-              <div className="flex space-x-2 text-sm text-muted-foreground truncate">
-                <span className="font-semibold">Created by:</span>
-                <span className="truncate flex-1">{creatorName}</span>
+              <div className="flex flex-col sm:flex-row gap-2 text-xs sm:text-sm text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Created by:</span>
+                  <span>{creatorName}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">Chat:</span>
+                  <span>{counterpartyNames}</span>
+                </div>
               </div>
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center gap-2 sm:flex-shrink-0">
               <Button
                 variant="ghost"
-                size="icon"
+                size="sm"
                 className="h-8 w-8"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -104,7 +113,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="ghost"
-                    size="icon"
+                    size="sm"
                     className="h-8 w-8 text-muted-foreground hover:text-red-600"
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -131,15 +140,12 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
               </AlertDialog>
             </div>
           </div>
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p>Due: {formattedDate}</p>
-            {todo.comment && (
-              <div className="flex items-start gap-1 mt-2">
-                <MessageSquare className="h-4 w-4 mt-0.5" />
-                <p className="flex-1">{todo.comment}</p>
-              </div>
-            )}
-          </div>
+          {todo.comment && (
+            <div className="flex items-start gap-2 mt-2 text-xs sm:text-sm">
+              <MessageSquare className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <p className="flex-1">{todo.comment}</p>
+            </div>
+          )}
         </div>
       </div>
 

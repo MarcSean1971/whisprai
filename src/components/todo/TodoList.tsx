@@ -66,10 +66,10 @@ export function TodoList() {
         onFilterChange={setFilter}
       />
 
-      <div className="space-y-6 p-4">
-        <div className="space-y-3">
-          <h3 className="text-sm font-medium">Pending ({pendingTodos.length})</h3>
-          <div className="space-y-2">
+      <div className="space-y-4 p-4">
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium px-2">Pending ({pendingTodos.length})</h3>
+          <div className="space-y-1">
             {pendingTodos.map((todo) => (
               <TodoItem 
                 key={todo.id} 
@@ -87,9 +87,9 @@ export function TodoList() {
         </div>
 
         {completedTodos.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium">Completed ({completedTodos.length})</h3>
-            <div className="space-y-2">
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium px-2">Completed ({completedTodos.length})</h3>
+            <div className="space-y-1">
               {completedTodos.map((todo) => (
                 <TodoItem 
                   key={todo.id} 
