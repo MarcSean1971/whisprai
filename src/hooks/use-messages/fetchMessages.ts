@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getProfiles } from "./getProfiles";
@@ -30,12 +29,12 @@ export async function fetchMessages(
     .or(
       `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
     )
-    .order("created_at", { ascending: false })
+    .order("created_at", { ascending: true })
     .limit(pageSize);
 
-  // Add cursor pagination
+  // Add cursor pagination - now getting messages created after the cursor
   if (cursor) {
-    query = query.lt("created_at", cursor);
+    query = query.gt("created_at", cursor);
   }
 
   const { data: messages, error: messagesError } = await query;
@@ -51,7 +50,7 @@ export async function fetchMessages(
     return { messages: [] };
   }
 
-  // Get the next cursor (timestamp of the oldest message)
+  // Get the next cursor (timestamp of the newest message)
   const nextCursor = messages.length === pageSize ? 
     messages[messages.length - 1].created_at : 
     undefined;

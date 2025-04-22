@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -85,8 +84,8 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar"
         >
-          {isFetchingNextPage && <LoadingMessages />}
           <div ref={loadMoreRef} className="h-4" />
+          {isFetchingNextPage && <LoadingMessages />}
           <TranslationConsumer 
             messages={messages} 
             currentUserId={currentUserId}

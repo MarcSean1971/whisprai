@@ -13,29 +13,15 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
   const [previousMessagesLength, setPreviousMessagesLength] = useState(messages.length);
   const [lastScrollHeight, setLastScrollHeight] = useState(0);
 
+  // Scroll to bottom on initial load and new messages
   useEffect(() => {
-    if (scrollContainerRef.current) {
-      setLastScrollHeight(scrollContainerRef.current.scrollHeight);
-    }
-  }, [messages.length]);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container && messages.length > previousMessagesLength && lastScrollHeight > 0) {
-      const newScrollHeight = container.scrollHeight;
-      const scrollDiff = newScrollHeight - lastScrollHeight;
-      container.scrollTop = container.scrollTop + scrollDiff;
-    }
-    setPreviousMessagesLength(messages.length);
-  }, [messages.length, previousMessagesLength, lastScrollHeight]);
-
-  useEffect(() => {
-    if (messages.length > previousMessagesLength) {
+    if (scrollContainerRef.current && messages.length > previousMessagesLength) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
+  // Handle infinite scroll for older messages
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
