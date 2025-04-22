@@ -72,12 +72,6 @@ export function MessageBubble({
           ? "bg-violet-500/20 border border-violet-500/20"
           : "bg-secondary"
       )}>
-        {hasTodo && (
-          <div className="absolute top-2 right-2 animate-fade-in">
-            <ListTodo className="h-4 w-4 text-muted-foreground" />
-          </div>
-        )}
-        
         {parent && parent.id && parent.content && (
           <ParentMessagePreview
             parent={parent}
@@ -95,7 +89,10 @@ export function MessageBubble({
           <div className="flex-1 flex justify-start">
             <MessageReactions messageId={id} isOwn={isOwn} />
           </div>
-          <div className="flex-1 flex justify-end">
+          <div className="flex-1 flex justify-end items-center gap-1">
+            {hasTodo && (
+              <ListTodo className="h-4 w-4 text-muted-foreground animate-fade-in" />
+            )}
             <span className="text-[10px] opacity-70 text-right">
               {formattedTime}
             </span>
