@@ -6,9 +6,10 @@ import { MessageList } from "./message/MessageList";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { supabase } from "@/integrations/supabase/client";
 import { MessageReplyInput } from "./message/MessageReplyInput";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -20,6 +21,8 @@ interface ChatMessagesProps {
   sendReply?: (content: string) => Promise<boolean>;
   cancelReply?: () => void;
   refetch?: () => void;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
 }
 
 export function ChatMessages({ 
@@ -31,7 +34,9 @@ export function ChatMessages({
   replyToMessageId,
   sendReply,
   cancelReply,
-  refetch
+  refetch,
+  hasNextPage,
+  isFetchingNextPage
 }: ChatMessagesProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -78,11 +83,13 @@ export function ChatMessages({
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
+    if (!hasNextPage || !refetch) return;
+    
     const observer = new IntersectionObserver(
       (entries) => {
         const first = entries[0];
-        if (first.isIntersecting) {
-          refetch?.();
+        if (first.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          refetch();
         }
       },
       { threshold: 0.5 }
@@ -98,7 +105,7 @@ export function ChatMessages({
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch]);
+  }, [refetch, hasNextPage, isFetchingNextPage]);
 
   // Provides a scrollToMessage function down the tree
   const scrollToMessage = (messageId: string) => {
@@ -142,7 +149,14 @@ export function ChatMessages({
     <ErrorBoundary>
       <TranslationProvider>
         <div className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar">
-          <div ref={loadMoreRef} className="h-4" />
+          <div ref={loadMoreRef} className="h-4 flex justify-center">
+            {isFetchingNextPage && (
+              <Button variant="ghost" size="sm" disabled className="py-2">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading more messages...
+              </Button>
+            )}
+          </div>
           <TranslationConsumer 
             messages={messages} 
             currentUserId={currentUserId}
