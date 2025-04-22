@@ -63,7 +63,6 @@ export function MessageMenuItems({
       setAnchorRect(rect);
       setTodoDialogOpen(true);
     }
-    onCloseMenu();
   };
 
   return (
@@ -80,6 +79,7 @@ export function MessageMenuItems({
         <DropdownMenuItem 
           className="cursor-pointer" 
           onClick={handleTodoClick}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           <ListTodo className="mr-2 h-4 w-4" />
           <span>Add to Todo List</span>

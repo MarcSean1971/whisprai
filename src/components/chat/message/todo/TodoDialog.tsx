@@ -1,11 +1,5 @@
 
 import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -19,12 +13,11 @@ import {
 } from "@/components/ui/popover";
 
 interface TodoDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   onSubmit: (assignedTo: string, dueDate: Date) => void;
+  onClose: () => void;
 }
 
-export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
+export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
   const [date, setDate] = useState<Date>();
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +34,7 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
         // Reset form state only after successful submission
         setDate(undefined);
         setSelectedContactId(undefined);
+        onClose();
       } catch (error) {
         console.error('Error submitting todo:', error);
       } finally {
@@ -50,73 +44,69 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-0 bg-transparent border-0 shadow-none">
-        <div className="bg-background rounded-lg border shadow-lg">
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle>Add to Todo List</DialogTitle>
-          </DialogHeader>
-          <div className="p-6 pt-2 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Assign to</label>
-              <select
-                className="w-full rounded-md border p-2"
-                value={selectedContactId || ""}
-                onChange={(e) => setSelectedContactId(e.target.value)}
-              >
-                <option value="">Select a contact</option>
-                {contacts?.map((contact) => (
-                  <option key={contact.contact_id} value={contact.contact_id}>
-                    {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Due Date</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={!date || !selectedContactId || isSubmitting}
-              >
-                {isSubmitting ? "Adding..." : "Add Todo"}
-              </Button>
-            </div>
-          </div>
+    <div className="bg-background rounded-lg border shadow-lg">
+      <div className="p-6 pb-2">
+        <h2 className="text-lg font-semibold leading-none tracking-tight">Add to Todo List</h2>
+      </div>
+      <div className="p-6 pt-2 space-y-4">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Assign to</label>
+          <select
+            className="w-full rounded-md border p-2"
+            value={selectedContactId || ""}
+            onChange={(e) => setSelectedContactId(e.target.value)}
+          >
+            <option value="">Select a contact</option>
+            {contacts?.map((contact) => (
+              <option key={contact.contact_id} value={contact.contact_id}>
+                {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
+              </option>
+            ))}
+          </select>
         </div>
-      </DialogContent>
-    </Dialog>
+        
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Due Date</label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !date && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {date ? format(date, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-4">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSubmit}
+            disabled={!date || !selectedContactId || isSubmitting}
+          >
+            {isSubmitting ? "Adding..." : "Add Todo"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

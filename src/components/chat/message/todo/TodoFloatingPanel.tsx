@@ -22,15 +22,25 @@ export function TodoFloatingPanel({
     if (!open) return;
 
     function onClickOutside(event: MouseEvent) {
+      // Check if click was outside the panel
       if (
         panelRef.current &&
         !panelRef.current.contains(event.target as Node)
       ) {
+        event.preventDefault();
+        event.stopPropagation();
         onOpenChange(false);
       }
     }
 
+    // Use capture phase to handle clicks before they propagate
     document.addEventListener("mousedown", onClickOutside, true);
+    
+    // Focus the panel when it opens
+    if (panelRef.current) {
+      panelRef.current.focus();
+    }
+
     return () => {
       document.removeEventListener("mousedown", onClickOutside, true);
     };
@@ -50,15 +60,16 @@ export function TodoFloatingPanel({
   return createPortal(
     <div
       ref={panelRef}
-      className="rounded-md border shadow-lg bg-popover"
       style={style}
       tabIndex={-1}
-      onMouseDown={e => e.stopPropagation()}
+      onMouseDown={(e) => {
+        // Prevent click from propagating to parent elements
+        e.stopPropagation();
+      }}
     >
       <TodoDialog
-        open={true}
-        onOpenChange={onOpenChange}
         onSubmit={onSubmit}
+        onClose={() => onOpenChange(false)}
       />
     </div>,
     document.body
