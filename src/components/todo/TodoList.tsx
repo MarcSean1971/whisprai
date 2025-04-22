@@ -14,7 +14,7 @@ export function TodoList() {
     dueDate: 'all',
     assignee: 'all'
   });
-  const { data: profile } = useProfile();
+  const { profile } = useProfile();
 
   if (isLoading) {
     return <div className="p-4 text-center text-muted-foreground">Loading todos...</div>;
