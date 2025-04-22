@@ -53,7 +53,7 @@ export function useTodos() {
 
       if (error) throw error;
 
-      return data as (Todo & { 
+      return data as unknown as (Todo & { 
         profiles: { first_name: string | null; last_name: string | null } 
       })[];
     },
