@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { Todo } from "@/hooks/use-todos";
 import { format } from "date-fns";
-import { MessageSquare, Link, Trash2 } from "lucide-react";
+import { MessageSquare, Link, Trash2, Pencil } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { TodoEditor } from "./TodoEditor";
 import { Button } from "../ui/button";
@@ -86,7 +86,17 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
+                  onClick={() => setIsEditing(true)}
+                  title="Edit todo"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
                   onClick={navigateToMessage}
+                  title="Go to message"
                 >
                   <Link className="h-4 w-4" />
                 </Button>
@@ -96,6 +106,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      title="Delete todo"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -149,7 +160,10 @@ export function TodoItem({ todo, onStatusChange, onUpdate, onDelete }: TodoItemP
         <div className="border-t">
           <TodoEditor
             todo={todo}
-            onUpdate={(data) => onUpdate(todo.id, data)}
+            onUpdate={(data) => {
+              onUpdate(todo.id, data);
+              setIsEditing(false);
+            }}
             onClose={() => setIsEditing(false)}
           />
         </div>
