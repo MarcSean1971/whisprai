@@ -1,86 +1,63 @@
 
-import { cn } from "@/lib/utils";
-import { MessageBubble } from "@/components/chat/message/MessageBubble";
-import { MessageContextMenu } from "@/components/chat/message/MessageContextMenu";
+import { useMessageProcessor } from "@/hooks/use-message-processor";
+import { MessageList } from "./MessageList";
+import { useState, useCallback } from "react";
 
 interface MessageContentProps {
-  id: string;
-  content: string;
-  timestamp: string;
-  isOwn: boolean;
-  isAIMessage: boolean;
-  showTranslationToggle: boolean;
-  originalLanguage: string;
-  onToggleTranslation: () => void;
-  location?: { latitude: number; longitude: number };
-  onLocationClick: () => void;
-  canDelete: boolean;
-  onDelete: () => void;
-  isDeleting: boolean;
-  onReply: () => void;
-  attachments?: {
-    url: string;
-    name: string;
-    type: string;
-  }[];
-  parent?: {
-    id: string;
-    content: string;
-    created_at: string;
-    sender?: {
-      id: string;
-      profiles?: {
-        first_name?: string | null;
-        last_name?: string | null;
-      }
-    }
-  };
-  scrollToMessage?: (messageId: string) => void;
+  messages: any[];
+  userLanguage?: string;
+  onNewReceivedMessage?: () => void;
+  onTranslation?: (messageId: string, translatedContent: string) => void;
+  onReply: (messageId: string) => void;
+  replyToMessageId?: string | null;
+  sendReply?: (content: string) => Promise<boolean>;
+  cancelReply?: () => void;
+  refetch?: () => void;
 }
 
 export function MessageContent({
-  id,
-  content,
-  timestamp,
-  isOwn,
-  isAIMessage,
-  showTranslationToggle,
-  originalLanguage,
-  onToggleTranslation,
-  location,
-  onLocationClick,
-  canDelete,
-  onDelete,
-  isDeleting,
+  messages,
+  userLanguage,
+  onNewReceivedMessage,
+  onTranslation,
   onReply,
-  attachments,
-  parent,
-  scrollToMessage
+  replyToMessageId,
+  sendReply,
+  cancelReply,
+  refetch
 }: MessageContentProps) {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  
+  const { translatedContents } = useMessageProcessor(
+    messages,
+    currentUserId,
+    userLanguage,
+    onNewReceivedMessage,
+    onTranslation
+  );
+
+  const handleReply = async (content: string) => {
+    if (sendReply) {
+      const sent = await sendReply(content);
+      if (sent && refetch) {
+        refetch();
+      }
+    }
+  };
+
   return (
-    <MessageContextMenu
-      onReply={onReply}
-      onToggleTranslation={onToggleTranslation}
-      showTranslationToggle={showTranslationToggle}
-      isOwn={isOwn}
-      messageId={id}
-      canDelete={canDelete}
-      onDelete={onDelete}
-      isDeleting={isDeleting}
-    >
-      {/* No MessageReactions here; it's inside MessageBubble */}
-      <MessageBubble
-        id={id}
-        content={content}
-        timestamp={timestamp}
-        isOwn={isOwn}
-        isAIMessage={isAIMessage}
-        attachments={attachments}
-        onReply={onReply}
-        parent={parent}
-        scrollToMessage={scrollToMessage}
-      />
-    </MessageContextMenu>
+    <>
+      {messages.map((message) => (
+        <MessageList
+          key={message.id}
+          messages={[message]}
+          currentUserId={currentUserId}
+          profile={{ language: userLanguage }}
+          translatedContents={translatedContents}
+          onReply={onReply}
+          replyToMessageId={replyToMessageId}
+        />
+      ))}
+    </>
   );
 }
-
