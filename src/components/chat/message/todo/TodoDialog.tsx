@@ -27,21 +27,42 @@ interface TodoDialogProps {
 export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
   const [date, setDate] = useState<Date>();
   const [selectedContactId, setSelectedContactId] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { data: contacts } = useContacts();
 
-  const handleSubmit = () => {
-    if (date && selectedContactId) {
-      onSubmit(selectedContactId, date);
-      onOpenChange(false);
-      // Reset form state
-      setDate(undefined);
-      setSelectedContactId(undefined);
+  const handleClose = (isOpen: boolean) => {
+    if (!isSubmitting) {
+      onOpenChange(isOpen);
     }
   };
 
+  const handleSubmit = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (date && selectedContactId && !isSubmitting) {
+      setIsSubmitting(true);
+      try {
+        await onSubmit(selectedContactId, date);
+        onOpenChange(false);
+        // Reset form state only after successful submission
+        setDate(undefined);
+        setSelectedContactId(undefined);
+      } catch (error) {
+        console.error('Error submitting todo:', error);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
+
+  const handleContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md" onClick={handleContentClick}>
         <DialogHeader>
           <DialogTitle>Add to Todo List</DialogTitle>
         </DialogHeader>
@@ -52,6 +73,7 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
               className="w-full rounded-md border p-2"
               value={selectedContactId || ""}
               onChange={(e) => setSelectedContactId(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
             >
               <option value="">Select a contact</option>
               {contacts?.map((contact) => (
@@ -72,6 +94,7 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
                     "w-full justify-start text-left font-normal",
                     !date && "text-muted-foreground"
                   )}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, "PPP") : <span>Pick a date</span>}
@@ -90,11 +113,21 @@ export function TodoDialog({ open, onOpenChange, onSubmit }: TodoDialogProps) {
           </div>
         </div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenChange(false);
+            }}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!date || !selectedContactId}>
-            Add Todo
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!date || !selectedContactId || isSubmitting}
+          >
+            {isSubmitting ? "Adding..." : "Add Todo"}
           </Button>
         </div>
       </DialogContent>
