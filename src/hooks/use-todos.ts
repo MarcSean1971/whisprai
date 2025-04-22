@@ -46,7 +46,15 @@ export function useTodos() {
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      return data as (Todo & { profiles: { first_name: string | null; last_name: string | null } })[];
+      
+      // Ensure profiles is properly typed
+      return data.map(todo => ({
+        ...todo,
+        profiles: {
+          first_name: todo.profiles?.first_name || null,
+          last_name: todo.profiles?.last_name || null
+        }
+      })) as (Todo & { profiles: { first_name: string | null; last_name: string | null } })[];
     },
   });
 

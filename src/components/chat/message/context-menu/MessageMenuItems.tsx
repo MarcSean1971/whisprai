@@ -1,3 +1,4 @@
+
 import { Reply, Languages, Trash2, ListTodo } from "lucide-react";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
@@ -45,8 +46,14 @@ export function MessageMenuItems({
   };
 
   const handleAddTodo = (assignedTo: string, dueDate: Date) => {
+    // Get the message content from the DOM since we don't have direct access to it here
+    // This is a workaround - in a real app, you might want to pass the message content as a prop
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    const messageContent = messageElement?.textContent || `Message from ID: ${messageId}`;
+    
     createTodo({
       message_id: messageId,
+      message_content: messageContent,
       assigned_to: assignedTo,
       due_date: dueDate,
       conversation_id: window.location.pathname.split('/').pop() || '',
