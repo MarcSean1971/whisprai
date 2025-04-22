@@ -11,30 +11,40 @@ interface UseCallResponseProps {
 
 export function useCallResponse({ incomingCall, fetchCallHistory }: UseCallResponseProps) {
   const acceptCall = useCallback(async () => {
-    if (!incomingCall) return;
+    if (!incomingCall) {
+      console.error("[WebRTC] No incoming call to accept");
+      return;
+    }
     
     console.log("[WebRTC] Accepting call immediately");
     
-    const { error } = await supabase
-      .from("call_sessions")
-      .update({ 
-        status: "connected", 
-        updated_at: new Date().toISOString() 
-      })
-      .eq("id", incomingCall.id);
-      
-    if (error) {
-      console.error("[WebRTC] Failed to accept call:", error);
-      toast.error("Failed to accept call.");
-      return;
-    }
+    try {
+      const { error } = await supabase
+        .from("call_sessions")
+        .update({ 
+          status: "connected", 
+          updated_at: new Date().toISOString() 
+        })
+        .eq("id", incomingCall.id);
+        
+      if (error) {
+        console.error("[WebRTC] Failed to accept call:", error);
+        toast.error("Failed to accept call");
+        return;
+      }
 
-    // Immediate feedback
-    toast.success("Call connected");
+      toast.success("Call connected");
+    } catch (err) {
+      console.error("[WebRTC] Error accepting call:", err);
+      toast.error("Failed to accept call");
+    }
   }, [incomingCall]);
 
   const rejectCall = useCallback(async () => {
-    if (!incomingCall) return;
+    if (!incomingCall) {
+      console.error("[WebRTC] No incoming call to reject");
+      return;
+    }
     
     console.log("[WebRTC] Rejecting call with immediate cleanup");
     
@@ -50,14 +60,15 @@ export function useCallResponse({ incomingCall, fetchCallHistory }: UseCallRespo
         
       if (error) {
         console.error("[WebRTC] Failed to reject call:", error);
-        toast.error("Failed to reject call.");
+        toast.error("Failed to reject call");
+        return;
       }
       
       toast.info("Call rejected");
       await fetchCallHistory();
     } catch (err) {
       console.error("[WebRTC] Error rejecting call:", err);
-      toast.error("Failed to reject call.");
+      toast.error("Failed to reject call");
     }
   }, [incomingCall, fetchCallHistory]);
 

@@ -81,22 +81,33 @@ export function ChatHeader({
 
   // Reinitialize peer connection when signaled to do so
   useEffect(() => {
-    if (shouldInitiatePeer && localStream) {
-      console.log("[ChatHeader] Initializing WebRTC peer connection");
-      setupPeerConnection();
+    if (shouldInitiatePeer) {
+      if (callSession?.status === "connected") {
+        console.log("[ChatHeader] Call accepted, initializing WebRTC peer connection");
+        setupPeerConnection();
+      }
     }
-  }, [shouldInitiatePeer, setupPeerConnection, localStream]);
+  }, [shouldInitiatePeer, setupPeerConnection, callSession]);
+
+  // Handle call cleanup
+  useEffect(() => {
+    if (callSession?.status === "rejected" || callSession?.status === "ended") {
+      console.log("[ChatHeader] Call ended/rejected, cleaning up");
+      disconnectCall();
+    }
+  }, [callSession?.status, disconnectCall]);
 
   const callStatus = incomingCall ? "incoming" : 
                     isConnecting ? "connecting" :
                     peerStatus === "connected" && callSessionStatus === "connected" ? "connected" :
+                    callSessionStatus === "rejected" ? "rejected" :
+                    callSessionStatus === "ended" ? "ended" :
                     peerStatus;
 
-  console.log("[ChatHeader] Status - Session:", callSessionStatus, "Peer:", peerStatus, "Final:", callStatus, "CallType:", currentCallType);
-
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
+    console.log("[ChatHeader] Ending call with cleanup");
     if (callSession) {
-      endCall(callSession.id);
+      await endCall(callSession.id);
     }
     disconnectCall();
   };
