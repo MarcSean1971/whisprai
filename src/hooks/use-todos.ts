@@ -7,6 +7,9 @@ export interface Todo {
   id: string;
   message_id: string;
   message_content: string | null;
+  messages: {
+    content: string;
+  } | null;
   creator_id: string;
   assigned_to: string;
   due_date: string;
@@ -41,31 +44,16 @@ export function useTodos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('todos')
-        .select('*, profiles:profiles(first_name, last_name)')
+        .select(`
+          *,
+          messages (content),
+          profiles:profiles(first_name, last_name)
+        `)
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      
-      // Then for each todo, get the profile info separately to avoid relation errors
-      const todosWithProfiles = await Promise.all(
-        data.map(async (todo) => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', todo.assigned_to)
-            .single();
-          
-          return {
-            ...todo,
-            profiles: profileError ? { 
-              first_name: null, 
-              last_name: null 
-            } : profileData
-          };
-        })
-      );
-      
-      return todosWithProfiles as (Todo & { 
+
+      return data as (Todo & { 
         profiles: { first_name: string | null; last_name: string | null } 
       })[];
     },

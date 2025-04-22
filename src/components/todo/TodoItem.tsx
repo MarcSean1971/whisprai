@@ -1,4 +1,3 @@
-
 import { Checkbox } from "@/components/ui/checkbox";
 import { Todo } from "@/hooks/use-todos";
 import { format } from "date-fns";
@@ -28,6 +27,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
     navigate(`/chat/${todo.conversation_id}?message=${todo.message_id}`);
   };
 
+  const messageContent = todo.messages?.content || todo.message_content || todo.message_id;
   const assigneeName = todo.profiles.first_name 
     ? `${todo.profiles.first_name} ${todo.profiles.last_name || ''}`
     : 'Unknown';
@@ -44,7 +44,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
         <div className="flex-1 space-y-1 cursor-pointer" onClick={() => setIsEditing(true)}>
           <div className="flex items-start justify-between">
             <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-              {todo.message_content || todo.message_id}
+              {messageContent}
             </p>
             <Button
               variant="ghost"

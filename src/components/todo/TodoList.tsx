@@ -1,4 +1,3 @@
-
 import { useTodos } from "@/hooks/use-todos";
 import { TodoItem } from "./TodoItem";
 import { TodoListFilters, TodoFilter } from "./TodoListFilters";
@@ -30,8 +29,9 @@ export function TodoList() {
 
   const filterTodos = (todos: any[]) => {
     return todos.filter(todo => {
-      // Search filter
-      if (searchQuery && !todo.message_content?.toLowerCase().includes(searchQuery.toLowerCase())) {
+      // Search filter - check both message_content and messages.content
+      const messageContent = todo.messages?.content || todo.message_content;
+      if (searchQuery && !messageContent?.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
 
