@@ -44,9 +44,12 @@ export function useMessageScroll({ messages, refetch }: UseMessageScrollProps) {
         const first = entries[0];
         if (first.isIntersecting && !isLoadingMore && refetch) {
           setIsLoadingMore(true);
-          refetch().finally(() => {
+          // Fix: Don't use finally on void return type
+          refetch();
+          // Use a separate timeout to reset loading state after a short delay
+          setTimeout(() => {
             setIsLoadingMore(false);
-          });
+          }, 500);
         }
       },
       { threshold: 0.1, rootMargin: '100px' }
