@@ -1,44 +1,85 @@
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { Todo } from "@/hooks/use-todos";
 import { format } from "date-fns";
-
-// Define the Todo interface directly in this file since it's not exported from use-todos
-interface Todo {
-  id: string;
-  message_id: string;
-  creator_id: string;
-  assigned_to: string;
-  due_date: string;
-  conversation_id: string;
-  status: 'pending' | 'completed';
-  created_at: string;
-  updated_at: string;
-}
+import { MessageSquare, Link } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { TodoEditor } from "./TodoEditor";
+import { Button } from "../ui/button";
 
 interface TodoItemProps {
-  todo: Todo;
+  todo: Todo & { profiles: { first_name: string | null; last_name: string | null } };
   onStatusChange: (id: string, status: 'pending' | 'completed') => void;
+  onUpdate: (id: string, data: { 
+    assigned_to?: string; 
+    due_date?: Date; 
+    status?: 'pending' | 'completed';
+    comment?: string;
+  }) => void;
 }
 
-export function TodoItem({ todo, onStatusChange }: TodoItemProps) {
+export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const navigate = useNavigate();
   const formattedDate = format(new Date(todo.due_date), 'MMM d, yyyy');
   
+  const navigateToMessage = () => {
+    navigate(`/chats/${todo.conversation_id}?message=${todo.message_id}`);
+  };
+
+  const assigneeName = todo.profiles.first_name 
+    ? `${todo.profiles.first_name} ${todo.profiles.last_name || ''}`
+    : 'Unknown';
+
   return (
-    <div className="flex items-center space-x-2 p-2 hover:bg-accent rounded-lg">
-      <Checkbox
-        checked={todo.status === 'completed'}
-        onCheckedChange={(checked) => {
-          onStatusChange(todo.id, checked ? 'completed' : 'pending');
-        }}
-      />
-      <div className="flex-1 space-y-1">
-        <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
-          {todo.message_id}
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Due: {formattedDate}
-        </p>
+    <div className="space-y-2">
+      <div className="flex items-start space-x-2 p-3 hover:bg-accent rounded-lg">
+        <Checkbox
+          checked={todo.status === 'completed'}
+          onCheckedChange={(checked) => {
+            onStatusChange(todo.id, checked ? 'completed' : 'pending');
+          }}
+        />
+        <div className="flex-1 space-y-1" onClick={() => setIsEditing(true)}>
+          <div className="flex items-start justify-between">
+            <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
+              {todo.message_content || todo.message_id}
+            </p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigateToMessage();
+              }}
+            >
+              <Link className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground space-y-1">
+            <p>Assigned to: {assigneeName}</p>
+            <p>Due: {formattedDate}</p>
+            {todo.comment && (
+              <div className="flex items-start gap-1 mt-2">
+                <MessageSquare className="h-4 w-4 mt-0.5" />
+                <p className="flex-1">{todo.comment}</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
+
+      {isEditing && (
+        <div className="border rounded-lg mt-2">
+          <TodoEditor
+            todo={todo}
+            onUpdate={(data) => onUpdate(todo.id, data)}
+            onClose={() => setIsEditing(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -7,20 +7,31 @@ import { format } from "date-fns";
 export interface Todo {
   id: string;
   message_id: string;
+  message_content: string | null;
   creator_id: string;
   assigned_to: string;
   due_date: string;
   conversation_id: string;
   status: 'pending' | 'completed';
+  comment: string | null;
   created_at: string;
   updated_at: string;
 }
 
 interface CreateTodoInput {
   message_id: string;
+  message_content: string;
   assigned_to: string;
   due_date: Date;
   conversation_id: string;
+}
+
+interface UpdateTodoInput {
+  id: string;
+  assigned_to?: string;
+  due_date?: Date;
+  status?: 'pending' | 'completed';
+  comment?: string;
 }
 
 export function useTodos() {
@@ -31,27 +42,26 @@ export function useTodos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('todos')
-        .select('*')
+        .select('*, profiles:assigned_to(first_name, last_name)')
         .order('due_date', { ascending: true });
 
       if (error) throw error;
-      return data as Todo[];
+      return data as (Todo & { profiles: { first_name: string | null; last_name: string | null } })[];
     },
   });
 
   const createTodo = useMutation({
-    mutationFn: async ({ message_id, assigned_to, due_date, conversation_id }: CreateTodoInput) => {
-      // Get the current user's ID
+    mutationFn: async ({ message_id, message_content, assigned_to, due_date, conversation_id }: CreateTodoInput) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
       
-      // Format the date as an ISO string (YYYY-MM-DD)
       const formattedDate = format(due_date, "yyyy-MM-dd");
       
       const { error } = await supabase
         .from('todos')
         .insert({
           message_id,
+          message_content,
           creator_id: user.id,
           assigned_to,
           due_date: formattedDate,
@@ -90,10 +100,36 @@ export function useTodos() {
     },
   });
 
+  const updateTodo = useMutation({
+    mutationFn: async ({ id, assigned_to, due_date, status, comment }: UpdateTodoInput) => {
+      const updates: any = {};
+      if (assigned_to) updates.assigned_to = assigned_to;
+      if (due_date) updates.due_date = format(due_date, "yyyy-MM-dd");
+      if (status) updates.status = status;
+      if (comment !== undefined) updates.comment = comment;
+
+      const { error } = await supabase
+        .from('todos')
+        .update(updates)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['todos'] });
+      toast.success('Todo updated successfully');
+    },
+    onError: (error) => {
+      console.error('Error updating todo:', error);
+      toast.error('Failed to update todo');
+    },
+  });
+
   return {
     todos,
     isLoading,
     createTodo: createTodo.mutate,
     updateTodoStatus: updateTodoStatus.mutate,
+    updateTodo: updateTodo.mutate,
   };
 }

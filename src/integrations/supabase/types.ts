@@ -363,33 +363,39 @@ export type Database = {
       todos: {
         Row: {
           assigned_to: string
+          comment: string | null
           conversation_id: string
           created_at: string
           creator_id: string
           due_date: string
           id: string
+          message_content: string | null
           message_id: string | null
           status: string
           updated_at: string
         }
         Insert: {
           assigned_to: string
+          comment?: string | null
           conversation_id: string
           created_at?: string
           creator_id: string
           due_date: string
           id?: string
+          message_content?: string | null
           message_id?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           assigned_to?: string
+          comment?: string | null
           conversation_id?: string
           created_at?: string
           creator_id?: string
           due_date?: string
           id?: string
+          message_content?: string | null
           message_id?: string | null
           status?: string
           updated_at?: string
