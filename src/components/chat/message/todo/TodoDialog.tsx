@@ -11,6 +11,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface TodoDialogProps {
   onSubmit: (assignedTo: string, dueDate: Date) => void;
@@ -21,7 +28,55 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
   const [date, setDate] = useState<Date>();
   const [selectedContactId, setSelectedContactId] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { data: contacts } = useContacts();
+  const { data: contacts, isLoading: isLoadingContacts } = useContacts();
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => currentYear - i);
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+
+  const handleYearSelect = (year: string) => {
+    if (!date) {
+      const newDate = new Date();
+      newDate.setFullYear(parseInt(year));
+      newDate.setDate(1);
+      setDate(newDate);
+      return;
+    }
+
+    const newDate = new Date(date);
+    newDate.setFullYear(parseInt(year));
+    
+    const daysInMonth = new Date(parseInt(year), date.getMonth() + 1, 0).getDate();
+    if (date.getDate() > daysInMonth) {
+      newDate.setDate(daysInMonth);
+    }
+    
+    setDate(newDate);
+  };
+
+  const handleMonthSelect = (monthName: string) => {
+    if (!date) {
+      const newDate = new Date();
+      newDate.setMonth(months.indexOf(monthName));
+      newDate.setDate(1);
+      setDate(newDate);
+      return;
+    }
+
+    const newDate = new Date(date);
+    const newMonth = months.indexOf(monthName);
+    
+    const daysInMonth = new Date(date.getFullYear(), newMonth + 1, 0).getDate();
+    if (date.getDate() > daysInMonth) {
+      newDate.setDate(daysInMonth);
+    }
+    
+    newDate.setMonth(newMonth);
+    setDate(newDate);
+  };
 
   const handleSubmit = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -42,13 +97,6 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
     }
   };
 
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSelectedContactId(e.target.value);
-  };
-
-  // Prevent clicks from bubbling up and closing the panel
   const handleWrapperClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -66,20 +114,25 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
       
       <div className="space-y-2">
         <label className="text-sm font-medium">Assign to</label>
-        <select
-          className="w-full rounded-md border p-2"
-          value={selectedContactId || ""}
-          onChange={handleSelectChange}
-          onClick={handleWrapperClick}
-          onMouseDown={handleWrapperClick}
+        <Select
+          value={selectedContactId}
+          onValueChange={setSelectedContactId}
+          disabled={isLoadingContacts}
         >
-          <option value="">Select a contact</option>
-          {contacts?.map((contact) => (
-            <option key={contact.contact_id} value={contact.contact_id}>
-              {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a contact" />
+          </SelectTrigger>
+          <SelectContent>
+            {contacts?.map((contact) => (
+              <SelectItem 
+                key={contact.contact_id} 
+                value={contact.contact_id}
+              >
+                {contact.contact_profile?.first_name} {contact.contact_profile?.last_name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       
       <div className="space-y-2">
@@ -102,9 +155,40 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
           <PopoverContent 
             className="w-auto p-0" 
             align="start"
-            sideOffset={4}
             onMouseDown={handleWrapperClick}
           >
+            <div className="flex gap-2 border-b p-3">
+              <Select 
+                value={date ? months[date.getMonth()] : undefined}
+                onValueChange={handleMonthSelect}
+              >
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {months.map((month) => (
+                    <SelectItem key={month} value={month}>
+                      {month}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select 
+                value={date ? date.getFullYear().toString() : undefined}
+                onValueChange={handleYearSelect}
+              >
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {years.map((year) => (
+                    <SelectItem key={year} value={year.toString()}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <Calendar
               mode="single"
               selected={date}

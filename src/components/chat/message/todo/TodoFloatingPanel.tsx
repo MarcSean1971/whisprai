@@ -39,7 +39,6 @@ export function TodoFloatingPanel({
 
   if (!open || !anchorRect) return null;
 
-  // Calculate panel position based on anchor rect
   const style: React.CSSProperties = {
     position: "fixed",
     left: Math.min(anchorRect.right + 8, window.innerWidth - 400),
@@ -47,7 +46,8 @@ export function TodoFloatingPanel({
     zIndex: 99999,
     minWidth: 400,
     minHeight: 300,
-    pointerEvents: "auto", // Critical for interaction
+    pointerEvents: "auto",
+    background: "#221F26",
   };
 
   return createPortal(
@@ -57,19 +57,13 @@ export function TodoFloatingPanel({
       style={style}
       tabIndex={-1}
       onMouseDown={e => {
-        // Prevent mousedown inside panel from closing it
         e.stopPropagation();
       }}
     >
-      <div 
-        className="bg-popover rounded-md"
-        style={{ background: "#221F26" }} // solid dark background
-      >
-        <TodoDialog
-          onSubmit={onSubmit}
-          onClose={() => onOpenChange(false)}
-        />
-      </div>
+      <TodoDialog
+        onSubmit={onSubmit}
+        onClose={() => onOpenChange(false)}
+      />
     </div>,
     document.body
   );
