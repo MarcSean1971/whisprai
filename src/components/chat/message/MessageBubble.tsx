@@ -1,10 +1,11 @@
-
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { MessageReactions } from "./reactions/MessageReactions";
 import { ParentMessagePreview } from "./ParentMessagePreview";
 import { MessageAttachments } from "./MessageAttachments";
 import { formatMessageDateTime } from "@/lib/utils";
+import { ListTodo } from "lucide-react";
+import { useMessageTodoStatus } from "@/hooks/use-message-todo-status";
 
 interface MessageBubbleProps {
   id: string;
@@ -57,9 +58,8 @@ export function MessageBubble({
     return null;
   }
 
-  // Debug the raw timestamp to see what we're getting
-  console.log(`MessageBubble for ${id} received timestamp:`, timestamp);
-  
+  const { data: hasTodo } = useMessageTodoStatus(id);
+
   const formattedTime = formatMessageDateTime(timestamp);
 
   return (
@@ -72,6 +72,12 @@ export function MessageBubble({
           ? "bg-violet-500/20 border border-violet-500/20"
           : "bg-secondary"
       )}>
+        {hasTodo && (
+          <div className="absolute top-2 right-2 animate-fade-in">
+            <ListTodo className="h-4 w-4 text-muted-foreground" />
+          </div>
+        )}
+        
         {parent && parent.id && parent.content && (
           <ParentMessagePreview
             parent={parent}
