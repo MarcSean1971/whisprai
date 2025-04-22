@@ -1,10 +1,11 @@
 
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MessageFieldProps {
   message: string;
@@ -22,10 +23,20 @@ export function MessageField({
   inputRef
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMobile = useIsMobile();
   
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
   };
+
+  // Auto-resize functionality
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [message]);
 
   // Emoji picker trigger button
   const emojiTrigger = (
@@ -42,16 +53,18 @@ export function MessageField({
 
   return (
     <div className="relative flex-1">
-      <Input
-        ref={inputRef}
+      <Textarea
+        ref={textareaRef}
         value={message}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "pr-10 py-6 rounded-full",
-          isAnalyzing && "pr-16"
+          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full overflow-y-auto",
+          isAnalyzing && "pr-16",
+          isMobile ? "text-base" : "text-sm"
         )}
         disabled={disabled}
+        rows={1}
       />
       {isAnalyzing && (
         <div className="absolute right-12 top-1/2 -translate-y-1/2">

@@ -123,20 +123,22 @@ export function MessageControls({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex gap-2 items-center relative">
-        <AttachmentControls
-          onAttachmentClick={onAttachmentClick}
-          onCameraClick={onCameraClick}
-          disabled={disabled}
-          canAttach={canAttach}
-        />
+      <form onSubmit={handleSubmit} className="flex gap-1 md:gap-2 items-center relative">
+        <div className="flex gap-0.5 md:gap-1">
+          <AttachmentControls
+            onAttachmentClick={onAttachmentClick}
+            onCameraClick={onCameraClick}
+            disabled={disabled}
+            canAttach={canAttach}
+          />
 
-        <EnhanceButton
-          onEnhance={handleEnhanceMessage}
-          isEnhancing={isEnhancing}
-          disabled={disabled}
-          hasContent={!!message.trim()}
-        />
+          <EnhanceButton
+            onEnhance={handleEnhanceMessage}
+            isEnhancing={isEnhancing}
+            disabled={disabled}
+            hasContent={!!message.trim()}
+          />
+        </div>
 
         <MessageField
           message={message}
