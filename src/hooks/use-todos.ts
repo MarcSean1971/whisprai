@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -40,10 +39,9 @@ export function useTodos() {
   const { data: todos, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
-      // First, fetch todos
       const { data, error } = await supabase
         .from('todos')
-        .select('*')
+        .select('*, profiles:profiles(first_name, last_name)')
         .order('due_date', { ascending: true });
 
       if (error) throw error;
