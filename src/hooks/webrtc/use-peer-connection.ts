@@ -1,4 +1,3 @@
-
 import { useRef, useCallback, useEffect } from "react";
 import Peer from "simple-peer";
 import { toast } from "sonner";
@@ -66,28 +65,35 @@ export function usePeerConnection({
     toast
   });
 
-  // Process the signal queue one by one
   const processSignalQueue = useCallback(() => {
     if (processingSignalRef.current || signalQueueRef.current.length === 0 || !peerRef.current) {
       return;
     }
     
     processingSignalRef.current = true;
-    const signal = signalQueueRef.current.shift();
+    const signal = signalQueueRef.current[0];
     
     try {
-      console.log("[WebRTC] Applying queued signal:", signal.type || "ICE candidate");
+      console.log("[WebRTC] Processing signal:", signal.type || "ICE candidate");
       peerRef.current.signal(signal);
+      signalQueueRef.current.shift();
       connectionStatsRef.current.lastActivity = Date.now();
+      
+      setTimeout(() => {
+        processingSignalRef.current = false;
+        if (signalQueueRef.current.length > 0) {
+          processSignalQueue();
+        }
+      }, 50);
     } catch (e) {
-      console.error("[WebRTC] Error applying queued signal:", e);
-    }
-    
-    processingSignalRef.current = false;
-    
-    // Process next item in queue if any
-    if (signalQueueRef.current.length > 0) {
-      setTimeout(processSignalQueue, 50); // Small delay between processing signals
+      console.error("[WebRTC] Error processing signal:", e);
+      processingSignalRef.current = false;
+      
+      setTimeout(() => {
+        if (peerRef.current) {
+          processSignalQueue();
+        }
+      }, 1000);
     }
   }, [connectionStatsRef]);
 
@@ -97,7 +103,6 @@ export function usePeerConnection({
     console.log("[WebRTC] Setting up peer connection, initiator:", initiator);
     clearConnectionTimeout();
     
-    // Clean up any existing peer
     if (peerRef.current) {
       try {
         peerRef.current.destroy();
@@ -107,7 +112,6 @@ export function usePeerConnection({
       peerRef.current = null;
     }
     
-    // Clear signal queue
     signalQueueRef.current = [];
     processingSignalRef.current = false;
     
@@ -139,21 +143,19 @@ export function usePeerConnection({
       console.warn("[WebRTC] RTCPeerConnection not available");
     }
 
-    // Apply any pending remote signal immediately
     if (remoteSignal) {
       try {
         console.log("[WebRTC] Applying initial remote signal:", remoteSignal.type || "ICE candidate");
         p.signal(remoteSignal);
-        setConnectionStatus("connecting" as ConnectionStatus);
+        setConnectionStatus("connecting");
       } catch (e) {
         console.error("[WebRTC] Error applying initial remote signal:", e);
       }
     }
     
-    // Set connection timeout
     connectionTimeoutRef.current = window.setTimeout(() => {
       if (peerRef.current && connectionStatsRef.current.connectionState !== 'connected') {
-        console.warn("[WebRTC] Connection timeout after 15 seconds");
+        console.warn("[WebRTC] Connection timeout after 30 seconds");
         
         const stats = connectionStatsRef.current;
         console.log("[WebRTC] Connection stats at timeout:", {
@@ -167,22 +169,25 @@ export function usePeerConnection({
         
         toast.error("Call connection timed out. Please try again.");
         
-        // Attempt reconnection if this is the first timeout
-        if (reconnectAttemptsRef.current < 1) {
+        if (reconnectAttemptsRef.current < 3) {
           reconnectAttemptsRef.current++;
-          console.log("[WebRTC] Attempting reconnection, attempt:", reconnectAttemptsRef.current);
-          setupPeerConnection();
+          const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 8000);
+          console.log(`[WebRTC] Attempting reconnection in ${delay/1000}s, attempt:`, reconnectAttemptsRef.current);
+          
+          setTimeout(() => {
+            setupPeerConnection();
+          }, delay);
           return;
         }
         
         try {
           p.destroy();
-          setConnectionStatus("error" as ConnectionStatus);
+          setConnectionStatus("error");
         } catch (err) {
           console.error("[WebRTC] Error destroying peer on timeout:", err);
         }
       }
-    }, 15000);
+    }, 30000);
 
     return () => {
       clearConnectionTimeout();
@@ -212,18 +217,15 @@ export function usePeerConnection({
       return;
     }
     
-    // Add signal to queue
     signalQueueRef.current.push(signal);
     console.log("[WebRTC] Added signal to queue:", signal.type || "ICE candidate", 
                 "Queue length:", signalQueueRef.current.length);
     
-    // Process the queue
     processSignalQueue();
     
     connectionStatsRef.current.lastActivity = Date.now();
   }, [connectionStatsRef, processSignalQueue]);
 
-  // Process signal queue whenever peer changes
   useEffect(() => {
     if (peerRef.current && signalQueueRef.current.length > 0) {
       processSignalQueue();
