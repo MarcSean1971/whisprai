@@ -25,7 +25,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
   const formattedDate = format(new Date(todo.due_date), 'MMM d, yyyy');
   
   const navigateToMessage = () => {
-    navigate(`/chats/${todo.conversation_id}?message=${todo.message_id}`);
+    navigate(`/chat/${todo.conversation_id}?message=${todo.message_id}`);
   };
 
   const assigneeName = todo.profiles.first_name 
@@ -41,7 +41,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
             onStatusChange(todo.id, checked ? 'completed' : 'pending');
           }}
         />
-        <div className="flex-1 space-y-1" onClick={() => setIsEditing(true)}>
+        <div className="flex-1 space-y-1 cursor-pointer" onClick={() => setIsEditing(true)}>
           <div className="flex items-start justify-between">
             <p className={`text-sm ${todo.status === 'completed' ? 'line-through text-muted-foreground' : ''}`}>
               {todo.message_content || todo.message_id}
@@ -59,7 +59,7 @@ export function TodoItem({ todo, onStatusChange, onUpdate }: TodoItemProps) {
             </Button>
           </div>
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Assigned to: {assigneeName}</p>
+            <p>From chat: {assigneeName}</p>
             <p>Due: {formattedDate}</p>
             {todo.comment && (
               <div className="flex items-start gap-1 mt-2">
