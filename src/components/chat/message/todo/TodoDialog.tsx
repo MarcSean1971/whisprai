@@ -31,7 +31,6 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
       setIsSubmitting(true);
       try {
         await onSubmit(selectedContactId, date);
-        // Reset form state only after successful submission
         setDate(undefined);
         setSelectedContactId(undefined);
         onClose();
@@ -43,6 +42,12 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
     }
   };
 
+  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedContactId(e.target.value);
+  };
+
   return (
     <div className="p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
       <h2 className="text-lg font-semibold leading-none tracking-tight mb-4">Add to Todo List</h2>
@@ -52,10 +57,7 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
         <select
           className="w-full rounded-md border p-2"
           value={selectedContactId || ""}
-          onChange={(e) => {
-            e.stopPropagation();
-            setSelectedContactId(e.target.value);
-          }}
+          onChange={handleSelectChange}
           onClick={(e) => e.stopPropagation()}
         >
           <option value="">Select a contact</option>
@@ -86,8 +88,7 @@ export function TodoDialog({ onSubmit, onClose }: TodoDialogProps) {
           <PopoverContent 
             className="w-auto p-0" 
             align="start"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-            onPointerDownOutside={(e) => e.preventDefault()}
+            sideOffset={4}
             onClick={(e) => e.stopPropagation()}
           >
             <Calendar
