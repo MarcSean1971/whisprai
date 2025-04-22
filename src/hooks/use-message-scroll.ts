@@ -17,10 +17,25 @@ export function useMessageScroll({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasScrolledToBottom = useRef(false);
   
   // Store previous scroll info
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
+
+  // Initial scroll to bottom when messages are first loaded
+  useEffect(() => {
+    if (
+      messages.length > 0 && 
+      !isFetchingNextPage && 
+      messagesEndRef.current && 
+      !hasScrolledToBottom.current
+    ) {
+      console.log('Scrolling to bottom on initial load');
+      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+      hasScrolledToBottom.current = true;
+    }
+  }, [messages, isFetchingNextPage]);
 
   // Preserve scroll position when loading older messages
   useEffect(() => {
