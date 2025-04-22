@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -29,7 +28,6 @@ export function useMessageScroll({
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef<number | null>(null);
 
-  // Store scroll position before loading new messages
   useEffect(() => {
     if (scrollContainerRef.current) {
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
@@ -37,7 +35,6 @@ export function useMessageScroll({
     }
   }, [messages.length]);
 
-  // Restore scroll position after loading older messages
   useEffect(() => {
     const container = scrollContainerRef.current;
     if (container && messages.length > previousMessagesLength) {
@@ -54,7 +51,6 @@ export function useMessageScroll({
     setPreviousMessagesLength(messages.length);
   }, [messages.length, previousMessagesLength]);
 
-  // Mobile pull-to-refresh handling
   useEffect(() => {
     if (!isMobile || !scrollContainerRef.current) return;
     
@@ -108,22 +104,26 @@ export function useMessageScroll({
     };
   }, [pullProgress, refetch, isFetchingNextPage, hasNextPage, isMobile]);
 
-  // Intersection Observer for infinite scroll
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && !isFetchingNextPage && hasNextPage) {
+        if (entries[0].isIntersecting) {
+          console.log('Loading more messages via Intersection Observer');
           refetch();
         }
       },
-      { threshold: 0 }
+      { 
+        rootMargin: '200px 0px 0px 0px',
+        threshold: 0
+      }
     );
 
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
       observer.observe(currentLoadMoreRef);
+      console.log('Observing loadMoreRef for infinite scroll');
     }
 
     return () => {
