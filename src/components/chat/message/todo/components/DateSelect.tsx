@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { useDateSelect } from "@/hooks/use-date-select";
 
 interface DateSelectProps {
   date?: Date;
@@ -25,53 +25,14 @@ interface DateSelectProps {
 }
 
 export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: currentYear - 1900 + 1 }, (_, i) => currentYear - i);
-  const months = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
-  ];
-
-  const handleYearSelect = (year: string) => {
-    if (!date) {
-      const newDate = new Date();
-      newDate.setFullYear(parseInt(year));
-      newDate.setDate(1);
-      onSelect(newDate);
-      return;
-    }
-
-    const newDate = new Date(date);
-    newDate.setFullYear(parseInt(year));
-    
-    const daysInMonth = new Date(parseInt(year), date.getMonth() + 1, 0).getDate();
-    if (date.getDate() > daysInMonth) {
-      newDate.setDate(daysInMonth);
-    }
-    
-    onSelect(newDate);
-  };
-
-  const handleMonthSelect = (monthName: string) => {
-    if (!date) {
-      const newDate = new Date();
-      newDate.setMonth(months.indexOf(monthName));
-      newDate.setDate(1);
-      onSelect(newDate);
-      return;
-    }
-
-    const newDate = new Date(date);
-    const newMonth = months.indexOf(monthName);
-    
-    const daysInMonth = new Date(date.getFullYear(), newMonth + 1, 0).getDate();
-    if (date.getDate() > daysInMonth) {
-      newDate.setDate(daysInMonth);
-    }
-    
-    newDate.setMonth(newMonth);
-    onSelect(newDate);
-  };
+  const {
+    selectedDate,
+    years,
+    months,
+    handleYearSelect,
+    handleMonthSelect,
+    handleDateSelect,
+  } = useDateSelect(date, onSelect);
 
   return (
     <div className="space-y-2">
@@ -99,7 +60,7 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
         >
           <div className="flex gap-2 border-b p-3">
             <Select 
-              value={date ? months[date.getMonth()] : undefined}
+              value={selectedDate ? months[selectedDate.getMonth()] : undefined}
               onValueChange={handleMonthSelect}
             >
               <SelectTrigger className="w-[140px]">
@@ -118,7 +79,7 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
               </SelectContent>
             </Select>
             <Select 
-              value={date ? date.getFullYear().toString() : undefined}
+              value={selectedDate ? selectedDate.getFullYear().toString() : undefined}
               onValueChange={handleYearSelect}
             >
               <SelectTrigger className="w-[100px]">
@@ -139,9 +100,10 @@ export function DateSelect({ date, onSelect, disabled }: DateSelectProps) {
           </div>
           <Calendar
             mode="single"
-            selected={date}
-            onSelect={onSelect}
+            selected={selectedDate}
+            onSelect={handleDateSelect}
             initialFocus
+            month={selectedDate}
             className={cn("p-3 pointer-events-auto")}
           />
         </PopoverContent>
