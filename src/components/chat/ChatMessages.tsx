@@ -84,7 +84,7 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto px-4 py-2 space-y-2 no-scrollbar"
         >
-          <div ref={loadMoreRef} className="h-4" />
+          <div ref={loadMoreRef} className="h-1" />
           {isFetchingNextPage && <LoadingMessages />}
           <TranslationConsumer 
             messages={messages} 
