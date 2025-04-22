@@ -93,17 +93,14 @@ export function ChatMessages({
         <div 
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none"
-          style={{
-            WebkitOverflowScrolling: 'touch',
-          }}
         >
+          <div ref={loadMoreRef} className="h-1" />
           <LoadMoreMessages 
             pullProgress={pullProgress}
             isLoading={isFetchingNextPage}
             isPulling={isPulling}
             hasNextPage={hasNextPage}
           />
-          <div ref={loadMoreRef} className="h-1" />
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 
               messages={messages} 

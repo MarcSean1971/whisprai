@@ -10,7 +10,6 @@ interface UseMessageScrollProps {
 }
 
 const PULL_THRESHOLD = 60;
-const SCROLL_TOLERANCE = 5;
 
 export function useMessageScroll({ 
   messages, 
@@ -29,17 +28,12 @@ export function useMessageScroll({
   const [pullProgress, setPullProgress] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
   const touchStartY = useRef<number | null>(null);
-  const initialScrollTop = useRef<number | null>(null);
 
   // Store scroll position before loading new messages
   useEffect(() => {
     if (scrollContainerRef.current) {
       previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
       previousScrollTop.current = scrollContainerRef.current.scrollTop;
-      console.log("Storing scroll position:", {
-        scrollHeight: previousScrollHeight.current,
-        scrollTop: previousScrollTop.current
-      });
     }
   }, [messages.length]);
 
@@ -48,13 +42,11 @@ export function useMessageScroll({
     const container = scrollContainerRef.current;
     if (container && messages.length > previousMessagesLength) {
       const heightDifference = container.scrollHeight - previousScrollHeight.current;
-      console.log("Height difference on new messages:", heightDifference);
       
       if (heightDifference > 0) {
         requestAnimationFrame(() => {
           if (container) {
             container.scrollTop = previousScrollTop.current + heightDifference;
-            console.log("Restored scroll position:", container.scrollTop);
           }
         });
       }
@@ -69,10 +61,8 @@ export function useMessageScroll({
     const container = scrollContainerRef.current;
 
     const handleTouchStart = (e: TouchEvent) => {
-      if (container.scrollTop <= SCROLL_TOLERANCE && hasNextPage) {
+      if (container.scrollTop <= 0 && hasNextPage) {
         touchStartY.current = e.touches[0].clientY;
-        initialScrollTop.current = container.scrollTop;
-        console.log('Touch start:', { scrollTop: container.scrollTop });
       }
     };
 
@@ -82,12 +72,10 @@ export function useMessageScroll({
       const touchY = e.touches[0].clientY;
       const diff = touchY - touchStartY.current;
       
-      if (diff > 0 && container.scrollTop <= SCROLL_TOLERANCE) {
+      if (diff > 0 && container.scrollTop <= 0) {
         setIsPulling(true);
-        const rubberBandedDiff = Math.pow(diff, 0.8);
-        const progress = Math.min((rubberBandedDiff / PULL_THRESHOLD) * 100, 100);
+        const progress = Math.min((diff / PULL_THRESHOLD) * 100, 100);
         setPullProgress(progress);
-        console.log('Pull progress:', progress);
         
         if (diff > 5) {
           e.preventDefault();
@@ -98,21 +86,13 @@ export function useMessageScroll({
     const handleTouchEnd = async () => {
       if (!touchStartY.current) return;
 
-      const shouldRefetch = pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage;
-      
-      if (shouldRefetch) {
-        console.log('Fetching more messages via pull-to-refresh');
-        try {
-          await refetch();
-        } catch (err) {
-          console.error('Error fetching messages:', err);
-        }
+      if (pullProgress >= 100 && refetch && !isFetchingNextPage && hasNextPage) {
+        await refetch();
       }
       
       setPullProgress(0);
       setIsPulling(false);
       touchStartY.current = null;
-      initialScrollTop.current = null;
     };
 
     container.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -128,35 +108,21 @@ export function useMessageScroll({
     };
   }, [pullProgress, refetch, isFetchingNextPage, hasNextPage, isMobile]);
 
-  // Desktop infinite scroll handling
+  // Intersection Observer for infinite scroll
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
-    console.log("Setting up Intersection Observer");
     const observer = new IntersectionObserver(
       (entries) => {
-        const first = entries[0];
-        console.log("Intersection Observer entry:", {
-          isIntersecting: first.isIntersecting,
-          isFetchingNextPage,
-          hasNextPage
-        });
-        
-        if (first.isIntersecting && !isFetchingNextPage && hasNextPage) {
-          console.log('Loading more messages via intersection');
+        if (entries[0].isIntersecting && !isFetchingNextPage && hasNextPage) {
           refetch();
         }
       },
-      { 
-        root: scrollContainerRef.current,
-        threshold: 0,
-        rootMargin: '500px 0px 0px 0px'
-      }
+      { threshold: 0 }
     );
 
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
-      console.log("Starting to observe load more element");
       observer.observe(currentLoadMoreRef);
     }
 
