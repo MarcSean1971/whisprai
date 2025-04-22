@@ -44,17 +44,7 @@ export default function Chat() {
 }
 
 function ChatContent({ conversationId }: { conversationId: string }) {
-  // This now destructures messages, isLoading, error and adds fetchNextPage, hasNextPage
-  const { 
-    messages, 
-    isLoading, 
-    error, 
-    refetch, 
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage
-  } = useMessages(conversationId);
-  
+  const { data: messages = [], isLoading, error, refetch } = useMessages(conversationId);
   const { profile, isLoading: isLoadingProfile } = useProfile();
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
@@ -161,9 +151,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
               replyToMessageId={replyToMessageId}
               sendReply={sendReply}
               cancelReply={cancelReply}
-              refetch={fetchNextPage}
-              hasNextPage={hasNextPage}
-              isFetchingNextPage={isFetchingNextPage}
+              refetch={refetch}
             />
           </Suspense>
         </ErrorBoundary>
