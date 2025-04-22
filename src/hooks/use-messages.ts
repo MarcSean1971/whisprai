@@ -59,9 +59,11 @@ export function useMessages(conversationId: string) {
             }
           }
         )
-        .subscribe((status: string) => {
-          console.log(`Subscription status for messages:${conversationId}:`, status);
-          if (status === 'CHANNEL_ERROR') {
+        .subscribe((status) => {
+          // Instead of type annotation, we'll check the type at runtime
+          const statusString = typeof status === 'string' ? status : String(status);
+          console.log(`Subscription status for messages:${conversationId}:`, statusString);
+          if (statusString === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));
           }
         });
