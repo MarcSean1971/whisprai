@@ -43,23 +43,70 @@ export function useTodos() {
   const { data: todos, isLoading } = useQuery({
     queryKey: ['todos'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First fetch todos
+      const { data: todosData, error: todosError } = await supabase
         .from('todos')
-        .select(`
-          *,
-          messages (content),
-          profiles:profiles!todos_assigned_to_fkey(first_name, last_name)
-        `)
+        .select('*')
         .order('due_date', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching todos:', error);
-        throw error;
+      if (todosError) {
+        console.error('Error fetching todos:', todosError);
+        throw todosError;
       }
 
-      console.log('Fetched todos:', data);
+      // Then fetch profile data for each todo's assigned_to user
+      const userIds = [...new Set(todosData.map(todo => todo.assigned_to))];
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', userIds);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        // Don't throw, we'll just have todos without profile data
+      }
+
+      // Then fetch message data for each todo that has a message_id
+      const messageIds = [...new Set(todosData.filter(todo => todo.message_id).map(todo => todo.message_id))];
+      const { data: messagesData, error: messagesError } = await supabase
+        .from('messages')
+        .select('id, content')
+        .in('id', messageIds);
+
+      if (messagesError) {
+        console.error('Error fetching messages:', messagesError);
+        // Don't throw, we'll just have todos without message data
+      }
+
+      // Create maps for easier lookups
+      const profilesMap = (profilesData || []).reduce((acc, profile) => {
+        acc[profile.id] = profile;
+        return acc;
+      }, {} as Record<string, { id: string; first_name: string | null; last_name: string | null }>);
+
+      const messagesMap = (messagesData || []).reduce((acc, message) => {
+        acc[message.id] = message;
+        return acc;
+      }, {} as Record<string, { id: string; content: string }>);
+
+      // Combine data
+      const enrichedTodos = todosData.map(todo => {
+        const profileData = profilesMap[todo.assigned_to] || { first_name: null, last_name: null };
+        const messageData = todo.message_id ? messagesMap[todo.message_id] : null;
+
+        return {
+          ...todo,
+          messages: messageData ? { content: messageData.content } : null,
+          profiles: {
+            first_name: profileData.first_name,
+            last_name: profileData.last_name
+          }
+        };
+      });
+
+      console.log('Fetched todos:', enrichedTodos);
       
-      return data as (Todo & { 
+      return enrichedTodos as (Todo & { 
         profiles: { first_name: string | null; last_name: string | null } 
       })[];
     },
