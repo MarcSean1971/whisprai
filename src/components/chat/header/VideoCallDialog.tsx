@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/compone
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect } from "react";
+import { toast } from "sonner";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -23,12 +24,12 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
 
   useEffect(() => {
     if (open && roomId) {
-      console.log('Opening video call dialog with room ID:', roomId);
+      console.log('Opening video call dialog with validated room ID:', roomId);
     }
   }, [open, roomId]);
 
   const handleOpenChange = useCallback((newOpen: boolean) => {
-    console.log('Video call dialog open state changing to:', newOpen);
+    console.log('Video call dialog state changing to:', newOpen);
     if (!newOpen) {
       console.log('Closing video call dialog, room ID was:', roomId);
     }
@@ -37,6 +38,9 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
 
   if (!roomId) {
     console.error('No room ID provided to VideoCallDialog');
+    toast.error("Unable to join video call", {
+      description: "Missing room information"
+    });
     return null;
   }
 

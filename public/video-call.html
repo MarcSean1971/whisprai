@@ -20,6 +20,13 @@
       justify-content: center;
       overflow: hidden;
     }
+    .error-message {
+      color: white;
+      text-align: center;
+      padding: 20px;
+      max-width: 80%;
+      margin: 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -37,46 +44,80 @@
 
       const params = getUrlParams(window.location.href);
       const roomID = params.roomID;
+      
       if (!roomID) {
-        document.getElementById('root').innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Error: Invalid room ID</div>';
+        document.getElementById('root').innerHTML = '<div class="error-message">Error: Invalid room ID</div>';
         console.error('No room ID provided in URL parameters');
         return;
       }
 
-      const userName = decodeURIComponent(params.userName || 'User');
-      console.log('Joining room:', roomID, 'as user:', userName);
-      
+      console.log('Joining video call:', {
+        roomID,
+        userName: params.userName || 'User'
+      });
+
       const appID = 1434909122;
       const serverSecret = "09ac9895118c3bea1f15d8d23dce3d5a";
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userName, userName);
+      
+      try {
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+          appID, 
+          serverSecret, 
+          roomID,
+          Date.now().toString(),
+          params.userName || 'User'
+        );
 
-      console.log('Generated kit token for room:', roomID);
+        console.log('Generated kit token, attempting to join room:', roomID);
 
-      const zp = ZegoUIKitPrebuilt.create(kitToken);
-      zp.joinRoom({
-        container: document.querySelector("#root"),
-        sharedLinks: [{
-          name: 'Personal link',
-          url: window.location.protocol + '//' + window.location.host + window.location.pathname + '?roomID=' + roomID,
-        }],
-        scenario: {
-          mode: ZegoUIKitPrebuilt.VideoConference,
-        },
-        showMyCameraToggleButton: true,
-        showMyMicrophoneToggleButton: true,
-        showAudioVideoSettingsButton: true,
-        showScreenSharingButton: true,
-        showTextChat: true,
-        showUserList: true,
-        maxUsers: 2,
-        layout: "Auto",
-        showLayoutButton: false,
-        turnOnMicrophoneWhenJoining: true,
-        turnOnCameraWhenJoining: true,
-        useFrontFacingCamera: true,
-        videoResolutionDefault: "360p",
-        aspectRatio: window.innerWidth > window.innerHeight ? 16/9 : 3/4,
-      });
+        const zp = ZegoUIKitPrebuilt.create(kitToken);
+        zp.joinRoom({
+          container: document.querySelector("#root"),
+          sharedLinks: [{
+            name: 'Copy link',
+            url: window.location.protocol + '//' + window.location.host + window.location.pathname + '?roomID=' + roomID,
+          }],
+          scenario: {
+            mode: ZegoUIKitPrebuilt.VideoConference,
+          },
+          showMyCameraToggleButton: true,
+          showMyMicrophoneToggleButton: true,
+          showAudioVideoSettingsButton: true,
+          showScreenSharingButton: true,
+          showTextChat: true,
+          showUserList: true,
+          maxUsers: 2,
+          layout: "Auto",
+          showLayoutButton: false,
+          turnOnMicrophoneWhenJoining: true,
+          turnOnCameraWhenJoining: true,
+          useFrontFacingCamera: true,
+          videoResolutionDefault: "360p",
+          aspectRatio: window.innerWidth > window.innerHeight ? 16/9 : 3/4,
+          onJoinRoom: (room) => {
+            console.log('Successfully joined room:', room);
+          },
+          onError: (error) => {
+            console.error('Error in video call:', error);
+            document.getElementById('root').innerHTML = `
+              <div class="error-message">
+                <h3>Failed to join video call</h3>
+                <p>Error code: ${error.code}</p>
+                <p>Please try again or contact support if the issue persists.</p>
+              </div>
+            `;
+          }
+        });
+      } catch (error) {
+        console.error('Failed to initialize video call:', error);
+        document.getElementById('root').innerHTML = `
+          <div class="error-message">
+            <h3>Failed to initialize video call</h3>
+            <p>${error.message || 'An unexpected error occurred'}</p>
+            <p>Please try again or contact support if the issue persists.</p>
+          </div>
+        `;
+      }
     }
   </script>
 </body>
