@@ -37,8 +37,11 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
     sendInvitation,
     respondInvitation: useCallback(async (id: string, accepted: boolean) => {
       const ok = await respondInvitation(id, accepted);
-      setInvitation(null);
-      setOutgoingInvitation(null);
+      // Only clear invites if rejected. If accepted, let the real-time update propagate and control dialog/window.
+      if (!accepted) {
+        setInvitation(null);
+        setOutgoingInvitation(null);
+      }
       return ok;
     }, [respondInvitation, setInvitation, setOutgoingInvitation]),
     cancelOutgoing,
