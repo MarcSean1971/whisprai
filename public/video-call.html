@@ -20,6 +20,17 @@
       overflow: hidden;
       position: relative;
     }
+    .error-message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.1);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      text-align: center;
+      color: #ef4444;
+    }
   </style>
 </head>
 <body>
@@ -27,7 +38,7 @@
 
   <script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
   <script>
-    window.onload = function () {
+    window.onload = async function () {
       function getUrlParams(url) {
         let urlStr = url.split('?')[1];
         const urlSearchParams = new URLSearchParams(urlStr);
@@ -35,53 +46,74 @@
         return result;
       }
 
-      const params = getUrlParams(window.location.href);
-      const roomID = params.roomID || (Math.floor(Math.random() * 10000) + "");
-      const userName = decodeURIComponent(params.userName || 'User');
-      const appID = 1434909122;
-      const serverSecret = "09ac9895118c3bea1f15d8d23dce3d5a";
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userName, userName);
-
-      const zp = ZegoUIKitPrebuilt.create(kitToken);
-      
-      function updateAspectRatio() {
-        const container = document.querySelector("#root");
-        const aspectRatio = container.offsetWidth > container.offsetHeight ? 16/9 : 3/4;
-        return aspectRatio;
-      }
-
-      zp.joinRoom({
-        container: document.querySelector("#root"),
-        sharedLinks: [{
-          name: 'Personal link',
-          url: window.location.protocol + '//' + window.location.host + window.location.pathname + '?roomID=' + roomID,
-        }],
-        scenario: {
-          mode: ZegoUIKitPrebuilt.VideoConference,
-        },
-        showMyCameraToggleButton: true,
-        showMyMicrophoneToggleButton: true,
-        showAudioVideoSettingsButton: true,
-        showScreenSharingButton: true,
-        showTextChat: true,
-        showUserList: true,
-        maxUsers: 2,
-        layout: "Auto",
-        showLayoutButton: false,
-        turnOnMicrophoneWhenJoining: true,
-        turnOnCameraWhenJoining: true,
-        useFrontFacingCamera: true,
-        videoResolutionDefault: "360p",
-        aspectRatio: updateAspectRatio(),
-      });
-
-      // Update aspect ratio when window resizes
-      window.addEventListener('resize', () => {
-        const container = document.querySelector("#root");
-        if (container && zp) {
-          zp.setAspectRatio(updateAspectRatio());
+      try {
+        const params = getUrlParams(window.location.href);
+        const roomID = params.roomID;
+        
+        if (!roomID) {
+          throw new Error('Room ID is required');
         }
-      });
+
+        const userName = decodeURIComponent(params.userName || 'User');
+        // Production ZegoCloud credentials
+        const appID = 1434909122;
+        const serverSecret = "09ac9895118c3bea1f15d8d23dce3d5a";
+        
+        console.log('Joining room:', { roomID, userName });
+        
+        const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
+          appID,
+          serverSecret,
+          roomID,
+          userName,
+          userName
+        );
+
+        const zp = ZegoUIKitPrebuilt.create(kitToken);
+        
+        function updateAspectRatio() {
+          const container = document.querySelector("#root");
+          const aspectRatio = container.offsetWidth > container.offsetHeight ? 16/9 : 3/4;
+          return aspectRatio;
+        }
+
+        await zp.joinRoom({
+          container: document.querySelector("#root"),
+          scenario: {
+            mode: ZegoUIKitPrebuilt.VideoConference,
+          },
+          showMyCameraToggleButton: true,
+          showMyMicrophoneToggleButton: true,
+          showAudioVideoSettingsButton: true,
+          showScreenSharingButton: true,
+          showTextChat: true,
+          showUserList: true,
+          maxUsers: 2,
+          layout: "Auto",
+          showLayoutButton: false,
+          turnOnMicrophoneWhenJoining: true,
+          turnOnCameraWhenJoining: true,
+          useFrontFacingCamera: true,
+          videoResolutionDefault: "360p",
+          aspectRatio: updateAspectRatio(),
+        });
+
+        // Update aspect ratio when window resizes
+        window.addEventListener('resize', () => {
+          const container = document.querySelector("#root");
+          if (container && zp) {
+            zp.setAspectRatio(updateAspectRatio());
+          }
+        });
+
+      } catch (error) {
+        console.error('Error joining video call:', error);
+        const rootElement = document.querySelector("#root");
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = `Failed to join video call: ${error.message}`;
+        rootElement.appendChild(errorMessage);
+      }
     }
   </script>
 </body>

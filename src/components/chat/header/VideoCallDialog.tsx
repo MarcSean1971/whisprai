@@ -20,6 +20,8 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
     recipientName: recipientName || 'Recipient'
   }).toString();
 
+  console.log('Opening video call with params:', { roomId, userName, recipientName });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
