@@ -2,12 +2,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <style>
     html, body {
       margin: 0;
       padding: 0;
       height: 100%;
       overflow: hidden;
+      background: #000;
     }
     #root {
       width: 100%;
@@ -29,12 +31,12 @@
         return result;
       }
 
-      const roomID = getUrlParams(window.location.href)['roomID'] || (Math.floor(Math.random() * 10000) + "");
-      const userID = Math.floor(Math.random() * 10000) + "";
-      const userName = "userName" + userID;
+      const params = getUrlParams(window.location.href);
+      const roomID = params.roomID || (Math.floor(Math.random() * 10000) + "");
+      const userName = decodeURIComponent(params.userName || 'User');
       const appID = 1434909122;
       const serverSecret = "09ac9895118c3bea1f15d8d23dce3d5a";
-      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userID, userName);
+      const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userName, userName);
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
       zp.joinRoom({
@@ -46,8 +48,6 @@
         scenario: {
           mode: ZegoUIKitPrebuilt.VideoConference,
         },
-        turnOnMicrophoneWhenJoining: true,
-        turnOnCameraWhenJoining: true,
         showMyCameraToggleButton: true,
         showMyMicrophoneToggleButton: true,
         showAudioVideoSettingsButton: true,
@@ -57,9 +57,13 @@
         maxUsers: 2,
         layout: "Auto",
         showLayoutButton: false,
+        turnOnMicrophoneWhenJoining: true,
+        turnOnCameraWhenJoining: true,
+        useFrontFacingCamera: true,
+        videoResolutionDefault: "360p",
+        aspectRatio: window.innerWidth > window.innerHeight ? 16/9 : 3/4,
       });
     }
   </script>
 </body>
 </html>
-
