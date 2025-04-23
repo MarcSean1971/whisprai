@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { FileAttachment } from "./message-input/FileAttachment";
 import { MessageSuggestions } from "./message-input/MessageSuggestions";
 import { MessageControls } from "./message-input/MessageControls";
+import { cn } from "@/utils/cn";
 
 interface MessageInputProps {
   onSendMessage: (
@@ -146,7 +147,10 @@ export function MessageInput({
   };
 
   return (
-    <div className={className}>
+    <div className={cn(
+      "w-full bg-background",
+      className
+    )}>
       <input 
         type="file" 
         multiple
