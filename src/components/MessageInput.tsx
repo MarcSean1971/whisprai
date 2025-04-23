@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { FileAttachment } from "./message-input/FileAttachment";
 import { MessageSuggestions } from "./message-input/MessageSuggestions";
 import { MessageControls } from "./message-input/MessageControls";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
 interface MessageInputProps {
   onSendMessage: (
