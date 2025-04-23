@@ -8,14 +8,21 @@ export function useRespondToVideoCallInvitation() {
   const respondInvitation = useCallback(
     async (id: string, accepted: boolean) => {
       setLoading(true);
-      const { error } = await supabase
-        .from("video_call_invitations")
-        .update({
-          status: accepted ? "accepted" : "rejected",
-        })
-        .eq("id", id);
-      setLoading(false);
-      return !error;
+      try {
+        const { error } = await supabase
+          .from("video_call_invitations")
+          .update({
+            status: accepted ? "accepted" : "rejected",
+          })
+          .eq("id", id);
+        
+        setLoading(false);
+        return !error;
+      } catch (err) {
+        console.error("Error responding to invitation:", err);
+        setLoading(false);
+        return false;
+      }
     },
     []
   );

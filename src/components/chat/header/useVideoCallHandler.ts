@@ -42,6 +42,9 @@ export function useVideoCallHandler(conversationId: string) {
     (outgoingInvitation && outgoingInvitation.status === "accepted");
 
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  
+  // Track if we've explicitly accepted a call to prevent false cancellation messages
+  const [hasExplicitlyAccepted, setHasExplicitlyAccepted] = useState(false);
 
   // Handles video dialog opening when call is accepted
   useEffect(() => {
@@ -52,29 +55,37 @@ export function useVideoCallHandler(conversationId: string) {
     }
   }, [callAccepted]);
 
-  // --- Fix: Only close dialog (and show cancellation toast) when invitation is REMOVED (not just accepted!) ---
+  // Only track true cancellations, not transitions to accepted state
   const prevInviteDialogOpen = useRef(inviteDialogOpen);
+  const prevInvitation = useRef(invitation);
 
   useEffect(() => {
-    // Only react if the dialog was open and now it's closed, and invitation was REMOVED (not just accepted)
-    if (prevInviteDialogOpen.current && !inviteDialogOpen) {
-      if (
-        // Invitation is now null (cancelled or deleted remotely)
-        invitation === null
-      ) {
+    // We only care about the case where:
+    // 1. Dialog was previously open
+    // 2. Dialog is now closed
+    // 3. This is NOT due to an acceptance (we check hasExplicitlyAccepted)
+    if (prevInviteDialogOpen.current && !inviteDialogOpen && !hasExplicitlyAccepted) {
+      // The invitation disappeared (was null or deleted) and was NOT due to our acceptance
+      if (invitation === null && prevInvitation.current !== null) {
         toast.info("The caller has cancelled the video call invitation.");
         clear();
         setVideoDialogOpen(false);
       }
-      // If invitation exists and is accepted, DO NOT close anything here!
     }
+    
+    // Reset the acceptance flag when the invitation changes
+    if (invitation !== prevInvitation.current) {
+      setHasExplicitlyAccepted(false);
+    }
+    
     prevInviteDialogOpen.current = inviteDialogOpen;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inviteDialogOpen, invitation]);
+    prevInvitation.current = invitation;
+  }, [inviteDialogOpen, invitation, clear, hasExplicitlyAccepted]);
 
   const handleCloseCallDialog = () => {
     setVideoDialogOpen(false);
     clear();
+    setHasExplicitlyAccepted(false);
   };
 
   const handleStartCall = async () => {
@@ -91,11 +102,21 @@ export function useVideoCallHandler(conversationId: string) {
 
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
-    const success = await respondInvitation(invitation.id, accept);
-    if (accept && success) {
-      // Video dialog will open via effect above (callAccepted = true)
-      // No need to clear or close here.
-    } else if (!accept) {
+    
+    if (accept) {
+      // Mark that we've explicitly accepted to prevent showing cancellation toast
+      setHasExplicitlyAccepted(true);
+      const success = await respondInvitation(invitation.id, true);
+      if (success) {
+        toast.success("Call accepted");
+        // Video dialog will open via the callAccepted effect
+      } else {
+        toast.error("Failed to accept call");
+        setHasExplicitlyAccepted(false);
+      }
+    } else {
+      // For rejections, continue with existing behavior
+      await respondInvitation(invitation.id, false);
       toast.info("Video call invitation rejected");
       clear();
       setVideoDialogOpen(false);
