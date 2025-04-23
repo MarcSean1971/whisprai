@@ -48,9 +48,10 @@ export function ChatHeader({
       )}
     >
       <div 
-        className="flex items-center justify-between p-4"
+        className="flex items-center justify-between px-4 py-2"
         style={{
-          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 1rem)' : '1rem'
+          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 0.5rem)' : '0.5rem',
+          paddingBottom: '0.5rem'
         }}
       >
         <div className="flex items-center gap-4">
