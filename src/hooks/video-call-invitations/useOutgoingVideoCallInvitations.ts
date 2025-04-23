@@ -27,6 +27,7 @@ export function useOutgoingVideoCallInvitations(conversationId: string, profileI
             data?.sender_id === profileId &&
             data?.conversation_id === conversationId
           ) {
+            // Only show if the status is 'pending'
             if (
               (payload.eventType === "INSERT" || payload.eventType === "UPDATE") &&
               data.status === "pending"
