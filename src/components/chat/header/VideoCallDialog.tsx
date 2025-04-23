@@ -4,6 +4,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { useCallback, useEffect } from "react";
 import { toast } from "sonner";
+import { X } from "lucide-react";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -48,10 +49,10 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn(
-          "p-0 overflow-hidden bg-background",
+          "bg-background/95 backdrop-blur-lg p-0 overflow-hidden",
           isMobile 
             ? "fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none border-0" 
-            : "w-[90vw] h-[80vh] max-w-5xl"
+            : "w-[1024px] h-[600px] max-w-[90vw] max-h-[80vh]"
         )}
         style={{
           transform: isMobile ? 'none' : undefined,
@@ -67,6 +68,19 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
         <DialogDescription className="sr-only">
           You are in an active video call with {recipientName}.
         </DialogDescription>
+        
+        {/* Close button wrapper */}
+        <div className="absolute right-4 top-4 z-50">
+          <button
+            onClick={() => handleOpenChange(false)}
+            className="rounded-full p-2 bg-background/80 hover:bg-background/90 transition-colors"
+            aria-label="Close video call"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Video content */}
         <div className="w-full h-full">
           <iframe
             src={`/video-call.html?${userParams}`}
