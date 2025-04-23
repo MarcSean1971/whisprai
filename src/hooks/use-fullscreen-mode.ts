@@ -10,6 +10,21 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
   const isMobile = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
   
+  const exitFullscreen = useCallback(() => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen()
+        .then(() => {
+          setIsFullscreen(false);
+          if ('wakeLock' in navigator) {
+            // Release wake lock if it exists
+            (navigator as any).wakeLock.release?.()
+              .catch(err => console.error('Wake Lock release error:', err));
+          }
+        })
+        .catch(err => console.error('Error attempting to exit fullscreen:', err));
+    }
+  }, []);
+
   const requestFullscreen = useCallback(() => {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen()
@@ -26,7 +41,10 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
 
   useEffect(() => {
     // Only enable fullscreen if explicitly enabled AND on mobile
-    if (!enabled || !isMobile) return;
+    if (!enabled || !isMobile) {
+      exitFullscreen();
+      return;
+    }
     
     const enableFullscreen = () => {
       requestFullscreen();
@@ -37,19 +55,22 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
     enableFullscreen();
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && isMobile) {
         enableFullscreen();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
+    // Cleanup function
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.body.style.overflow = '';
       document.body.style.overscrollBehavior = '';
+      exitFullscreen();
     };
-  }, [isMobile, requestFullscreen, enabled]);
+  }, [isMobile, requestFullscreen, exitFullscreen, enabled]);
 
   return { isFullscreen };
 }
+
