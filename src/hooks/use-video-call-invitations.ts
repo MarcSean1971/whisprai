@@ -1,10 +1,12 @@
-import { useCallback, useEffect } from "react";
+
+import { useCallback } from "react";
 import { useIncomingVideoCallInvitations } from "./video-call-invitations/useIncomingVideoCallInvitations";
 import { useOutgoingVideoCallInvitations } from "./video-call-invitations/useOutgoingVideoCallInvitations";
 import { useSendVideoCallInvitation } from "./video-call-invitations/useSendVideoCallInvitation";
 import { useRespondToVideoCallInvitation } from "./video-call-invitations/useRespondToVideoCallInvitation";
 import { useCancelOutgoingInvitation } from "./video-call-invitations/useCancelOutgoingInvitation";
-import { supabase } from "@/integrations/supabase/client";
+import { useExpiredInvitationsCleanup } from "./video-call-invitations/useExpiredInvitationsCleanup";
+import { useClearVideoCallInvitations } from "./video-call-invitations/useClearVideoCallInvitations";
 
 export interface VideoCallInvitation {
   id: string;
@@ -24,23 +26,10 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
   const { respondInvitation, loading: respondLoading, setLoading: setRespondLoading } = useRespondToVideoCallInvitation();
   const { cancelOutgoing, loading: cancelLoading, setLoading: setCancelLoading } = useCancelOutgoingInvitation(setOutgoingInvitation);
 
+  useExpiredInvitationsCleanup(profileId);
+  const clear = useClearVideoCallInvitations(setInvitation, setOutgoingInvitation);
+
   const loading = sendLoading || respondLoading || cancelLoading;
-
-  useEffect(() => {
-    const cleanExpired = async () => {
-      if (!profileId) return;
-      await supabase
-        .from("video_call_invitations")
-        .delete()
-        .lt("expires_at", new Date().toISOString());
-    };
-    cleanExpired();
-  }, [profileId]);
-
-  const clear = useCallback(() => {
-    setInvitation(null);
-    setOutgoingInvitation(null);
-  }, [setInvitation, setOutgoingInvitation]);
 
   return {
     invitation, // incoming
