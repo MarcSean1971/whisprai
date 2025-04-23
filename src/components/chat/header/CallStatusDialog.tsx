@@ -1,3 +1,4 @@
+
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Loader2, Phone, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,9 @@ export function CallStatusDialog({
 }: CallStatusDialogProps) {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent 
+      <DialogContent
         className={cn(
-          "fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]", 
+          // Remove fixed/left/top/translate classes -- use only width, rounded, colors, etc for the content; Dialog will center
           "max-w-xs w-full px-6 py-8 rounded-lg shadow-lg text-center animate-fade-in bg-primary text-primary-foreground relative ring-2 ring-primary"
         )}
       >
