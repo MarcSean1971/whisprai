@@ -1,23 +1,24 @@
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
 
-// HUGELY simplified: No side effects, no toasts, just logic
+// Handles state and actions for video call invitations/dialogs
 export function useVideoCallHandler(conversationId: string) {
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
 
   const recipient = useMemo(() => {
     if (!conversation || !profile) return null;
-    return (conversation.participants || []).find(p => p.id !== profile.id);
+    return (conversation.participants || []).find((p) => p.id !== profile.id) || null;
   }, [conversation, profile]);
 
+  // Unique roomId
   const roomId = useMemo(() => {
     const convoId = conversation?.id ?? "room";
     if (profile && recipient) {
-      return `${convoId.substr(0, 8)}_${profile.id.substr(0, 8)}_${recipient.id.substr(0, 8)}`;
+      return `${convoId.substring(0, 8)}_${profile.id.substring(0, 8)}_${recipient.id.substring(0, 8)}`;
     }
     return convoId;
   }, [conversation, profile, recipient]);
@@ -29,61 +30,44 @@ export function useVideoCallHandler(conversationId: string) {
     respondInvitation,
     cancelOutgoing,
     loading: inviteLoading,
-    clear
+    clear,
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
-  // Track if video call dialog should be open
-  let videoDialogOpen = false;
-  let videoDialogRoomId = roomId;
-  if (invitation && invitation.status === "accepted") {
-    videoDialogOpen = true;
-    videoDialogRoomId = invitation.room_id;
-  }
-  if (outgoingInvitation && outgoingInvitation.status === "accepted") {
-    videoDialogOpen = true;
-    videoDialogRoomId = outgoingInvitation.room_id;
-  }
-
-  // Very simple state for answering or calling
+  // Call is shown if there is an outgoing or incoming pending invitation
   const outgoingPending = !!outgoingInvitation && outgoingInvitation.status === "pending";
   const incomingPending = !!invitation && invitation.status === "pending";
 
-  // Instantly send invitation
+  // Start a call (send invite)
   const handleStartCall = async () => {
     if (!recipient?.id) return;
     await sendInvitation(recipient.id, roomId);
   };
 
-  // Instantly respond to invitation
+  // Respond to invite (accept or reject)
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
     await respondInvitation(invitation.id, accept);
     if (!accept) clear();
   };
 
+  // Cancel outgoing call
   const handleCancelOutgoing = async () => {
     if (!outgoingInvitation) return;
     await cancelOutgoing(outgoingInvitation.id);
     clear();
   };
 
-  const handleCloseCallDialog = () => {
-    clear();
-  };
-
+  // API for parent
   return {
-    videoDialogOpen,
-    videoDialogRoomId,
-    inviteLoading,
-    incomingPending,
-    outgoingPending,
     recipient,
-    conversation,
-    handleCloseCallDialog,
+    invitation,
+    outgoingInvitation,
     handleStartCall,
     handleRespondInvite,
     handleCancelOutgoing,
-    invitation,
-    outgoingInvitation
+    inviteLoading,
+    outgoingPending,
+    incomingPending,
+    conversation,
   };
 }
