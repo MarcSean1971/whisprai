@@ -9,50 +9,48 @@ export function useFullscreenMode() {
   const requestFullscreen = useCallback(() => {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen()
-        .then(() => setIsFullscreen(true))
+        .then(() => {
+          setIsFullscreen(true);
+          // Request wake lock to prevent screen from dimming
+          if ('wakeLock' in navigator) {
+            (navigator as any).wakeLock.request('screen')
+              .catch(err => console.error('Wake Lock error:', err));
+          }
+        })
         .catch(err => console.error('Error attempting to enable fullscreen:', err));
-    }
-  }, []);
-
-  const exitFullscreen = useCallback(() => {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen()
-        .then(() => setIsFullscreen(false))
-        .catch(err => console.error('Error attempting to exit fullscreen:', err));
     }
   }, []);
 
   useEffect(() => {
     if (!isMobile) return;
-
-    let lastTouchTime = 0;
-    let timer: number;
-
-    const handleUserInteraction = () => {
-      lastTouchTime = Date.now();
+    
+    const enableFullscreen = () => {
       requestFullscreen();
-      
-      // Clear existing timer
-      if (timer) window.clearTimeout(timer);
-      
-      // Set new timer
-      timer = window.setTimeout(() => {
-        const timeSinceLastTouch = Date.now() - lastTouchTime;
-        if (timeSinceLastTouch > 3000) {
-          exitFullscreen();
-        }
-      }, 3000);
+      // Set body overflow to hidden to prevent bounce effect
+      document.body.style.overflow = 'hidden';
+      // Prevent pull-to-refresh
+      document.body.style.overscrollBehavior = 'none';
     };
 
-    document.addEventListener('touchstart', handleUserInteraction, { passive: true });
-    document.addEventListener('scroll', handleUserInteraction, { passive: true });
+    // Enable fullscreen on mount
+    enableFullscreen();
 
+    // Re-enable fullscreen on visibility change
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        enableFullscreen();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
     return () => {
-      document.removeEventListener('touchstart', handleUserInteraction);
-      document.removeEventListener('scroll', handleUserInteraction);
-      if (timer) window.clearTimeout(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
     };
-  }, [isMobile, requestFullscreen, exitFullscreen]);
+  }, [isMobile, requestFullscreen]);
 
   return { isFullscreen };
 }
+
