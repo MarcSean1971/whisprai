@@ -2,6 +2,7 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useCallback, useEffect } from "react";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -20,8 +21,27 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
     recipientName: recipientName || 'Recipient'
   }).toString();
 
+  useEffect(() => {
+    if (open && roomId) {
+      console.log('Opening video call dialog with room ID:', roomId);
+    }
+  }, [open, roomId]);
+
+  const handleOpenChange = useCallback((newOpen: boolean) => {
+    console.log('Video call dialog open state changing to:', newOpen);
+    if (!newOpen) {
+      console.log('Closing video call dialog, room ID was:', roomId);
+    }
+    onOpenChange(newOpen);
+  }, [onOpenChange, roomId]);
+
+  if (!roomId) {
+    console.error('No room ID provided to VideoCallDialog');
+    return null;
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className={cn(
           "p-0 overflow-hidden bg-background",

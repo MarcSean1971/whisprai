@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -35,11 +36,21 @@
       }
 
       const params = getUrlParams(window.location.href);
-      const roomID = params.roomID || (Math.floor(Math.random() * 10000) + "");
+      const roomID = params.roomID;
+      if (!roomID) {
+        document.getElementById('root').innerHTML = '<div style="color: white; text-align: center; padding: 20px;">Error: Invalid room ID</div>';
+        console.error('No room ID provided in URL parameters');
+        return;
+      }
+
       const userName = decodeURIComponent(params.userName || 'User');
+      console.log('Joining room:', roomID, 'as user:', userName);
+      
       const appID = 1434909122;
       const serverSecret = "09ac9895118c3bea1f15d8d23dce3d5a";
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userName, userName);
+
+      console.log('Generated kit token for room:', roomID);
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
       zp.joinRoom({
