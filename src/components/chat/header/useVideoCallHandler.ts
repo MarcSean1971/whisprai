@@ -1,5 +1,5 @@
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
@@ -50,28 +50,31 @@ export function useVideoCallHandler(conversationId: string) {
     } else {
       setVideoDialogOpen(false);
     }
-    // Only depend on callAccepted; all other changes are derived from it
   }, [callAccepted]);
 
-  // NEW: Handle remote invitation cancellation for the recipient
-  // If there is no pending invitation anymore but the dialog was open, close the dialog and show a toast
+  // --- FIX: Track previous open state and react to cancellation by caller only ---
+
+  const prevInviteDialogOpen = useRef(inviteDialogOpen);
+
   useEffect(() => {
-    if (!inviteDialogOpen) {
-      setVideoDialogOpen(false); // Just in case
-      // Only show the toast if there was an invitation before (i.e., dialog would be open)
-      // and now the invite is gone (i.e., canceled by the caller)
-      // So we need some tracking for this. We'll use a ref for "previous inviteDialogOpen"
-      // but, for simplicity, we'll just show the toast if the window closes due to cancelling.
-      // We'll assume that this effect only runs when inviteDialogOpen changes.
-      // Show the notification if invitation was previously pending and now gone or not pending.
-      // (Letting the toast be nonintrusive if this is due to accepted/rejected)
-      if (invitation === null || (invitation && invitation.status !== "pending")) {
+    // Only react if the dialog was open and now its closed
+    if (prevInviteDialogOpen.current && !inviteDialogOpen) {
+      // There was an incoming invitation popup, now it's gone.
+      // Only do the cancellation logic if the invitation has truly disappeared (cancelled by caller)
+      if (
+        // The invitation is now null: likely cancelled/deleted by caller
+        invitation === null
+        // Or invitation status is now not pending (can be "rejected" or "accepted")
+        // This covers rejections by the caller explicitly, but we want to react to any remote removal
+      ) {
         toast.info("The caller has cancelled the video call invitation.");
         clear();
+        setVideoDialogOpen(false);
       }
     }
+    prevInviteDialogOpen.current = inviteDialogOpen;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inviteDialogOpen]);
+  }, [inviteDialogOpen, invitation]);
 
   const handleCloseCallDialog = () => {
     setVideoDialogOpen(false);
