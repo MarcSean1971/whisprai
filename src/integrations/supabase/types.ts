@@ -63,50 +63,6 @@ export type Database = {
         }
         Relationships: []
       }
-      call_sessions: {
-        Row: {
-          call_type: string
-          caller_id: string
-          conversation_id: string
-          created_at: string
-          id: string
-          recipient_id: string
-          signaling_data: Json | null
-          status: string
-          updated_at: string
-        }
-        Insert: {
-          call_type?: string
-          caller_id: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          recipient_id: string
-          signaling_data?: Json | null
-          status: string
-          updated_at?: string
-        }
-        Update: {
-          call_type?: string
-          caller_id?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          recipient_id?: string
-          signaling_data?: Json | null
-          status?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "call_sessions_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "conversations"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       contact_requests: {
         Row: {
           created_at: string
@@ -464,6 +420,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      video_call_invitations: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          recipient_id: string
+          room_id: string
+          sender_id: string
+          status: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          recipient_id: string
+          room_id: string
+          sender_id: string
+          status?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          recipient_id?: string
+          room_id?: string
+          sender_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_call_invitations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
