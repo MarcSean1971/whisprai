@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { VideoCallDialog } from "./VideoCallDialog";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -51,8 +51,20 @@ export function ChatHeaderActions() {
     clear
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
-  // State to control which dialog to show for the user
-  // const [pendingRoomId, setPendingRoomId] = useState<string | null>(null); // eliminated, roomId comes with invitation(s)
+  // State to track previous invitation to show cancel toast on recipient side
+  const prevInvitationRef = useRef(invitation);
+
+  useEffect(() => {
+    // If we previously had a pending invitation and now it's gone, show "Call cancelled" toast
+    if (
+      prevInvitationRef.current &&
+      prevInvitationRef.current.status === "pending" &&
+      !invitation
+    ) {
+      toast.info("Call cancelled");
+    }
+    prevInvitationRef.current = invitation;
+  }, [invitation]);
 
   // Initiate a call: send an invite to recipient, show outgoing dialog
   const handleStartCall = async () => {
