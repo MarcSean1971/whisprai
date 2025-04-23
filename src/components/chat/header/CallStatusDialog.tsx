@@ -1,8 +1,9 @@
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Loader2, Phone, PhoneOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 
 interface CallStatusDialogProps {
   open: boolean;
@@ -29,10 +30,14 @@ export function CallStatusDialog({
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         className={cn(
-          // Remove fixed/left/top/translate classes -- use only width, rounded, colors, etc for the content; Dialog will center
-          "max-w-xs w-full px-6 py-8 rounded-lg shadow-lg text-center animate-fade-in bg-primary text-primary-foreground relative ring-2 ring-primary"
+          "max-w-xs w-full px-6 py-8 rounded-lg shadow-lg text-center bg-primary text-primary-foreground relative ring-2 ring-primary"
         )}
+        aria-describedby="call-status-description"
       >
+        <DialogTitle className="sr-only">
+          {type === "dialing" ? "Outgoing Call" : "Incoming Call"}
+        </DialogTitle>
+        
         <div className="flex flex-col items-center gap-3">
           <div className="mb-2 flex items-center justify-center gap-2">
             <Phone className="h-5 w-5 animate-pulse" />
@@ -40,7 +45,7 @@ export function CallStatusDialog({
               {type === "dialing" ? "Calling..." : "Incoming Call"}
             </span>
           </div>
-          <div className="mb-4 text-base">
+          <div id="call-status-description" className="mb-4 text-base">
             {type === "dialing" ? (
               <>
                 Waiting for <b>{name}</b> to answer.
