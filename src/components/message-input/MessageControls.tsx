@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AttachmentControls } from "./controls/AttachmentControls";
 import { EnhanceButton } from "./controls/EnhanceButton";
@@ -37,25 +36,22 @@ export function MessageControls({
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
 
-  // Analyze toxicity when message changes
   useEffect(() => {
     if (message.trim()) {
       const timeoutId = setTimeout(() => {
         analyzeToxicity(message);
-      }, 500); // Debounce to avoid too many API calls
+      }, 500);
 
       return () => clearTimeout(timeoutId);
     }
   }, [message, analyzeToxicity]);
 
-  // Update last toxicity score when current score changes
   useEffect(() => {
     if (toxicityScore > 0) {
       setLastToxicityScore(toxicityScore);
     }
   }, [toxicityScore]);
 
-  // Utility function to get button style based on toxicity score
   const getButtonStyle = () => {
     if (!message.trim()) {
       if (lastToxicityScore > 0) {
@@ -124,7 +120,7 @@ export function MessageControls({
   return (
     <>
       <form onSubmit={handleSubmit} className="flex gap-1 md:gap-2 items-center relative">
-        <div className="flex gap-0.5 md:gap-1">
+        <div className="flex gap-0 md:gap-1 items-center">
           <AttachmentControls
             onAttachmentClick={onAttachmentClick}
             onCameraClick={onCameraClick}
