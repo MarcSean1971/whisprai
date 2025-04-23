@@ -7,6 +7,7 @@ import { useRespondToVideoCallInvitation } from "./video-call-invitations/useRes
 import { useCancelOutgoingInvitation } from "./video-call-invitations/useCancelOutgoingInvitation";
 import { useExpiredInvitationsCleanup } from "./video-call-invitations/useExpiredInvitationsCleanup";
 import { useClearVideoCallInvitations } from "./video-call-invitations/useClearVideoCallInvitations";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface VideoCallInvitation {
   id: string;
@@ -22,17 +23,24 @@ export interface VideoCallInvitation {
 export function useVideoCallInvitations(conversationId: string, profileId: string | null) {
   const { invitation, setInvitation } = useIncomingVideoCallInvitations(conversationId, profileId);
   const { outgoingInvitation, setOutgoingInvitation } = useOutgoingVideoCallInvitations(conversationId, profileId);
-  const { sendInvitation, loading: sendLoading, setLoading: setSendLoading } = useSendVideoCallInvitation(conversationId, profileId);
-  const { respondInvitation, loading: respondLoading, setLoading: setRespondLoading } = useRespondToVideoCallInvitation();
-  const { cancelOutgoing, loading: cancelLoading, setLoading: setCancelLoading } = useCancelOutgoingInvitation(setOutgoingInvitation);
+  const { sendInvitation, loading: sendLoading } = useSendVideoCallInvitation(conversationId, profileId);
+  const { respondInvitation, loading: respondLoading } = useRespondToVideoCallInvitation();
+  const { cancelOutgoing, loading: cancelLoading } = useCancelOutgoingInvitation(setOutgoingInvitation);
 
   useExpiredInvitationsCleanup(profileId);
   const clear = useClearVideoCallInvitations(setInvitation, setOutgoingInvitation);
 
+  const endCall = useCallback(async (id: string) => {
+    await supabase
+      .from("video_call_invitations")
+      .update({ status: "ended" })
+      .eq("id", id);
+  }, []);
+
   const loading = sendLoading || respondLoading || cancelLoading;
 
   return {
-    invitation, 
+    invitation,
     outgoingInvitation,
     sendInvitation,
     respondInvitation: useCallback(async (id: string, accepted: boolean) => {
@@ -46,5 +54,6 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
     cancelOutgoing,
     loading,
     clear,
+    endCall
   };
 }

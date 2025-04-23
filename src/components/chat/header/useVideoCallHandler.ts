@@ -30,6 +30,7 @@ export function useVideoCallHandler(conversationId: string) {
     cancelOutgoing,
     loading: inviteLoading,
     clear,
+    endCall
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
   const outgoingPending = !!outgoingInvitation && outgoingInvitation.status === "pending";
@@ -60,7 +61,12 @@ export function useVideoCallHandler(conversationId: string) {
     clear();
   };
 
-  const handleCloseVideoCall = () => {
+  const handleCloseVideoCall = async () => {
+    if (invitation) {
+      await endCall(invitation.id);
+    } else if (outgoingInvitation) {
+      await endCall(outgoingInvitation.id);
+    }
     setShowVideoCall(false);
     clear();
   };
