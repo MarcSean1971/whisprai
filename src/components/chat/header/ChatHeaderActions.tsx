@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Video } from "lucide-react";
@@ -31,7 +30,6 @@ export function ChatHeaderActions() {
     return (conversation.participants || []).find(p => p.id !== profile.id);
   }, [conversation, profile]);
 
-  // Unique room id for this video call
   const roomId = useMemo(() => {
     const convoId = conversation?.id ?? "whispr123";
     if (profile && recipient) {
@@ -40,7 +38,6 @@ export function ChatHeaderActions() {
     return convoId;
   }, [conversation, profile, recipient]);
 
-  // Video call invitation logic
   const {
     invitation,
     outgoingInvitation,
@@ -51,25 +48,32 @@ export function ChatHeaderActions() {
     clear
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
-  // State to track previous invitation to show cancel toast on recipient side
   const prevInvitationRef = useRef(invitation);
 
   useEffect(() => {
-    // If we previously had a pending invitation and now it's gone, show "Call cancelled" toast
+    console.log(
+      "[VideoCall][HeaderActions] (INVITATION HOOK STATE)",
+      {
+        invitation,
+        outgoingInvitation
+      }
+    );
+  }, [invitation, outgoingInvitation]);
+
+  useEffect(() => {
     if (
       prevInvitationRef.current &&
       prevInvitationRef.current.status === "pending" &&
       !invitation
     ) {
       toast.info("Call cancelled");
+      console.log("[VideoCall][HeaderActions] Call cancelled toast shown");
     }
     prevInvitationRef.current = invitation;
   }, [invitation]);
 
-  // Whether call invite dialog should be open (source of truth: invitation is pending)
   const inviteDialogOpen = !!invitation && invitation.status === "pending";
 
-  // Initiate a call: send an invite to recipient, show outgoing dialog
   const handleStartCall = async () => {
     if (!recipient?.id) {
       toast.error("No recipient found for call");
@@ -77,13 +81,11 @@ export function ChatHeaderActions() {
     }
     try {
       await sendInvitation(recipient.id, roomId);
-      // The outgoing "Calling..." dialog will be triggered by outgoingInvitation state
     } catch (err) {
       toast.error("Failed to send video call invitation");
     }
   };
 
-  // Accept/reject a received invite (only receiver will see this)
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
     const success = await respondInvitation(invitation.id, accept);
@@ -91,28 +93,24 @@ export function ChatHeaderActions() {
       setShowVideoCall(true);
     } else if (!accept) {
       toast.info("Video call invitation rejected");
-      clear(); // always clear unused invitation state to trigger dialog close
+      clear();
       setShowVideoCall(false);
     }
   };
 
-  // When closing the VideoCallDialog, reset dialogs
   const handleCloseCallDialog = (open: boolean) => {
     setShowVideoCall(open);
     if (!open) clear();
   };
 
-  // Cancel call (sender only)
   const handleCancelOutgoing = async () => {
     if (!outgoingInvitation) return;
     await cancelOutgoing(outgoingInvitation.id);
     toast.info("Call cancelled");
-    clear(); // this clears both outgoing and potential incoming invitation state
+    clear();
     setShowVideoCall(false);
   };
 
-  // Listen for status changes to open the video dialog at the right time
-  // If I'm the sender and my outgoing invite turns "accepted", open the call screen
   const prevOutgoingStatus = useRef<string | null>(null);
   if (
     outgoingInvitation &&

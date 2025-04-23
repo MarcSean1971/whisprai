@@ -22,7 +22,7 @@ export function useVideoCallInvitations(
   const [outgoingInvitation, setOutgoingInvitation] = useState<VideoCallInvitation | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Incoming subscriptions - am I the recipient?
+  // Incoming invitations (am I the recipient?)
   useEffect(() => {
     if (!conversationId || !profileId) return;
 
@@ -40,6 +40,13 @@ export function useVideoCallInvitations(
           const data = (payload.eventType === "DELETE"
             ? payload.old
             : payload.new) as VideoCallInvitation;
+          // Debug logs for all incoming invite events
+          console.log("[VideoCall][Invitations][INCOMING]", {
+            eventType: payload.eventType,
+            data,
+            conversationId,
+            profileId,
+          });
           if (
             data?.recipient_id === profileId &&
             data?.conversation_id === conversationId
@@ -50,18 +57,20 @@ export function useVideoCallInvitations(
               data.status === "pending"
             ) {
               setInvitation(data);
+              console.log("[VideoCall][Invitation] Incoming invitation set to", data);
             } else if (
               (payload.eventType === "UPDATE" && data.status !== "pending") ||
               payload.eventType === "DELETE"
             ) {
               setInvitation(null);
+              console.log("[VideoCall][Invitation] Incoming invitation CLEARED (cancelled or not pending)", data);
             }
           }
         }
       )
       .subscribe();
 
-    // Initial fetch for any pending incoming invite
+    // Initial fetch for pending invite
     const fetchInitial = async () => {
       const { data } = await supabase
         .from("video_call_invitations")
@@ -83,7 +92,7 @@ export function useVideoCallInvitations(
     };
   }, [conversationId, profileId]);
 
-  // Outgoing subscription - am I the sender?
+  // Outgoing invitations (am I the sender?)
   useEffect(() => {
     if (!conversationId || !profileId) return;
 
@@ -101,29 +110,37 @@ export function useVideoCallInvitations(
           const data = (payload.eventType === "DELETE"
             ? payload.old
             : payload.new) as VideoCallInvitation;
+          // Debug logs for outgoing invite events
+          console.log("[VideoCall][Invitations][OUTGOING]", {
+            eventType: payload.eventType,
+            data,
+            conversationId,
+            profileId,
+          });
           if (
             data?.sender_id === profileId &&
             data?.conversation_id === conversationId
           ) {
-            // Outgoing: Show "calling" while status pending, clear/cancel otherwise
             if (
               (payload.eventType === "INSERT" ||
                 payload.eventType === "UPDATE") &&
               data.status === "pending"
             ) {
               setOutgoingInvitation(data);
+              console.log("[VideoCall][Invitation] Outgoing invitation set to", data);
             } else if (
               (payload.eventType === "UPDATE" && data.status !== "pending") ||
               payload.eventType === "DELETE"
             ) {
               setOutgoingInvitation(null);
+              console.log("[VideoCall][Invitation] Outgoing invitation CLEARED (accepted/rejected/deleted)", data);
             }
           }
         }
       )
       .subscribe();
 
-    // Initial fetch for any outgoing pending invite
+    // Initial fetch for pending outgoing invite
     const fetchInitial = async () => {
       const { data } = await supabase
         .from("video_call_invitations")
@@ -189,9 +206,10 @@ export function useVideoCallInvitations(
     await supabase.from("video_call_invitations").delete().eq("id", id);
     setLoading(false);
     setOutgoingInvitation(null);
+    // Do NOT clear the incoming (setInvitation) here—this is intentionally handled in real time above!
   }, []);
 
-  // Clear expired invites on mount
+  // Clean expired invites on mount
   useEffect(() => {
     const cleanExpired = async () => {
       if (!profileId) return;
