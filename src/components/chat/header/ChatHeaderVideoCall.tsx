@@ -1,4 +1,3 @@
-
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallHandler } from "./useVideoCallHandler";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,6 @@ interface Props {
 
 export function ChatHeaderVideoCall({ conversationId }: Props) {
   const { profile } = useProfile();
-  const [showDialog, setShowDialog] = useState(false);
 
   // Use custom hook to manage invitations and status
   const {
@@ -32,9 +30,9 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
   } = useVideoCallHandler(conversationId);
 
   // If user is invited, show dialog (incoming)
-  const incoming = invitation && invitation.status === "pending";
+  const incoming = !!invitation && invitation.status === "pending";
   // If user is calling, show "dialing" dialog (outgoing)
-  const outgoing = outgoingInvitation && outgoingInvitation.status === "pending";
+  const outgoing = !!outgoingInvitation && outgoingInvitation.status === "pending";
 
   // Determine display name for recipient/sender
   const recipientName =
@@ -42,14 +40,13 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
       ? `${recipient.first_name} ${recipient.last_name}`
       : recipient?.first_name || "Recipient";
   const senderProfile =
-    conversation?.participants?.find((p) => p.id === outgoingInvitation?.sender_id || invitation?.sender_id);
+    conversation?.participants?.find(
+      (p) => p.id === (outgoingInvitation?.sender_id || invitation?.sender_id)
+    );
   const senderName =
     senderProfile && senderProfile.first_name
       ? `${senderProfile.first_name} ${senderProfile.last_name ?? ""}`.trim()
       : "Someone";
-
-  // Control dialog visibility
-  const dialogOpen = incoming || outgoing;
 
   // UI: Only show dialog if there's a pending call (incoming/outgoing)
   return (
@@ -60,11 +57,11 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
         className="h-9 w-9"
         title="Start Video Call"
         onClick={handleStartCall}
-        disabled={inviteLoading || !!outgoingPending || !!incomingPending}
+        disabled={inviteLoading || outgoingPending || incomingPending}
       >
         <Video className="h-5 w-5" />
       </Button>
-      {dialogOpen && outgoing && (
+      {outgoing && (
         <CallStatusDialog
           open={true}
           type="dialing"
@@ -73,7 +70,7 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           loading={inviteLoading}
         />
       )}
-      {dialogOpen && incoming && (
+      {incoming && (
         <CallStatusDialog
           open={true}
           type="incoming"
