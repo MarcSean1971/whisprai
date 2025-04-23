@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -6,8 +5,7 @@ import { useLocation } from "@/hooks/use-location";
 import { PredictiveAnswer } from "@/types/predictive-answer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { WifiOff } from "lucide-react";
+import { toast } from "sonner";
 
 interface ChatInputProps {
   conversationId: string;
@@ -19,7 +17,6 @@ interface ChatInputProps {
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
-  isOffline?: boolean;
 }
 
 export function ChatInput({ 
@@ -27,7 +24,6 @@ export function ChatInput({
   onSendMessage, 
   suggestions = [],
   isLoadingSuggestions = false,
-  isOffline = false
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
@@ -37,12 +33,6 @@ export function ChatInput({
     content: string, 
     attachments?: { url: string; name: string; type: string }[]
   ) => {
-    // Don't proceed with location detection if offline
-    if (isOffline) {
-      onSendMessage(content, undefined, undefined, attachments);
-      return;
-    }
-    
     const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
     const mightNeedLocation = locationKeywords.some(keyword => 
       content.toLowerCase().includes(keyword)
@@ -57,22 +47,9 @@ export function ChatInput({
   };
 
   const handleVoiceMessage = async (base64Audio: string) => {
-    if (isOffline) {
-      toast({
-        title: "You're offline",
-        description: "Voice messages can't be processed offline",
-        variant: "destructive"
-      });
-      setIsProcessingVoice(false);
-      setIsRecording(false);
-      return;
-    }
-    
     try {
       setIsProcessingVoice(true);
-      toast({
-        title: "Processing voice message...",
-      });
+      toast.info('Processing voice message...');
       
       const { data: userData } = await supabase.auth.getUser();
       const userId = userData.user?.id;
@@ -108,11 +85,7 @@ export function ChatInput({
       });
     } catch (error) {
       console.error('Error processing voice message:', error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Failed to process voice message',
-        variant: "destructive"
-      });
+      toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
     } finally {
       setIsProcessingVoice(false);
       setIsRecording(false);
@@ -124,13 +97,6 @@ export function ChatInput({
       "p-4 border-t transition-all",
       suggestions.length > 0 && "pb-6"
     )}>
-      {isOffline && (
-        <div className="mb-2 px-3 py-1.5 rounded-md bg-destructive/10 text-destructive text-xs flex items-center">
-          <WifiOff className="h-3 w-3 mr-1.5" />
-          You're offline. Messages will be sent when you reconnect.
-        </div>
-      )}
-      
       {isRecording ? (
         <VoiceRecorder
           onSendVoice={handleVoiceMessage}
@@ -144,7 +110,7 @@ export function ChatInput({
           onStartRecording={() => setIsRecording(true)}
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
-          disabled={isProcessingVoice || isOffline}
+          disabled={isProcessingVoice}
         />
       )}
     </div>

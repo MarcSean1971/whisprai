@@ -1,4 +1,3 @@
-
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -12,14 +11,12 @@ interface ChatHeaderProps {
   conversationId: string;
   replyToMessageId?: string | null;
   onCancelReply?: () => void;
-  children?: React.ReactNode;
 }
 
 export function ChatHeader({ 
   conversationId,
   replyToMessageId,
-  onCancelReply,
-  children
+  onCancelReply
 }: ChatHeaderProps) {
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
@@ -58,9 +55,6 @@ export function ChatHeader({
             onParticipantClick={handleParticipantClick}
             isOnline={isOnline}
           />
-          
-          {/* Add children (like network status) here */}
-          {children}
         </div>
         
         <div className="flex items-center gap-2">
