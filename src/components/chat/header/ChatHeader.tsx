@@ -48,13 +48,13 @@ export function ChatHeader({
       )}
     >
       <div 
-        className="flex items-center justify-between px-4 py-2"
+        className="flex items-center justify-between px-3 py-1"
         style={{
-          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 0.5rem)' : '0.5rem',
-          paddingBottom: '0.5rem'
+          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 0.25rem)' : '0.25rem',
+          paddingBottom: '0.25rem'
         }}
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <BackButton to="/chats" />
           <ChatParticipantsInfo 
             participants={otherParticipants}
