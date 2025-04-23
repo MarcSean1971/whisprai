@@ -1,7 +1,6 @@
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, MoreVertical } from "lucide-react";
+import { Search, MoreVertical, Video } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -16,6 +15,16 @@ export function ChatHeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-9 w-9"
+        onClick={() => window.open('/video-call.html?roomID=whispr123', '_blank')}
+        title="Start Video Call"
+      >
+        <Video className="h-5 w-5" />
+      </Button>
+
       {isSearching ? (
         <div className="flex items-center relative">
           <Input
@@ -47,7 +56,7 @@ export function ChatHeaderActions() {
           <Search className="h-4 w-4" />
         </Button>
       )}
-      
+
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8 w-8 p-0">
