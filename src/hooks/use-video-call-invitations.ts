@@ -22,7 +22,7 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
   useEffect(() => {
     if (!conversationId || !profileId) return;
 
-    // Listen for invites where I'm recipient
+    // Listen for invites where I'm recipient, filter only in callback
     const channel = supabase.channel(`video-invitations-${profileId}`)
       .on(
         'postgres_changes',
@@ -30,14 +30,22 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
           event: '*',
           schema: 'public',
           table: 'video_call_invitations',
-          filter: `recipient_id=eq.${profileId},conversation_id=eq.${conversationId},status=eq.pending`,
+          filter: `recipient_id=eq.${profileId}`,
         },
         async (payload) => {
-          if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-            const data = payload.new as VideoCallInvitation;
-            setInvitation(data);
-          } else if (payload.eventType === 'DELETE') {
-            setInvitation(null);
+          const data = (payload.eventType === 'DELETE' ? payload.old : payload.new) as VideoCallInvitation;
+          if (
+            data?.recipient_id === profileId &&
+            data?.conversation_id === conversationId
+          ) {
+            if ((payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') && data.status === 'pending') {
+              setInvitation(data);
+            } else if (
+              (payload.eventType === 'UPDATE' && data.status !== 'pending') ||
+              payload.eventType === 'DELETE'
+            ) {
+              setInvitation(null);
+            }
           }
         }
       )
