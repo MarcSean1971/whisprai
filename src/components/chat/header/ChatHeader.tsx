@@ -1,43 +1,65 @@
 
 import { ChatHeaderActions } from "./ChatHeaderActions";
-import { UserAvatar } from "@/components/user/UserAvatar";
+import { BackButton } from "@/components/ui/back-button";
+import { useConversation } from "@/hooks/use-conversation";
+import { useProfile } from "@/hooks/use-profile";
 import { useUserPresence } from "@/hooks/use-user-presence";
+import { useState } from "react";
+import { ChatParticipantDialog } from "../ChatParticipantDialog";
+import { ChatParticipantsInfo } from "./ChatParticipantsInfo";
 
 interface ChatHeaderProps {
-  participantId: string | null;
-  participantName?: string | null;
-  participantAvatarUrl?: string | null;
+  conversationId: string;
+  replyToMessageId?: string | null;
+  onCancelReply?: () => void;
 }
 
-export function ChatHeader({
-  participantId,
-  participantName = "User",
-  participantAvatarUrl
+export function ChatHeader({ 
+  conversationId,
+  replyToMessageId,
+  onCancelReply
 }: ChatHeaderProps) {
-  const { isOnline } = useUserPresence(participantId);
+  const { conversation } = useConversation(conversationId);
+  const { profile } = useProfile();
+  const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const otherParticipants = conversation?.participants?.filter(p => 
+    profile && p.id !== profile.id
+  ) || [];
   
+  const recipient = otherParticipants[0];
+  const { isOnline } = useUserPresence(recipient?.id);
+
+  const handleParticipantClick = (participant: any) => {
+    setSelectedParticipant(participant);
+    setShowProfile(true);
+  };
+
   return (
-    <div className="flex justify-between items-center border-b px-4 h-14">
-      <div className="flex items-center gap-3">
-        <UserAvatar 
-          userId={participantId} 
-          name={participantName || "User"} 
-          avatarUrl={participantAvatarUrl} 
-          size="md" 
-          showStatus 
-          isOnline={isOnline}
-        />
-        <div>
-          <div className="font-medium">
-            {participantName || "Unknown User"}
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {isOnline ? "Online" : "Offline"}
-          </div>
+    <div className="sticky top-0 z-10 bg-background border-b">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-4">
+          <BackButton to="/chats" />
+          <ChatParticipantsInfo 
+            participants={otherParticipants}
+            onParticipantClick={handleParticipantClick}
+            isOnline={isOnline}
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <ChatHeaderActions />
         </div>
       </div>
       
-      <ChatHeaderActions />
+      {selectedParticipant && (
+        <ChatParticipantDialog 
+          open={showProfile}
+          onOpenChange={setShowProfile}
+          participant={selectedParticipant}
+        />
+      )}
     </div>
   );
 }
