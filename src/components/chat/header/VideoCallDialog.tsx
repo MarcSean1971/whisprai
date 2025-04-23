@@ -24,10 +24,10 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "p-0 overflow-hidden bg-background",
+          "p-0 overflow-hidden bg-transparent border-0 shadow-none",
           isMobile 
-            ? "fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none border-0" 
-            : "min-w-[600px] min-h-[400px] w-[90vw] h-[80vh] max-w-[90vw] max-h-[90vh]"
+            ? "fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none" 
+            : "w-fit h-fit"
         )}
         style={{
           transform: isMobile ? 'none' : undefined,
