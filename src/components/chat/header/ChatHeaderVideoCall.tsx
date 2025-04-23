@@ -2,30 +2,34 @@
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
 import { VideoCallDialog } from "./VideoCallDialog";
-import { VideoCallInviteDialog } from "./VideoCallInviteDialog";
-import { VideoCallOutgoingDialog } from "./VideoCallOutgoingDialog";
 import React from "react";
 import { useVideoCallHandler } from "./useVideoCallHandler";
+import { VideoCallInviteDialog } from "./VideoCallInviteDialog";
+import { VideoCallOutgoingDialog } from "./VideoCallOutgoingDialog";
 
 interface Props {
   conversationId: string;
 }
 
+/**
+ * Display minimal banners for "calling" and "incoming call".
+ * Instantly open the video dialog when accepted.
+ */
 export function ChatHeaderVideoCall({ conversationId }: Props) {
   const {
     videoDialogOpen,
+    videoDialogRoomId,
     inviteLoading,
-    invitation,
-    outgoingInvitation,
-    inviteDialogOpen,
-    outgoingDialogOpen,
+    incomingPending,
+    outgoingPending,
     recipient,
     conversation,
-    roomId,
     handleCloseCallDialog,
     handleStartCall,
     handleRespondInvite,
     handleCancelOutgoing,
+    invitation,
+    outgoingInvitation
   } = useVideoCallHandler(conversationId);
 
   return (
@@ -36,12 +40,12 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
         className="h-9 w-9"
         onClick={handleStartCall}
         title="Start Video Call"
-        disabled={inviteLoading || !!outgoingInvitation}
+        disabled={inviteLoading || outgoingPending || incomingPending || videoDialogOpen}
       >
         <Video className="h-5 w-5" />
       </Button>
-      {/* Only ONE dialog shows at any time */}
-      {outgoingDialogOpen && (
+      {/* Outgoing "calling..." banner */}
+      {outgoingPending && outgoingInvitation && (
         <VideoCallOutgoingDialog
           open
           loading={inviteLoading}
@@ -52,7 +56,8 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           }
         />
       )}
-      {inviteDialogOpen && (
+      {/* Incoming call banner */}
+      {incomingPending && invitation && (
         <VideoCallInviteDialog
           open
           onRespond={handleRespondInvite}
@@ -63,15 +68,12 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           }
         />
       )}
+      {/* Show video call dialog window if accepted */}
       {videoDialogOpen && (
         <VideoCallDialog
           open={videoDialogOpen}
           onOpenChange={handleCloseCallDialog}
-          roomId={
-            (invitation?.status === "accepted" ? invitation.room_id :
-              outgoingInvitation?.status === "accepted" ? outgoingInvitation.room_id :
-                roomId)
-          }
+          roomId={videoDialogRoomId}
         />
       )}
     </>
