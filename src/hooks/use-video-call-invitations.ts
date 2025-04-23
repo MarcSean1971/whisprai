@@ -1,4 +1,3 @@
-
 import { useEffect, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/use-profile";
@@ -51,19 +50,20 @@ export function useVideoCallInvitations(
             data?.recipient_id === profileId &&
             data?.conversation_id === conversationId
           ) {
+            // If it's a new or updated invite that is still pending: SHOW
             if (
-              (payload.eventType === "INSERT" ||
-                payload.eventType === "UPDATE") &&
+              (payload.eventType === "INSERT" || payload.eventType === "UPDATE") &&
               data.status === "pending"
             ) {
               setInvitation(data);
               console.log("[VideoCall][Invitation] Incoming invitation set to", data);
             } else if (
+              // If it's been REJECTED/ACCEPTED or DELETED: CLEAR!
               (payload.eventType === "UPDATE" && data.status !== "pending") ||
               payload.eventType === "DELETE"
             ) {
               setInvitation(null);
-              console.log("[VideoCall][Invitation] Incoming invitation CLEARED (cancelled or not pending)", data);
+              console.log("[VideoCall][Invitation] Incoming invitation CLEARED due to status or deletion", data);
             }
           }
         }
