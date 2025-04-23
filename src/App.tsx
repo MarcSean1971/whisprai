@@ -148,7 +148,7 @@ const App = () => {
   }
 
   return (
-    <ThemeProvider defaultTheme="system" storageKey="ui-theme">
+    <ThemeProvider defaultTheme="light" storageKey="ui-theme">
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <TooltipProvider>
