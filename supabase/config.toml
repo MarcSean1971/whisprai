@@ -48,7 +48,3 @@ import_map = "import_map.json"
 [functions.voice-to-text]
 verify_jwt = true
 import_map = "import_map.json"
-
-[functions.generate-turn-credentials]
-verify_jwt = true
-import_map = "import_map.json"
