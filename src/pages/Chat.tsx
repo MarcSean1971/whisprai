@@ -13,7 +13,6 @@ import { useState, useCallback, Suspense, useEffect } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
-import { cn } from "@/lib/utils";
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -89,7 +88,12 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   if (error) {
     return (
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
+        <ChatHeader 
+          conversationId={conversationId} 
+          replyToMessageId={replyToMessageId}
+          onCancelReply={cancelReply}
+        />
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(4rem+env(safe-area-inset-top,0px))]">
           <EmptyState
             icon={<AlertCircle className="h-10 w-10 text-destructive" />}
             title="Error loading chat"
@@ -110,7 +114,12 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   if (isLoading || isLoadingProfile) {
     return (
       <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
+        <ChatHeader 
+          conversationId={conversationId} 
+          replyToMessageId={null}
+          onCancelReply={() => {}}
+        />
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(4rem+env(safe-area-inset-top,0px))]">
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
             <MessageSkeleton />
             <MessageSkeleton />
@@ -123,19 +132,12 @@ function ChatContent({ conversationId }: { conversationId: string }) {
 
   return (
     <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
-      {!isLoading && !isLoadingProfile && messages?.length > 0 && (
-        <ChatHeader 
-          conversationId={conversationId} 
-          replyToMessageId={replyToMessageId}
-          onCancelReply={cancelReply}
-        />
-      )}
-      <div className={cn(
-        "flex-1 overflow-hidden relative",
-        !isLoading && !isLoadingProfile && messages?.length > 0 
-          ? "mt-[calc(4rem+env(safe-area-inset-top,0px))]"
-          : "mt-[env(safe-area-inset-top,0px)]"
-      )}>
+      <ChatHeader 
+        conversationId={conversationId} 
+        replyToMessageId={replyToMessageId}
+        onCancelReply={cancelReply}
+      />
+      <div className="flex-1 overflow-hidden relative mt-[calc(4rem+env(safe-area-inset-top,0px))]">
         <ErrorBoundary>
           <Suspense fallback={
             <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
