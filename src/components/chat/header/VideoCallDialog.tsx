@@ -25,14 +25,16 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
       <DialogContent
         className={cn(
           "p-0 overflow-hidden flex flex-col no-scrollbar bg-background",
-          isMobile ? "w-screen h-screen max-w-none max-h-none rounded-none" : "max-w-3xl w-[90vw] max-h-[80vh] h-auto"
+          isMobile ? "fixed inset-0 w-screen h-screen max-w-none max-h-none rounded-none border-0" : "max-w-3xl w-[90vw] max-h-[80vh] h-auto"
         )}
         style={{
-          height: isMobile ? "100vh" : "80vh",
-          marginTop: isMobile ? 0 : undefined,
           transform: isMobile ? 'none' : undefined,
+          margin: isMobile ? 0 : undefined,
+          zIndex: isMobile ? 100 : undefined,
           paddingTop: isMobile ? 'env(safe-area-inset-top)' : undefined,
-          paddingBottom: isMobile ? 'env(safe-area-inset-bottom)' : undefined
+          paddingBottom: isMobile ? 'env(safe-area-inset-bottom)' : undefined,
+          paddingLeft: isMobile ? 'env(safe-area-inset-left)' : undefined,
+          paddingRight: isMobile ? 'env(safe-area-inset-right)' : undefined
         }}
       >
         <DialogTitle className="sr-only">Video Call</DialogTitle>
