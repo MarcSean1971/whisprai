@@ -8,10 +8,14 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { VideoCallDialog } from "./VideoCallDialog";
 
 export function ChatHeaderActions() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showVideoCall, setShowVideoCall] = useState(false);
+
+  const roomId = "whispr123";
 
   return (
     <div className="flex items-center gap-2">
@@ -19,11 +23,17 @@ export function ChatHeaderActions() {
         variant="ghost"
         size="icon"
         className="h-9 w-9"
-        onClick={() => window.open('/video-call.html?roomID=whispr123', '_blank')}
+        onClick={() => setShowVideoCall(true)}
         title="Start Video Call"
       >
         <Video className="h-5 w-5" />
       </Button>
+
+      <VideoCallDialog
+        open={showVideoCall}
+        onOpenChange={setShowVideoCall}
+        roomId={roomId}
+      />
 
       {isSearching ? (
         <div className="flex items-center relative">
