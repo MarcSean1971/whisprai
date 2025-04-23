@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+
+import { useMemo, useState } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
@@ -6,6 +7,7 @@ import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
 export function useVideoCallHandler(conversationId: string) {
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
+  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const recipient = useMemo(() => {
     if (!conversation || !profile) return null;
@@ -32,6 +34,10 @@ export function useVideoCallHandler(conversationId: string) {
 
   const outgoingPending = !!outgoingInvitation && outgoingInvitation.status === "pending";
   const incomingPending = !!invitation && invitation.status === "pending";
+  
+  // Show video call when either invitation is accepted
+  const activeCall = (invitation?.status === "accepted" && invitation.room_id) || 
+                    (outgoingInvitation?.status === "accepted" && outgoingInvitation.room_id);
 
   const handleStartCall = async () => {
     if (!recipient?.id) return;
@@ -41,12 +47,21 @@ export function useVideoCallHandler(conversationId: string) {
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
     await respondInvitation(invitation.id, accept);
-    if (!accept) clear();
+    if (accept) {
+      setShowVideoCall(true);
+    } else {
+      clear();
+    }
   };
 
   const handleCancelOutgoing = async () => {
     if (!outgoingInvitation) return;
     await cancelOutgoing(outgoingInvitation.id);
+    clear();
+  };
+
+  const handleCloseVideoCall = () => {
+    setShowVideoCall(false);
     clear();
   };
 
@@ -57,9 +72,12 @@ export function useVideoCallHandler(conversationId: string) {
     handleStartCall,
     handleRespondInvite,
     handleCancelOutgoing,
+    handleCloseVideoCall,
     inviteLoading,
     outgoingPending,
     incomingPending,
     conversation,
+    showVideoCall: showVideoCall || !!activeCall,
+    roomId: activeCall || roomId,
   };
 }

@@ -4,6 +4,7 @@ import { useVideoCallHandler } from "./useVideoCallHandler";
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
 import { DialingDialog } from "./DialingDialog";
+import { VideoCallDialog } from "./VideoCallDialog";
 
 /**
  * Button for starting video calls and rendering the dialing dialog.
@@ -21,10 +22,13 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
     handleStartCall,
     handleCancelOutgoing,
     handleRespondInvite,
+    handleCloseVideoCall,
     inviteLoading,
     outgoingPending,
     incomingPending,
     conversation,
+    showVideoCall,
+    roomId,
   } = useVideoCallHandler(conversationId);
 
   // Name for receiver (show to caller)
@@ -58,6 +62,7 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
       >
         <Video className="h-5 w-5" />
       </Button>
+      
       {/* Outgoing (Caller) */}
       {showOutgoing && (
         <DialingDialog
@@ -68,6 +73,7 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           onCancel={handleCancelOutgoing}
         />
       )}
+      
       {/* Incoming (Receiver) */}
       {showIncoming && (
         <DialingDialog
@@ -77,6 +83,15 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           loading={inviteLoading}
           onAccept={() => handleRespondInvite(true)}
           onReject={() => handleRespondInvite(false)}
+        />
+      )}
+
+      {/* Active Video Call */}
+      {showVideoCall && (
+        <VideoCallDialog
+          open={true}
+          onOpenChange={handleCloseVideoCall}
+          roomId={roomId}
         />
       )}
     </>
