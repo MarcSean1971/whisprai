@@ -42,7 +42,6 @@ export function useVideoCallHandler(conversationId: string) {
     (outgoingInvitation && outgoingInvitation.status === "accepted");
 
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  
   // Track if we've explicitly accepted a call to prevent false cancellation messages
   const [hasExplicitlyAccepted, setHasExplicitlyAccepted] = useState(false);
 
@@ -72,12 +71,12 @@ export function useVideoCallHandler(conversationId: string) {
         setVideoDialogOpen(false);
       }
     }
-    
+
     // Reset the acceptance flag when the invitation changes
     if (invitation !== prevInvitation.current) {
       setHasExplicitlyAccepted(false);
     }
-    
+
     prevInviteDialogOpen.current = inviteDialogOpen;
     prevInvitation.current = invitation;
   }, [inviteDialogOpen, invitation, clear, hasExplicitlyAccepted]);
@@ -102,14 +101,17 @@ export function useVideoCallHandler(conversationId: string) {
 
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
-    
+
     if (accept) {
       // Mark that we've explicitly accepted to prevent showing cancellation toast
       setHasExplicitlyAccepted(true);
       const success = await respondInvitation(invitation.id, true);
       if (success) {
         toast.success("Call accepted");
-        // Video dialog will open via the callAccepted effect
+        setVideoDialogOpen(true); // IMMEDIATE OPEN
+
+        // Video dialog will also open via the callAccepted effect (after Supabase update)
+        // The setVideoDialogOpen(true) here prevents UI lag/mismatch for receiver.
       } else {
         toast.error("Failed to accept call");
         setHasExplicitlyAccepted(false);
