@@ -166,7 +166,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         </ErrorBoundary>
       </div>
       <div
-        className="fixed left-0 right-0 bottom-0 bg-background border-t z-20"
+        className="sticky left-0 right-0 bottom-0 bg-background border-t z-20"
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
