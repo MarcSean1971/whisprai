@@ -137,7 +137,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
-      <div className="flex-1 overflow-hidden relative mt-[calc(4rem+env(safe-area-inset-top,0px))]">
+      <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(4rem+env(safe-area-inset-top,0px))]">
         <ErrorBoundary>
           <Suspense fallback={
             <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">

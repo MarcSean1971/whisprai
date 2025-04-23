@@ -100,7 +100,10 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col pb-[4.5rem]"
+          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col"
+          style={{
+            paddingBottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
+          }}
         >
           <div ref={loadMoreRef} className="h-4" />
           <div className="flex-1" />
