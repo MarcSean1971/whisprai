@@ -1,13 +1,11 @@
 
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
 import { toast } from "sonner";
 
 export function useVideoCallHandler(conversationId: string) {
-  const [showVideoCall, setShowVideoCall] = useState(false);
-
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
 
@@ -34,54 +32,29 @@ export function useVideoCallHandler(conversationId: string) {
     clear
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
-  // Robustly control showing/hiding of the VideoCallDialog
-  const prevInvitationRef = useRef(invitation);
-  const prevOutgoingRef = useRef(outgoingInvitation);
+  // Only show dialog if INVITE is pending (for receiver)
+  const inviteDialogOpen = !!invitation && invitation.status === "pending";
+  // Only show outgoing call dialog if I am calling someone
+  const outgoingDialogOpen = !!outgoingInvitation && outgoingInvitation.status === "pending";
+  // Show call window if either invite is accepted (either incoming or outgoing accepted)
+  const callAccepted =
+    (invitation && invitation.status === "accepted") ||
+    (outgoingInvitation && outgoingInvitation.status === "accepted");
 
-  useEffect(() => {
-    // If incoming invite was cleared (call cancelled)
-    if (
-      prevInvitationRef.current &&
-      prevInvitationRef.current.status === "pending" &&
-      !invitation
-    ) {
-      toast.info("Call cancelled");
-      setShowVideoCall(false);
-    }
-    prevInvitationRef.current = invitation;
-  }, [invitation]);
+  // Unified show/hide logic for the video call window
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  // Open/show the call window when accepted
+  if (callAccepted && !videoDialogOpen) {
+    setVideoDialogOpen(true);
+  }
+  // Close the call window if both invitations are cleared
+  if (!callAccepted && videoDialogOpen) {
+    setVideoDialogOpen(false);
+  }
 
-  useEffect(() => {
-    // Outgoing accepted: show dialog
-    if (
-      outgoingInvitation &&
-      outgoingInvitation.status === "accepted" &&
-      !showVideoCall
-    ) {
-      setShowVideoCall(true);
-    }
-    // Outgoing no longer valid: hide dialog
-    if (!outgoingInvitation && prevOutgoingRef.current && prevOutgoingRef.current.status === "accepted") {
-      setShowVideoCall(false);
-    }
-    prevOutgoingRef.current = outgoingInvitation;
-  }, [outgoingInvitation, showVideoCall]);
-
-  useEffect(() => {
-    // If we have an incoming invitation accepted, show dialog and clear dialog only when incoming/outgoing closes
-    if (invitation && invitation.status === "accepted" && !showVideoCall) {
-      setShowVideoCall(true);
-    }
-    if (!invitation && prevInvitationRef.current && prevInvitationRef.current.status === "accepted") {
-      setShowVideoCall(false);
-    }
-  }, [invitation, showVideoCall]);
-
-  const handleCloseCallDialog = (open: boolean) => {
-    setShowVideoCall(open);
-    if (!open) {
-      clear();
-    }
+  const handleCloseCallDialog = () => {
+    setVideoDialogOpen(false);
+    clear();
   };
 
   const handleStartCall = async () => {
@@ -100,11 +73,11 @@ export function useVideoCallHandler(conversationId: string) {
     if (!invitation) return;
     const success = await respondInvitation(invitation.id, accept);
     if (accept && success) {
-      setShowVideoCall(true);
+      setVideoDialogOpen(true);
     } else if (!accept) {
       toast.info("Video call invitation rejected");
       clear();
-      setShowVideoCall(false);
+      setVideoDialogOpen(false);
     }
   };
 
@@ -113,14 +86,11 @@ export function useVideoCallHandler(conversationId: string) {
     await cancelOutgoing(outgoingInvitation.id);
     toast.info("Call cancelled");
     clear();
-    setShowVideoCall(false);
+    setVideoDialogOpen(false);
   };
 
-  const inviteDialogOpen = !!invitation && invitation.status === "pending";
-
   return {
-    showVideoCall,
-    setShowVideoCall,
+    videoDialogOpen,
     inviteLoading,
     invitation,
     outgoingInvitation,
@@ -128,6 +98,7 @@ export function useVideoCallHandler(conversationId: string) {
     conversation,
     roomId,
     inviteDialogOpen,
+    outgoingDialogOpen,
     handleCloseCallDialog,
     handleStartCall,
     handleRespondInvite,

@@ -13,11 +13,12 @@ interface Props {
 
 export function ChatHeaderVideoCall({ conversationId }: Props) {
   const {
-    showVideoCall,
+    videoDialogOpen,
     inviteLoading,
     invitation,
     outgoingInvitation,
     inviteDialogOpen,
+    outgoingDialogOpen,
     recipient,
     conversation,
     roomId,
@@ -39,22 +40,32 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
       >
         <Video className="h-5 w-5" />
       </Button>
-
-      {outgoingInvitation && outgoingInvitation.status === "pending" && (
+      {/* Only ONE dialog shows at any time */}
+      {outgoingDialogOpen && (
         <VideoCallOutgoingDialog
-          open={true}
+          open
           loading={inviteLoading}
           onCancel={handleCancelOutgoing}
           recipientName={
-            conversation?.participants?.find(p => p.id === outgoingInvitation.recipient_id)?.first_name ||
+            conversation?.participants?.find(p => p.id === outgoingInvitation?.recipient_id)?.first_name ||
             "Recipient"
           }
         />
       )}
-
-      {showVideoCall && (
+      {inviteDialogOpen && (
+        <VideoCallInviteDialog
+          open
+          onRespond={handleRespondInvite}
+          loading={inviteLoading}
+          inviterName={
+            conversation?.participants?.find(p => p.id === invitation?.sender_id)?.first_name ||
+            "Someone"
+          }
+        />
+      )}
+      {videoDialogOpen && (
         <VideoCallDialog
-          open={showVideoCall}
+          open={videoDialogOpen}
           onOpenChange={handleCloseCallDialog}
           roomId={
             (invitation?.status === "accepted" ? invitation.room_id :
@@ -63,16 +74,6 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           }
         />
       )}
-
-      <VideoCallInviteDialog
-        open={inviteDialogOpen}
-        onRespond={handleRespondInvite}
-        loading={inviteLoading}
-        inviterName={
-          conversation?.participants?.find(p => p.id === invitation?.sender_id)?.first_name ||
-          "Someone"
-        }
-      />
     </>
   );
 }
