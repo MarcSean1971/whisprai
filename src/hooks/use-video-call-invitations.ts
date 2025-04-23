@@ -8,17 +8,6 @@ import { useCancelOutgoingInvitation } from "./video-call-invitations/useCancelO
 import { useExpiredInvitationsCleanup } from "./video-call-invitations/useExpiredInvitationsCleanup";
 import { useClearVideoCallInvitations } from "./video-call-invitations/useClearVideoCallInvitations";
 
-export interface VideoCallInvitation {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  recipient_id: string;
-  room_id: string;
-  status: string;
-  created_at: string;
-  expires_at: string;
-}
-
 export function useVideoCallInvitations(conversationId: string, profileId: string | null) {
   const { invitation, setInvitation } = useIncomingVideoCallInvitations(conversationId, profileId);
   const { outgoingInvitation, setOutgoingInvitation } = useOutgoingVideoCallInvitations(conversationId, profileId);
@@ -32,12 +21,11 @@ export function useVideoCallInvitations(conversationId: string, profileId: strin
   const loading = sendLoading || respondLoading || cancelLoading;
 
   return {
-    invitation, // incoming
-    outgoingInvitation, // outgoing for caller
+    invitation, 
+    outgoingInvitation,
     sendInvitation,
     respondInvitation: useCallback(async (id: string, accepted: boolean) => {
       const ok = await respondInvitation(id, accepted);
-      // Only clear invites if rejected. If accepted, let the real-time update propagate and control dialog/window.
       if (!accepted) {
         setInvitation(null);
         setOutgoingInvitation(null);
