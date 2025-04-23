@@ -3,11 +3,11 @@ import { useMemo, useState } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
+import { toast } from "@/components/ui/use-toast";
 
 export function useVideoCallHandler(conversationId: string) {
   const { conversation } = useConversation(conversationId);
   const { profile } = useProfile();
-  const [showVideoCall, setShowVideoCall] = useState(false);
 
   const recipient = useMemo(() => {
     if (!conversation || !profile) return null;
@@ -37,37 +37,68 @@ export function useVideoCallHandler(conversationId: string) {
   const incomingPending = !!invitation && invitation.status === "pending";
   
   // Show video call when either invitation is accepted
-  const activeCall = (invitation?.status === "accepted" && invitation.room_id) || 
-                    (outgoingInvitation?.status === "accepted" && outgoingInvitation.room_id);
+  const showVideoCall = (invitation?.status === "accepted" && invitation.room_id) || 
+                       (outgoingInvitation?.status === "accepted" && outgoingInvitation.room_id);
 
   const handleStartCall = async () => {
     if (!recipient?.id) return;
-    await sendInvitation(recipient.id, roomId);
+    try {
+      await sendInvitation(recipient.id, roomId);
+    } catch (error) {
+      console.error("Failed to start call:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to start call",
+        description: "Please try again later"
+      });
+    }
   };
 
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
-    await respondInvitation(invitation.id, accept);
-    if (accept) {
-      setShowVideoCall(true);
-    } else {
+    try {
+      await respondInvitation(invitation.id, accept);
+    } catch (error) {
+      console.error("Failed to respond to call:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to respond to call",
+        description: "Please try again later"
+      });
       clear();
     }
   };
 
   const handleCancelOutgoing = async () => {
     if (!outgoingInvitation) return;
-    await cancelOutgoing(outgoingInvitation.id);
+    try {
+      await cancelOutgoing(outgoingInvitation.id);
+    } catch (error) {
+      console.error("Failed to cancel call:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to cancel call",
+        description: "Please try again later"
+      });
+    }
     clear();
   };
 
   const handleCloseVideoCall = async () => {
-    if (invitation) {
-      await endCall(invitation.id);
-    } else if (outgoingInvitation) {
-      await endCall(outgoingInvitation.id);
+    try {
+      if (invitation) {
+        await endCall(invitation.id);
+      } else if (outgoingInvitation) {
+        await endCall(outgoingInvitation.id);
+      }
+    } catch (error) {
+      console.error("Failed to end call:", error);
+      toast({
+        variant: "destructive",
+        title: "Failed to end call",
+        description: "The call window will still be closed"
+      });
     }
-    setShowVideoCall(false);
     clear();
   };
 
@@ -83,7 +114,7 @@ export function useVideoCallHandler(conversationId: string) {
     outgoingPending,
     incomingPending,
     conversation,
-    showVideoCall: showVideoCall || !!activeCall,
-    roomId: activeCall || roomId,
+    showVideoCall,
+    roomId: showVideoCall ? (invitation?.room_id || outgoingInvitation?.room_id) : roomId,
   };
 }

@@ -27,14 +27,15 @@ export function useIncomingVideoCallInvitations(conversationId: string, profileI
             data?.recipient_id === profileId &&
             data?.conversation_id === conversationId
           ) {
-            // Only show if the status is 'pending'
+            // Show for both pending and accepted states
             if (
               (payload.eventType === "INSERT" || payload.eventType === "UPDATE") &&
-              data.status === "pending"
+              (data.status === "pending" || data.status === "accepted")
             ) {
               setInvitation(data);
             } else if (
-              (payload.eventType === "UPDATE" && data.status !== "pending") ||
+              (payload.eventType === "UPDATE" && 
+              ["cancelled", "rejected", "ended"].includes(data.status)) ||
               payload.eventType === "DELETE"
             ) {
               setInvitation(null);
@@ -50,7 +51,7 @@ export function useIncomingVideoCallInvitations(conversationId: string, profileI
         .select("*")
         .eq("conversation_id", conversationId)
         .eq("recipient_id", profileId)
-        .eq("status", "pending")
+        .in("status", ["pending", "accepted"])
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false })
         .limit(1)
