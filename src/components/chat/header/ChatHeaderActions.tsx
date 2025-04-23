@@ -21,10 +21,7 @@ export function ChatHeaderActions() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
-
-  // NEW: open state for invite dialog (incoming call)
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-
+  
   const { conversation } = useConversation(
     (window.location.pathname.match(/[0-9a-fA-F-]{36,}/)?.[0] ?? "")
   );
@@ -69,15 +66,8 @@ export function ChatHeaderActions() {
     prevInvitationRef.current = invitation;
   }, [invitation]);
 
-  // NEW: Control the open state of the incoming call dialog.
-  useEffect(() => {
-    // Show dialog only when invitation is present and pending
-    if (invitation && invitation.status === "pending") {
-      setInviteDialogOpen(true);
-    } else {
-      setInviteDialogOpen(false);
-    }
-  }, [invitation]);
+  // Whether call invite dialog should be open (source of truth: invitation is pending)
+  const inviteDialogOpen = !!invitation && invitation.status === "pending";
 
   // Initiate a call: send an invite to recipient, show outgoing dialog
   const handleStartCall = async () => {
@@ -101,7 +91,7 @@ export function ChatHeaderActions() {
       setShowVideoCall(true);
     } else if (!accept) {
       toast.info("Video call invitation rejected");
-      clear();
+      clear(); // always clear unused invitation state to trigger dialog close
       setShowVideoCall(false);
     }
   };
@@ -117,7 +107,7 @@ export function ChatHeaderActions() {
     if (!outgoingInvitation) return;
     await cancelOutgoing(outgoingInvitation.id);
     toast.info("Call cancelled");
-    clear();
+    clear(); // this clears both outgoing and potential incoming invitation state
     setShowVideoCall(false);
   };
 
@@ -130,16 +120,12 @@ export function ChatHeaderActions() {
     prevOutgoingStatus.current !== "accepted" &&
     !showVideoCall
   ) {
-    // The receiver accepted - start video call for sender!
     setShowVideoCall(true);
     prevOutgoingStatus.current = "accepted";
   }
-  // Track outgoing invite status so we don't trigger twice
   if (outgoingInvitation && outgoingInvitation.status !== prevOutgoingStatus.current) {
     prevOutgoingStatus.current = outgoingInvitation.status;
   }
-
-  // If outgoing invitation gets cancelled (deleted) or rejected, ensure UI resets
   if (!outgoingInvitation && showVideoCall) {
     setShowVideoCall(false);
   }
@@ -157,7 +143,6 @@ export function ChatHeaderActions() {
         <Video className="h-5 w-5" />
       </Button>
 
-      {/* Outgoing "Calling" dialog for caller */}
       {outgoingInvitation && outgoingInvitation.status === "pending" && (
         <VideoCallOutgoingDialog
           open={true}
@@ -170,7 +155,6 @@ export function ChatHeaderActions() {
         />
       )}
 
-      {/* Call dialog: only open for caller or receiver when invite accepted */}
       {showVideoCall && (
         <VideoCallDialog
           open={showVideoCall}
@@ -183,7 +167,6 @@ export function ChatHeaderActions() {
         />
       )}
 
-      {/* Receiver gets a popup when there's an incoming invitation */}
       <VideoCallInviteDialog
         open={inviteDialogOpen}
         onRespond={handleRespondInvite}
