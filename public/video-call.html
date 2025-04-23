@@ -7,6 +7,8 @@
     html, body {
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       overflow: hidden;
     }
     #root {
@@ -16,8 +18,7 @@
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      min-width: 600px;
-      min-height: 400px;
+      position: relative;
     }
   </style>
 </head>
@@ -42,6 +43,13 @@
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(appID, serverSecret, roomID, userName, userName);
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
+      
+      function updateAspectRatio() {
+        const container = document.querySelector("#root");
+        const aspectRatio = container.offsetWidth > container.offsetHeight ? 16/9 : 3/4;
+        return aspectRatio;
+      }
+
       zp.joinRoom({
         container: document.querySelector("#root"),
         sharedLinks: [{
@@ -64,7 +72,15 @@
         turnOnCameraWhenJoining: true,
         useFrontFacingCamera: true,
         videoResolutionDefault: "360p",
-        aspectRatio: window.innerWidth > window.innerHeight ? 16/9 : 3/4,
+        aspectRatio: updateAspectRatio(),
+      });
+
+      // Update aspect ratio when window resizes
+      window.addEventListener('resize', () => {
+        const container = document.querySelector("#root");
+        if (container && zp) {
+          zp.setAspectRatio(updateAspectRatio());
+        }
       });
     }
   </script>
