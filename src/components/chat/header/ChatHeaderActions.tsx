@@ -8,34 +8,30 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { VideoCallDialog } from "./VideoCallDialog";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
 import { VideoCallInviteDialog } from "./VideoCallInviteDialog";
+import { VideoCallOutgoingDialog } from "./VideoCallOutgoingDialog";
 import { toast } from "sonner";
 
 export function ChatHeaderActions() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
-  const [pendingRoomId, setPendingRoomId] = useState<string | null>(null);
 
   const { conversation } = useConversation(
-    // Assume conversationId is passed down or get from props/context
-    (window.location.pathname.match(/[0-9a-fA-F-]{36,}/)?.[0] ?? "") // fallback parse URL
+    (window.location.pathname.match(/[0-9a-fA-F-]{36,}/)?.[0] ?? "")
   );
   const { profile } = useProfile();
-
-  // Get recipient id (other than self)
   const recipient = useMemo(() => {
     if (!conversation || !profile) return null;
     return (conversation.participants || []).find(p => p.id !== profile.id);
   }, [conversation, profile]);
 
   // Unique room id for this video call
-  // Using convoId + user ids to cover 1:1 nicely
   const roomId = useMemo(() => {
     const convoId = conversation?.id ?? "whispr123";
     if (profile && recipient) {
@@ -47,13 +43,18 @@ export function ChatHeaderActions() {
   // Video call invitation logic
   const {
     invitation,
+    outgoingInvitation,
     sendInvitation,
     respondInvitation,
+    cancelOutgoing,
     loading: inviteLoading,
     clear
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
-  // Initiate a call: send an invite to recipient and open dialog for self
+  // State to control which dialog to show for the user
+  // const [pendingRoomId, setPendingRoomId] = useState<string | null>(null); // eliminated, roomId comes with invitation(s)
+
+  // Initiate a call: send an invite to recipient, show outgoing dialog
   const handleStartCall = async () => {
     if (!recipient?.id) {
       toast.error("No recipient found for call");
@@ -61,33 +62,63 @@ export function ChatHeaderActions() {
     }
     try {
       await sendInvitation(recipient.id, roomId);
-      setShowVideoCall(true);
-      setPendingRoomId(roomId);
+      // The outgoing "Calling..." dialog will be triggered by outgoingInvitation state
     } catch (err) {
       toast.error("Failed to send video call invitation");
     }
   };
 
-  // Accept/reject a received invite
+  // Accept/reject a received invite (only receiver will see this)
   const handleRespondInvite = async (accept: boolean) => {
     if (!invitation) return;
-    await respondInvitation(invitation.id, accept);
-    if (accept) {
+    const success = await respondInvitation(invitation.id, accept);
+    if (accept && success) {
       setShowVideoCall(true);
-      setPendingRoomId(invitation.room_id);
-    } else {
+      // Room id for both: invitation.room_id is the canonical one from DB
+    } else if (!accept) {
       toast.info("Video call invitation rejected");
       clear();
       setShowVideoCall(false);
-      setPendingRoomId(null);
     }
   };
 
-  // When closing the VideoCallDialog, reset pendingRoomId
+  // When closing the VideoCallDialog, reset dialogs
   const handleCloseCallDialog = (open: boolean) => {
     setShowVideoCall(open);
-    if (!open) setPendingRoomId(null);
+    if (!open) clear();
   };
+
+  // Cancel call (sender only)
+  const handleCancelOutgoing = async () => {
+    if (!outgoingInvitation) return;
+    await cancelOutgoing(outgoingInvitation.id);
+    toast.info("Call cancelled");
+    clear();
+    setShowVideoCall(false);
+  };
+
+  // Listen for status changes to open the video dialog at the right time
+  // If I'm the sender and my outgoing invite turns "accepted", open the call screen
+  const prevOutgoingStatus = useRef<string | null>(null);
+  if (
+    outgoingInvitation &&
+    outgoingInvitation.status === "accepted" &&
+    prevOutgoingStatus.current !== "accepted" &&
+    !showVideoCall
+  ) {
+    // The receiver accepted - start video call for sender!
+    setShowVideoCall(true);
+    prevOutgoingStatus.current = "accepted";
+  }
+  // Track outgoing invite status so we don't trigger twice
+  if (outgoingInvitation && outgoingInvitation.status !== prevOutgoingStatus.current) {
+    prevOutgoingStatus.current = outgoingInvitation.status;
+  }
+
+  // If outgoing invitation gets cancelled (deleted) or rejected, ensure UI resets
+  if (!outgoingInvitation && showVideoCall) {
+    setShowVideoCall(false);
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -97,20 +128,40 @@ export function ChatHeaderActions() {
         className="h-9 w-9"
         onClick={handleStartCall}
         title="Start Video Call"
-        disabled={inviteLoading}
+        disabled={inviteLoading || !!outgoingInvitation}
       >
         <Video className="h-5 w-5" />
       </Button>
 
-      {/* Call dialog: show with right room for initiator or on accept */}
-      <VideoCallDialog
-        open={showVideoCall}
-        onOpenChange={handleCloseCallDialog}
-        roomId={pendingRoomId || roomId}
-      />
+      {/* Outgoing "Calling" dialog for caller */}
+      {outgoingInvitation && outgoingInvitation.status === "pending" && (
+        <VideoCallOutgoingDialog
+          open={true}
+          loading={inviteLoading}
+          onCancel={handleCancelOutgoing}
+          recipientName={
+            conversation?.participants?.find(p => p.id === outgoingInvitation.recipient_id)?.first_name ||
+            "Recipient"
+          }
+        />
+      )}
 
-      {/* Recipient get a popup when there's an incoming invitation */}
-      {invitation && invitation.status === 'pending' && (
+      {/* Call dialog: only open for caller or receiver when invite accepted */}
+      {showVideoCall && (
+        <VideoCallDialog
+          open={showVideoCall}
+          onOpenChange={handleCloseCallDialog}
+          // Use invitation.room_id for receiver, outgoingInvitation.room_id for sender
+          roomId={
+            (invitation?.status === "accepted" ? invitation.room_id :
+              outgoingInvitation?.status === "accepted" ? outgoingInvitation.room_id :
+                roomId)
+          }
+        />
+      )}
+
+      {/* Receiver gets a popup when there's an incoming invitation */}
+      {invitation && invitation.status === "pending" && (
         <VideoCallInviteDialog
           open={true}
           onRespond={handleRespondInvite}
