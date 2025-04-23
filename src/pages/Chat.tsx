@@ -51,6 +51,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
+  const isMobile = useIsMobile();
   
   const { 
     suggestions, 
