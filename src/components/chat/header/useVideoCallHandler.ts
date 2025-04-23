@@ -45,14 +45,22 @@ export function useVideoCallHandler(conversationId: string) {
   // Track if we've explicitly accepted a call to prevent false cancellation messages
   const [hasExplicitlyAccepted, setHasExplicitlyAccepted] = useState(false);
 
-  // Handles video dialog opening when call is accepted
+  // Handles video dialog opening when call is accepted, for both parties (caller and receiver)
   useEffect(() => {
-    if (callAccepted) {
+    // Open dialog if either invitation or outgoingInvitation was accepted, for both participants
+    if (
+      (invitation && invitation.status === "accepted") ||
+      (outgoingInvitation && outgoingInvitation.status === "accepted")
+    ) {
       setVideoDialogOpen(true);
     } else {
       setVideoDialogOpen(false);
     }
-  }, [callAccepted]);
+  }, [
+    // By including outgoingInvitation and invitation in deps, this fires on status change for both roles
+    invitation,
+    outgoingInvitation,
+  ]);
 
   // Only track true cancellations, not transitions to accepted state
   const prevInviteDialogOpen = useRef(inviteDialogOpen);
@@ -103,15 +111,12 @@ export function useVideoCallHandler(conversationId: string) {
     if (!invitation) return;
 
     if (accept) {
-      // Mark that we've explicitly accepted to prevent showing cancellation toast
       setHasExplicitlyAccepted(true);
       const success = await respondInvitation(invitation.id, true);
       if (success) {
         toast.success("Call accepted");
-        setVideoDialogOpen(true); // IMMEDIATE OPEN
-
+        setVideoDialogOpen(true); // Immediate open for receiver UI responsiveness
         // Video dialog will also open via the callAccepted effect (after Supabase update)
-        // The setVideoDialogOpen(true) here prevents UI lag/mismatch for receiver.
       } else {
         toast.error("Failed to accept call");
         setHasExplicitlyAccepted(false);
