@@ -100,18 +100,26 @@
     @apply bg-background text-foreground font-sans;
     overscroll-behavior: none;
   }
-  
+
   .glass-effect {
     @apply bg-white/10 dark:bg-black/20 backdrop-blur-lg border border-white/20 dark:border-white/10 rounded-xl;
   }
-  
+
   .animate-enter {
     @apply animate-fade-in;
   }
-  
+
   .hover-scale {
     @apply transition-transform duration-200 hover:scale-105;
   }
+}
+
+*::-webkit-scrollbar {
+  display: none !important;
+}
+* {
+  -ms-overflow-style: none !important; /* IE and Edge */
+  scrollbar-width: none !important; /* Firefox */
 }
 
 @layer utilities {
