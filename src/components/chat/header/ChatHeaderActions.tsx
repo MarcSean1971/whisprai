@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, MoreVertical, Video } from "lucide-react";
@@ -20,7 +21,7 @@ export function ChatHeaderActions() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
-  
+
   const { conversation } = useConversation(
     (window.location.pathname.match(/[0-9a-fA-F-]{36,}/)?.[0] ?? "")
   );
@@ -48,19 +49,19 @@ export function ChatHeaderActions() {
     clear
   } = useVideoCallInvitations(conversation?.id ?? "", profile?.id ?? "");
 
+  // Robustly control showing/hiding of the VideoCallDialog
   const prevInvitationRef = useRef(invitation);
+  const prevOutgoingRef = useRef(outgoingInvitation);
+  const prevShowVideoCallRef = useRef(showVideoCall);
 
   useEffect(() => {
-    console.log(
-      "[VideoCall][HeaderActions] (INVITATION HOOK STATE)",
-      {
-        invitation,
-        outgoingInvitation
-      }
-    );
-  }, [invitation, outgoingInvitation]);
+    console.log("[VideoCall][HeaderActions] (INVITATION HOOK STATE)", {
+      invitation,
+      outgoingInvitation,
+      showVideoCall
+    });
 
-  useEffect(() => {
+    // If incoming invite was cleared (call cancelled)
     if (
       prevInvitationRef.current &&
       prevInvitationRef.current.status === "pending" &&
@@ -68,11 +69,50 @@ export function ChatHeaderActions() {
     ) {
       toast.info("Call cancelled");
       console.log("[VideoCall][HeaderActions] Call cancelled toast shown");
+      setShowVideoCall(false);
     }
     prevInvitationRef.current = invitation;
   }, [invitation]);
 
-  const inviteDialogOpen = !!invitation && invitation.status === "pending";
+  useEffect(() => {
+    // Outgoing accepted: show dialog
+    if (
+      outgoingInvitation &&
+      outgoingInvitation.status === "accepted" &&
+      !showVideoCall
+    ) {
+      setShowVideoCall(true);
+      console.log("[VideoCall][HeaderActions] Outgoing call accepted, showing dialog");
+    }
+    // Outgoing no longer valid: hide dialog
+    if (!outgoingInvitation && prevOutgoingRef.current && prevOutgoingRef.current.status === "accepted") {
+      setShowVideoCall(false);
+      console.log("[VideoCall][HeaderActions] Outgoing accepted cleared, hiding dialog");
+    }
+    prevOutgoingRef.current = outgoingInvitation;
+  }, [outgoingInvitation, showVideoCall]);
+
+  useEffect(() => {
+    // If we have an incoming invitation accepted, show dialog and clear dialog only when incoming/outgoing closes
+    if (invitation && invitation.status === "accepted" && !showVideoCall) {
+      setShowVideoCall(true);
+      console.log("[VideoCall][HeaderActions] Incoming call accepted, showing dialog");
+    }
+    if (!invitation && prevInvitationRef.current && prevInvitationRef.current.status === "accepted") {
+      setShowVideoCall(false);
+      console.log("[VideoCall][HeaderActions] Incoming accepted cleared, hiding dialog");
+    }
+    // No need to update prevInvitationRef here as that's managed in the other effect
+  }, [invitation, showVideoCall]);
+
+  // Closing dialog should clear all invitation state as needed
+  const handleCloseCallDialog = (open: boolean) => {
+    setShowVideoCall(open);
+    if (!open) {
+      clear();
+      console.log("[VideoCall][HeaderActions] Video call dialog closed, cleared invitations");
+    }
+  };
 
   const handleStartCall = async () => {
     if (!recipient?.id) {
@@ -91,16 +131,12 @@ export function ChatHeaderActions() {
     const success = await respondInvitation(invitation.id, accept);
     if (accept && success) {
       setShowVideoCall(true);
+      console.log("[VideoCall][HeaderActions] Accepted invitation, opening dialog");
     } else if (!accept) {
       toast.info("Video call invitation rejected");
       clear();
       setShowVideoCall(false);
     }
-  };
-
-  const handleCloseCallDialog = (open: boolean) => {
-    setShowVideoCall(open);
-    if (!open) clear();
   };
 
   const handleCancelOutgoing = async () => {
@@ -111,22 +147,8 @@ export function ChatHeaderActions() {
     setShowVideoCall(false);
   };
 
-  const prevOutgoingStatus = useRef<string | null>(null);
-  if (
-    outgoingInvitation &&
-    outgoingInvitation.status === "accepted" &&
-    prevOutgoingStatus.current !== "accepted" &&
-    !showVideoCall
-  ) {
-    setShowVideoCall(true);
-    prevOutgoingStatus.current = "accepted";
-  }
-  if (outgoingInvitation && outgoingInvitation.status !== prevOutgoingStatus.current) {
-    prevOutgoingStatus.current = outgoingInvitation.status;
-  }
-  if (!outgoingInvitation && showVideoCall) {
-    setShowVideoCall(false);
-  }
+  // Always true when you have a pending incoming invite
+  const inviteDialogOpen = !!invitation && invitation.status === "pending";
 
   return (
     <div className="flex items-center gap-2">
