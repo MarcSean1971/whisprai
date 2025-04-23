@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -60,8 +61,6 @@ export function ChatMessages({
     hasNextPage,
     isFetchingNextPage
   });
-
-  useFullscreenMode();
 
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
