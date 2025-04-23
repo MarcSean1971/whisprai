@@ -1,7 +1,7 @@
 
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { fetchMessages } from "./use-messages/fetchMessages";
 import type { Message } from "./use-messages/types";
@@ -22,6 +22,7 @@ interface UseMessagesReturn {
 export function useMessages(conversationId: string): UseMessagesReturn {
   const queryClient = useQueryClient();
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
+  const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const result = useInfiniteQuery({
     queryKey: ['messages', conversationId],
@@ -48,14 +49,40 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     isFetchingNextPage: result.isFetchingNextPage
   });
 
+  // Reset subscription error each time conversation ID changes or focus returns
+  useEffect(() => {
+    setSubscriptionError(null);
+  }, [conversationId]);
+
+  // Re-subscribe to message updates on focus
+  useEffect(() => {
+    function handleFocusOrVisibility() {
+      // clear error before trying to setup the subscription again
+      setSubscriptionError(null);
+      // We'll let useEffect below re-run due to dependency on conversationId
+      // So we just invalidate messages here to force a refetch and re-subscription
+      queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+    }
+    window.addEventListener('focus', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === "visible") {
+        handleFocusOrVisibility();
+      }
+    });
+    return () => {
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
+    };
+  }, [conversationId, queryClient]);
+
   useEffect(() => {
     if (!conversationId) {
       console.warn('No conversation ID provided');
       return;
     }
-
     let messagesChannel: ReturnType<typeof supabase.channel>;
-    
+    setSubscriptionError(null); // Clear previous error before (re)subscribing
+
     try {
       messagesChannel = supabase
         .channel(`messages:${conversationId}`)
@@ -81,17 +108,23 @@ export function useMessages(conversationId: string): UseMessagesReturn {
           console.log(`Subscription status for messages:${conversationId}:`, status);
           if (status === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));
+            toast.error('Failed to subscribe to message updates. Try refreshing.');
+          } else if (status === 'SUBSCRIBED') {
+            console.log('Messages channel subscribed successfully');
           }
         });
+      messagesChannelRef.current = messagesChannel;
     } catch (err) {
       console.error('Error setting up subscription:', err);
       setSubscriptionError(err instanceof Error ? err : new Error('Failed to subscribe to message updates'));
     }
 
     return () => {
-      if (messagesChannel) {
+      if (messagesChannelRef.current) {
         try {
-          supabase.removeChannel(messagesChannel);
+          supabase.removeChannel(messagesChannelRef.current);
+          messagesChannelRef.current = null;
+          console.log('Messages channel removed cleanly');
         } catch (err) {
           console.error('Error removing channel:', err);
         }
@@ -104,7 +137,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   
   if (error && !result.isLoading) {
     console.error('Error in useMessages hook:', error);
-    toast.error('Failed to load messages');
+    // Only toast if not already shown
+    toast.error(error.message || 'Failed to load messages');
   }
 
   return {
@@ -116,3 +150,4 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     isFetchingNextPage: result.isFetchingNextPage
   };
 }
+
