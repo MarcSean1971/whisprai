@@ -1,5 +1,5 @@
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -14,6 +14,10 @@ export function VideoCallDialog({ open, onOpenChange, roomId }: VideoCallDialogP
         className="max-w-3xl w-[90vw] max-h-[80vh] h-auto p-0 overflow-hidden flex flex-col no-scrollbar"
         style={{ height: "80vh" }}
       >
+        <DialogTitle className="sr-only">Video Call</DialogTitle>
+        <DialogDescription className="sr-only">
+          You are in an active video call room.
+        </DialogDescription>
         <iframe
           src={`/video-call.html?roomID=${roomId}`}
           title="Video Call"
