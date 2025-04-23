@@ -22,6 +22,9 @@ export function ChatHeaderActions() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showVideoCall, setShowVideoCall] = useState(false);
 
+  // NEW: open state for invite dialog (incoming call)
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+
   const { conversation } = useConversation(
     (window.location.pathname.match(/[0-9a-fA-F-]{36,}/)?.[0] ?? "")
   );
@@ -66,6 +69,16 @@ export function ChatHeaderActions() {
     prevInvitationRef.current = invitation;
   }, [invitation]);
 
+  // NEW: Control the open state of the incoming call dialog.
+  useEffect(() => {
+    // Show dialog only when invitation is present and pending
+    if (invitation && invitation.status === "pending") {
+      setInviteDialogOpen(true);
+    } else {
+      setInviteDialogOpen(false);
+    }
+  }, [invitation]);
+
   // Initiate a call: send an invite to recipient, show outgoing dialog
   const handleStartCall = async () => {
     if (!recipient?.id) {
@@ -86,7 +99,6 @@ export function ChatHeaderActions() {
     const success = await respondInvitation(invitation.id, accept);
     if (accept && success) {
       setShowVideoCall(true);
-      // Room id for both: invitation.room_id is the canonical one from DB
     } else if (!accept) {
       toast.info("Video call invitation rejected");
       clear();
@@ -163,7 +175,6 @@ export function ChatHeaderActions() {
         <VideoCallDialog
           open={showVideoCall}
           onOpenChange={handleCloseCallDialog}
-          // Use invitation.room_id for receiver, outgoingInvitation.room_id for sender
           roomId={
             (invitation?.status === "accepted" ? invitation.room_id :
               outgoingInvitation?.status === "accepted" ? outgoingInvitation.room_id :
@@ -173,17 +184,15 @@ export function ChatHeaderActions() {
       )}
 
       {/* Receiver gets a popup when there's an incoming invitation */}
-      {invitation && invitation.status === "pending" && (
-        <VideoCallInviteDialog
-          open={true}
-          onRespond={handleRespondInvite}
-          loading={inviteLoading}
-          inviterName={
-            conversation?.participants?.find(p => p.id === invitation.sender_id)?.first_name ||
-            "Someone"
-          }
-        />
-      )}
+      <VideoCallInviteDialog
+        open={inviteDialogOpen}
+        onRespond={handleRespondInvite}
+        loading={inviteLoading}
+        inviterName={
+          conversation?.participants?.find(p => p.id === invitation?.sender_id)?.first_name ||
+          "Someone"
+        }
+      />
 
       {isSearching ? (
         <div className="flex items-center relative">
