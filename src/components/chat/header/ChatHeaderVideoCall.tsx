@@ -92,7 +92,7 @@ export function ChatHeaderVideoCall({ conversationId }: Props) {
           open={true}
           onOpenChange={handleCloseVideoCall}
           roomId={roomId}
-          userName={profile?.first_name || "User"}
+          userName={profile?.firstName || "User"}
           recipientName={receiverName}
         />
       )}
