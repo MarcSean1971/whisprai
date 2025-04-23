@@ -1,5 +1,5 @@
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useVideoCallInvitations } from "@/hooks/use-video-call-invitations";
@@ -41,16 +41,17 @@ export function useVideoCallHandler(conversationId: string) {
     (invitation && invitation.status === "accepted") ||
     (outgoingInvitation && outgoingInvitation.status === "accepted");
 
-  // Unified show/hide logic for the video call window
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
-  // Open/show the call window when accepted
-  if (callAccepted && !videoDialogOpen) {
-    setVideoDialogOpen(true);
-  }
-  // Close the call window if both invitations are cleared
-  if (!callAccepted && videoDialogOpen) {
-    setVideoDialogOpen(false);
-  }
+
+  // Handle transitions for opening/closing the video call window on callAccepted
+  useEffect(() => {
+    if (callAccepted) {
+      setVideoDialogOpen(true);
+    } else {
+      setVideoDialogOpen(false);
+    }
+    // Only depend on callAccepted; all other changes are derived from it
+  }, [callAccepted]);
 
   const handleCloseCallDialog = () => {
     setVideoDialogOpen(false);
@@ -73,7 +74,7 @@ export function useVideoCallHandler(conversationId: string) {
     if (!invitation) return;
     const success = await respondInvitation(invitation.id, accept);
     if (accept && success) {
-      setVideoDialogOpen(true);
+      // No need to setVideoDialogOpen(true) here; it will open from useEffect when status updates.
     } else if (!accept) {
       toast.info("Video call invitation rejected");
       clear();
@@ -105,3 +106,4 @@ export function useVideoCallHandler(conversationId: string) {
     handleCancelOutgoing
   };
 }
+
