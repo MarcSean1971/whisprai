@@ -1,3 +1,4 @@
+
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
 import { MessageReactions } from "./reactions/MessageReactions";
@@ -62,6 +63,14 @@ export function MessageBubble({
 
   const formattedTime = formatMessageDateTime(timestamp);
 
+  // If formattedTime contains "Yesterday ", split for style
+  let yesterdayLabel = "";
+  let timePart = formattedTime;
+  if (formattedTime.startsWith("Yesterday ")) {
+    yesterdayLabel = "Yesterday";
+    timePart = formattedTime.replace("Yesterday ", "");
+  }
+
   return (
     <div className="space-y-2">
       <div className={cn(
@@ -93,8 +102,11 @@ export function MessageBubble({
             {hasTodo && (
               <ListTodo className="h-4 w-4 text-muted-foreground animate-fade-in" />
             )}
-            <span className="text-[10px] opacity-70 text-right">
-              {formattedTime}
+            <span className="text-[10px] opacity-70 text-right whitespace-nowrap">
+              {yesterdayLabel && (
+                <span className="font-medium">{yesterdayLabel}&nbsp;</span>
+              )}
+              {timePart}
             </span>
           </div>
         </div>
@@ -103,3 +115,4 @@ export function MessageBubble({
     </div>
   );
 }
+
