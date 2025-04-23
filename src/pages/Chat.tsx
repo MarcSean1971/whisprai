@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -14,10 +13,13 @@ import { useState, useCallback, Suspense, useEffect } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
+import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
 
 export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  
+  useFullscreenMode({ enabled: true });
   
   useEffect(() => {
     if (!id) {

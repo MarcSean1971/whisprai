@@ -2,7 +2,11 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useIsMobile } from './use-mobile';
 
-export function useFullscreenMode() {
+interface UseFullscreenModeProps {
+  enabled?: boolean;
+}
+
+export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = {}) {
   const isMobile = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
   
@@ -11,7 +15,6 @@ export function useFullscreenMode() {
       document.documentElement.requestFullscreen()
         .then(() => {
           setIsFullscreen(true);
-          // Request wake lock to prevent screen from dimming
           if ('wakeLock' in navigator) {
             (navigator as any).wakeLock.request('screen')
               .catch(err => console.error('Wake Lock error:', err));
@@ -22,20 +25,17 @@ export function useFullscreenMode() {
   }, []);
 
   useEffect(() => {
-    if (!isMobile) return;
+    // Only enable fullscreen if explicitly enabled AND on mobile
+    if (!enabled || !isMobile) return;
     
     const enableFullscreen = () => {
       requestFullscreen();
-      // Set body overflow to hidden to prevent bounce effect
       document.body.style.overflow = 'hidden';
-      // Prevent pull-to-refresh
       document.body.style.overscrollBehavior = 'none';
     };
 
-    // Enable fullscreen on mount
     enableFullscreen();
 
-    // Re-enable fullscreen on visibility change
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         enableFullscreen();
@@ -49,8 +49,7 @@ export function useFullscreenMode() {
       document.body.style.overflow = '';
       document.body.style.overscrollBehavior = '';
     };
-  }, [isMobile, requestFullscreen]);
+  }, [isMobile, requestFullscreen, enabled]);
 
   return { isFullscreen };
 }
-

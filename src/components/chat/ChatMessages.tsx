@@ -11,7 +11,6 @@ import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
-import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
 
 interface ChatMessagesProps {
   messages: any[];
