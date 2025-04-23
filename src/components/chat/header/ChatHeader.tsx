@@ -1,4 +1,3 @@
-
 import { ChatHeaderActions } from "./ChatHeaderActions";
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
@@ -40,14 +39,12 @@ export function ChatHeader({
     <div
       className={`
         bg-background border-b
-        sticky top-0 z-10
+        sticky top-0 z-20
         md:sticky md:top-0
-        fixed top-0 left-0 right-0 z-40
         md:relative md:z-10
       `}
       style={{
-        // Hide fixed header on desktop
-        // This requires only mobile shows fixed, desktop uses sticky (handled by Tailwind below)
+        paddingTop: 'env(safe-area-inset-top, 0px)'
       }}
     >
       <div className="flex items-center justify-between p-4">
@@ -75,4 +72,3 @@ export function ChatHeader({
     </div>
   );
 }
-

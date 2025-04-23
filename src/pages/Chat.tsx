@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -19,7 +18,6 @@ export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   
-  // Safe guard against undefined ID
   useEffect(() => {
     if (!id) {
       console.error("No conversation ID provided");
@@ -65,8 +63,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   ) => {
     await sendMessage(content, voiceMessageData, location, attachments);
     clearSuggestions();
-    // We don't need to call refetch anymore as the real-time subscription in useMessages 
-    // will automatically update the messages
   };
 
   const handleNewReceivedMessage = useCallback(() => {
@@ -83,7 +79,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   }, []);
 
   const refetch = () => {
-    // If we have hasNextPage available, use fetchNextPage to get more messages
     if (hasNextPage) {
       console.log('Fetching next page of messages');
       fetchNextPage();
@@ -98,7 +93,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           replyToMessageId={replyToMessageId}
           onCancelReply={cancelReply}
         />
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
           <EmptyState
             icon={<AlertCircle className="h-10 w-10 text-destructive" />}
             title="Error loading chat"
@@ -124,7 +119,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           replyToMessageId={null}
           onCancelReply={() => {}}
         />
-        <div className="flex-1 overflow-hidden relative">
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
             <MessageSkeleton />
             <MessageSkeleton />
@@ -142,7 +137,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
         <ErrorBoundary>
           <Suspense fallback={
             <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
@@ -167,7 +162,12 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="w-full bg-background border-t">
+      <div
+        className="w-full bg-background border-t sticky bottom-0 z-20"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom,0px)'
+        }}
+      >
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
