@@ -2,6 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Phone, Video } from "lucide-react";
 import { toast } from "sonner";
+import { useTwilioConnectionCheck } from "@/hooks/use-twilio-connection-check";
+import { useState } from "react";
 
 interface ChatCallActionsProps {
   isOnline: boolean;
@@ -16,7 +18,10 @@ export function ChatCallActions({
   onStartCall,
   recipientName 
 }: ChatCallActionsProps) {
-  const handleCall = (type: "audio" | "video") => {
+  const { checkConnection, isChecking } = useTwilioConnectionCheck();
+  const [loadingType, setLoadingType] = useState<"audio" | "video" | null>(null);
+
+  const handleCall = async (type: "audio" | "video") => {
     if (!isOnline) {
       toast.error(`${recipientName} is offline. Try again later.`);
       return;
@@ -26,7 +31,18 @@ export function ChatCallActions({
       toast.info("Already in a call");
       return;
     }
-    
+
+    setLoadingType(type);
+
+    toast.info("Checking Twilio connection...");
+    const ok = await checkConnection();
+    setLoadingType(null);
+
+    if (!ok) {
+      toast.error("Unable to connect to Twilio. Please check your network or contact support.");
+      return;
+    }
+
     console.log(`[WebRTC] Starting ${type} call with ${recipientName}`);
     onStartCall(type);
   };
@@ -37,11 +53,13 @@ export function ChatCallActions({
         variant="outline"
         size="icon"
         className="h-9 w-9"
-        disabled={isCalling || !isOnline}
+        disabled={isCalling || !isOnline || isChecking || loadingType === "video"}
         title={`Video call ${recipientName}`}
         onClick={() => handleCall("video")}
       >
-        <Video className="h-5 w-5" />
+        {loadingType === "video"
+          ? <span className="animate-spin w-5 h-5 border-2 border-t-transparent rounded-full border-primary" />
+          : <Video className="h-5 w-5" />}
         <span className="sr-only">Video Call</span>
       </Button>
       
@@ -49,11 +67,13 @@ export function ChatCallActions({
         variant="outline"
         size="icon"
         className="h-9 w-9"
-        disabled={isCalling || !isOnline}
+        disabled={isCalling || !isOnline || isChecking || loadingType === "audio"}
         title={`Call ${recipientName}`}
         onClick={() => handleCall("audio")}
       >
-        <Phone className="h-5 w-5" />
+        {loadingType === "audio"
+          ? <span className="animate-spin w-5 h-5 border-2 border-t-transparent rounded-full border-primary" />
+          : <Phone className="h-5 w-5" />}
         <span className="sr-only">Call</span>
       </Button>
     </div>
