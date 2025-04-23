@@ -8,6 +8,17 @@ import { useCancelOutgoingInvitation } from "./video-call-invitations/useCancelO
 import { useExpiredInvitationsCleanup } from "./video-call-invitations/useExpiredInvitationsCleanup";
 import { useClearVideoCallInvitations } from "./video-call-invitations/useClearVideoCallInvitations";
 
+export interface VideoCallInvitation {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  recipient_id: string;
+  room_id: string;
+  status: string;
+  created_at: string;
+  expires_at: string;
+}
+
 export function useVideoCallInvitations(conversationId: string, profileId: string | null) {
   const { invitation, setInvitation } = useIncomingVideoCallInvitations(conversationId, profileId);
   const { outgoingInvitation, setOutgoingInvitation } = useOutgoingVideoCallInvitations(conversationId, profileId);
