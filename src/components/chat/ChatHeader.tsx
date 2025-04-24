@@ -1,3 +1,4 @@
+
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
@@ -6,6 +7,7 @@ import { useState } from "react";
 import { ChatParticipantDialog } from "./ChatParticipantDialog";
 import { ChatHeaderActions } from "./header/ChatHeaderActions";
 import { ChatParticipantsInfo } from "./header/ChatParticipantsInfo";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatHeaderProps {
   conversationId: string;
@@ -22,6 +24,7 @@ export function ChatHeader({
   const { profile } = useProfile();
   const [selectedParticipant, setSelectedParticipant] = useState<any>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const { isMobile } = useIsMobile();
 
   const otherParticipants = conversation?.participants?.filter(p => 
     profile && p.id !== profile.id
@@ -38,17 +41,19 @@ export function ChatHeader({
   return (
     <div
       className={`
-        bg-background border-b
-        sticky top-0 z-20
-        md:sticky md:top-0
-        md:relative md:z-10
+        bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60
+        border-b w-full
+        ${isMobile ? "fixed top-0 left-0 z-50" : "sticky top-0 z-20"}
       `}
-      style={{
-        paddingTop: 'env(safe-area-inset-top, 0px)'
-      }}
     >
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center gap-4">
+      <div 
+        className="flex items-center justify-between px-3 py-1"
+        style={{
+          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 0.25rem)' : '0.25rem',
+          paddingBottom: '0.25rem'
+        }}
+      >
+        <div className="flex items-center gap-3">
           <BackButton to="/chats" />
           <ChatParticipantsInfo 
             participants={otherParticipants}
@@ -72,3 +77,4 @@ export function ChatHeader({
     </div>
   );
 }
+
