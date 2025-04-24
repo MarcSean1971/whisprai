@@ -44,12 +44,14 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
   const { isMobile } = useIsMobile();
   const { scrollContainerRef, loadMoreRef, messagesEndRef } = useMessageScroll({
     messages,
     refetch,
     hasNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
+    currentUserId
   });
 
   useFullscreenMode();

@@ -6,18 +6,21 @@ interface UseMessageScrollProps {
   refetch?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  currentUserId?: string | null;
 }
 
 export function useMessageScroll({ 
   messages, 
   refetch, 
   hasNextPage = false,
-  isFetchingNextPage = false 
+  isFetchingNextPage = false,
+  currentUserId
 }: UseMessageScrollProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageLengthRef = useRef<number>(0);
+  const lastScrollTimeRef = useRef<number>(0);
   
   // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
@@ -34,16 +37,20 @@ export function useMessageScroll({
 
     // Check if new messages were added
     const isNewMessage = messages.length > lastMessageLengthRef.current;
+    const lastMessage = messages[messages.length - 1];
+    const isOwnMessage = lastMessage?.sender?.id === currentUserId;
     const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
     
     console.log('Scroll check:', {
       isNewMessage,
+      isOwnMessage,
       isNearBottom,
       currentLength: messages.length,
       lastLength: lastMessageLengthRef.current,
       scrollHeight: container.scrollHeight,
       scrollTop: container.scrollTop,
-      clientHeight: container.clientHeight
+      clientHeight: container.clientHeight,
+      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current
     });
 
     lastMessageLengthRef.current = messages.length;
@@ -55,12 +62,17 @@ export function useMessageScroll({
       return;
     }
 
-    // Scroll to bottom for new messages (if near bottom) or initial load
-    if (isNewMessage && isNearBottom) {
-      console.log('Scrolling to latest message');
-      endRef.scrollIntoView({ behavior: "smooth" });
+    // Always scroll to bottom for own messages or if near bottom for others
+    if (isNewMessage && (isOwnMessage || isNearBottom)) {
+      console.log('Scrolling to latest message:', { isOwnMessage, isNearBottom });
+      
+      // Use requestAnimationFrame to ensure content is rendered
+      requestAnimationFrame(() => {
+        endRef.scrollIntoView({ behavior: "smooth" });
+        lastScrollTimeRef.current = Date.now();
+      });
     }
-  }, [messages, isFetchingNextPage]);
+  }, [messages, isFetchingNextPage, currentUserId]);
 
   // Restore scroll position after loading older messages
   useEffect(() => {
