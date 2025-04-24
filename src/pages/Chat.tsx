@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -142,7 +141,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         className="flex-1 overflow-hidden relative"
         style={{
           paddingTop: 'calc(2.5rem + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
+          paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))'
         }}
       >
         <ErrorBoundary>
@@ -170,7 +169,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         </ErrorBoundary>
       </div>
       <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t z-50">
-        <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="py-4" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
           <ChatInput
             conversationId={conversationId}
             onSendMessage={handleSendMessage}
