@@ -31,23 +31,6 @@ export function ChatInput({
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
   const isKeyboardVisible = useKeyboardVisibility();
 
-  const handleSendMessage = async (
-    content: string, 
-    attachments?: { url: string; name: string; type: string }[]
-  ) => {
-    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
-    const mightNeedLocation = locationKeywords.some(keyword => 
-      content.toLowerCase().includes(keyword)
-    );
-
-    if (mightNeedLocation) {
-      const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined, attachments);
-    } else {
-      onSendMessage(content, undefined, undefined, attachments);
-    }
-  };
-
   const handleVoiceMessage = async (base64Audio: string) => {
     try {
       setIsProcessingVoice(true);
@@ -94,13 +77,28 @@ export function ChatInput({
     }
   };
 
+  const handleSendMessage = async (
+    content: string, 
+    attachments?: { url: string; name: string; type: string }[]
+  ) => {
+    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
+    const mightNeedLocation = locationKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword)
+    );
+
+    if (mightNeedLocation) {
+      const location = await requestLocation();
+      onSendMessage(content, undefined, location || undefined, attachments);
+    } else {
+      onSendMessage(content, undefined, undefined, attachments);
+    }
+  };
+
   return (
     <div className={cn(
-      "w-full transition-all bg-background p-4",
-      "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
-      "md:pb-4",
-      !isRecording && suggestions.length > 0 && !isKeyboardVisible && "pb-6",
-      isKeyboardVisible && "fixed bottom-0 left-0 right-0 z-50"
+      "w-full transition-all duration-200",
+      "p-4",
+      isKeyboardVisible ? "pb-4" : "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
     )}>
       {isRecording ? (
         <VoiceRecorder

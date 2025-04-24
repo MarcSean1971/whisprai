@@ -14,6 +14,7 @@ import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
 import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -165,7 +166,11 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="z-20 w-full bg-background">
+      <div className={cn(
+        "z-20 w-full bg-background",
+        "transition-all duration-200 ease-in-out",
+        "pb-[env(safe-area-inset-bottom,0px)]"
+      )}>
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
