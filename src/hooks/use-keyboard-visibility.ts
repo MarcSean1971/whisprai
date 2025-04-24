@@ -1,10 +1,10 @@
 
 import { useState, useEffect } from 'react';
-import { useMobile } from './use-mobile';
+import { useIsMobile } from './use-mobile';
 
 export function useKeyboardVisibility() {
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!isMobile || !window.visualViewport) return;
