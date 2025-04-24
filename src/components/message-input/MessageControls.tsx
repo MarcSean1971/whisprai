@@ -7,6 +7,8 @@ import { WarningDialog } from "./controls/WarningDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
+import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface MessageControlsProps {
   message: string;
@@ -35,6 +37,11 @@ export function MessageControls({
   const [showWarning, setShowWarning] = useState(false);
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
+
+  const isKeyboardVisible = useKeyboardVisibility();
+  const isMobile = useIsMobile();
+  
+  const showControls = !isMobile || !isKeyboardVisible;
 
   useEffect(() => {
     if (message.trim()) {
@@ -120,21 +127,23 @@ export function MessageControls({
   return (
     <>
       <form onSubmit={handleSubmit} className="flex gap-1 md:gap-2 items-center relative">
-        <div className="flex gap-0 md:gap-1 items-center">
-          <AttachmentControls
-            onAttachmentClick={onAttachmentClick}
-            onCameraClick={onCameraClick}
-            disabled={disabled}
-            canAttach={canAttach}
-          />
+        {showControls && (
+          <div className="flex gap-0 md:gap-1 items-center transition-opacity duration-200">
+            <AttachmentControls
+              onAttachmentClick={onAttachmentClick}
+              onCameraClick={onCameraClick}
+              disabled={disabled}
+              canAttach={canAttach}
+            />
 
-          <EnhanceButton
-            onEnhance={handleEnhanceMessage}
-            isEnhancing={isEnhancing}
-            disabled={disabled}
-            hasContent={!!message.trim()}
-          />
-        </div>
+            <EnhanceButton
+              onEnhance={handleEnhanceMessage}
+              isEnhancing={isEnhancing}
+              disabled={disabled}
+              hasContent={!!message.trim()}
+            />
+          </div>
+        )}
 
         <MessageField
           message={message}
@@ -142,6 +151,8 @@ export function MessageControls({
           disabled={disabled}
           isAnalyzing={isAnalyzing}
           inputRef={inputRef}
+          isKeyboardVisible={isKeyboardVisible}
+          isMobile={isMobile}
         />
 
         <SendButton

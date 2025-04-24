@@ -13,6 +13,8 @@ interface MessageFieldProps {
   disabled: boolean;
   isAnalyzing: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
+  isKeyboardVisible?: boolean;
+  isMobile?: boolean;
 }
 
 export function MessageField({
@@ -20,11 +22,12 @@ export function MessageField({
   onChange,
   disabled,
   isAnalyzing,
-  inputRef
+  inputRef,
+  isKeyboardVisible = false,
+  isMobile = false
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isMobile = useIsMobile();
   
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
@@ -36,6 +39,8 @@ export function MessageField({
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
+
+  const showEmojiPicker = !isMobile || !isKeyboardVisible;
 
   const emojiTrigger = (
     <Button 
@@ -57,10 +62,12 @@ export function MessageField({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar",
+          "min-h-[40px] max-h-[120px] py-2 rounded-full no-scrollbar",
           "resize-none focus-visible:ring-1",
           isAnalyzing && "pr-16",
-          isMobile ? "text-base" : "text-sm"
+          isMobile ? "text-base" : "text-sm",
+          showEmojiPicker ? "pr-10" : "pr-4",
+          isKeyboardVisible && isMobile && "w-full"
         )}
         disabled={disabled}
         rows={1}
@@ -71,17 +78,19 @@ export function MessageField({
         </div>
       )}
       
-      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-        <EmojiPicker
-          onEmojiSelect={handleEmojiSelect}
-          triggerButton={emojiTrigger}
-          open={isEmojiPickerOpen}
-          onOpenChange={setIsEmojiPickerOpen}
-          side="top"
-          align="end"
-          sideOffset={5}
-        />
-      </div>
+      {showEmojiPicker && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <EmojiPicker
+            onEmojiSelect={handleEmojiSelect}
+            triggerButton={emojiTrigger}
+            open={isEmojiPickerOpen}
+            onOpenChange={setIsEmojiPickerOpen}
+            side="top"
+            align="end"
+            sideOffset={5}
+          />
+        </div>
+      )}
     </div>
   );
 }
