@@ -97,7 +97,8 @@ export function ChatInput({
   return (
     <div className={cn(
       "w-full bg-background px-4",
-      isKeyboardVisible ? "pb-2" : "pb-safe"
+      "md:pb-6", // Desktop padding
+      isKeyboardVisible ? "pb-4" : "pb-safe pb-6" // Mobile padding with and without keyboard
     )}>
       {isRecording ? (
         <VoiceRecorder
