@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { Fragment, memo } from "react";
+import { memo } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -22,7 +22,6 @@ interface TranslationConsumerProps {
   scrollToMessage: (messageId: string) => void;
 }
 
-// Use memo to prevent unnecessary re-renders
 export const TranslationConsumer = memo(function TranslationConsumer({
   messages,
   currentUserId,
@@ -57,11 +56,13 @@ export const TranslationConsumer = memo(function TranslationConsumer({
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return (
-      <EmptyState
-        icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
-        title="No messages yet"
-        description="Start a conversation by sending a message below."
-      />
+      <div>
+        <EmptyState
+          icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
+          title="No messages yet"
+          description="Start a conversation by sending a message below."
+        />
+      </div>
     );
   }
 
@@ -74,13 +75,11 @@ export const TranslationConsumer = memo(function TranslationConsumer({
         }
         
         return (
-          <Fragment key={message.id}>
-            <div
-              ref={el => {
+          <div key={message.id}>
+            <ErrorBoundary>
+              <div ref={el => {
                 messageRefs.current[message.id] = el;
-              }}
-            >
-              <ErrorBoundary>
+              }}>
                 <MessageList
                   messages={[message]}
                   currentUserId={currentUserId}
@@ -90,7 +89,7 @@ export const TranslationConsumer = memo(function TranslationConsumer({
                   replyToMessageId={replyToMessageId}
                   scrollToMessage={scrollToMessage}
                 />
-              </ErrorBoundary>
+              </div>
               {sendReply && cancelReply && shouldShowReplyInput(message) && (
                 <div className="ml-10 mb-4">
                   <MessageReplyInput
@@ -104,8 +103,8 @@ export const TranslationConsumer = memo(function TranslationConsumer({
                   />
                 </div>
               )}
-            </div>
-          </Fragment>
+            </ErrorBoundary>
+          </div>
         );
       })}
     </>

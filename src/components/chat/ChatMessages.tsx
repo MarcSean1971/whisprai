@@ -60,11 +60,9 @@ export function ChatMessages({
     isFetchingNextPage
   });
 
-  // Keep track of the viewport dimensions for safe area handling
   const [safeAreaPaddingBottom, setSafeAreaPaddingBottom] = useState('7rem');
   
   useEffect(() => {
-    // Update safe area padding when component mounts
     const updateSafeAreaPadding = () => {
       const safeAreaBottom = getComputedStyle(document.documentElement)
         .getPropertyValue('--sab') || '0px';
