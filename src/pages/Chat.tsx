@@ -141,7 +141,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         className="flex-1 overflow-hidden relative"
         style={{
           paddingTop: 'calc(0.28rem + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))'
+          paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
         }}
       >
         <ErrorBoundary>

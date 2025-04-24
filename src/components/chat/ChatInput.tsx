@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
 import { useLocation } from "@/hooks/use-location";
@@ -29,6 +28,19 @@ export function ChatInput({
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const isKeyboard = window.visualViewport 
+        ? window.visualViewport.height < window.innerHeight
+        : false;
+      setKeyboardVisible(isKeyboard);
+    };
+
+    window.visualViewport?.addEventListener('resize', handleResize);
+    return () => window.visualViewport?.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSendMessage = async (
     content: string, 
@@ -94,12 +106,20 @@ export function ChatInput({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 w-full z-[100]">
-      <div className="bg-background/80 backdrop-blur-sm border-t">
+    <div 
+      className={cn(
+        "fixed left-0 right-0 bottom-0 w-full z-[100] transition-transform duration-200",
+        keyboardVisible && "transform -translate-y-3"
+      )}
+      style={{
+        paddingBottom: 'env(keyboard-inset-height, 0px)',
+        minHeight: 'env(keyboard-inset-height, 0px)'
+      }}
+    >
+      <div className="bg-background/95 backdrop-blur-sm border-t">
         <div 
-          className="px-4"
+          className="px-4 py-2"
           style={{ 
-            paddingTop: '0.5rem',
             paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
           }}
         >
