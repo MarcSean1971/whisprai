@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useEffect } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -19,6 +20,7 @@ interface TranslationConsumerProps {
   refetch?: () => void;
   messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   scrollToMessage: (messageId: string) => void;
+  forceScroll?: boolean;
 }
 
 export function TranslationConsumer({
@@ -33,7 +35,8 @@ export function TranslationConsumer({
   cancelReply,
   refetch,
   messageRefs,
-  scrollToMessage
+  scrollToMessage,
+  forceScroll
 }: TranslationConsumerProps) {
   const { translatedContents } = useMessageProcessor(
     messages,
@@ -42,6 +45,13 @@ export function TranslationConsumer({
     onNewReceivedMessage,
     onTranslation
   );
+
+  // Log when messages change or forceScroll is true
+  useEffect(() => {
+    if (messages.length > 0) {
+      console.log('[TranslationConsumer] Messages updated, count:', messages.length, 'forceScroll:', forceScroll);
+    }
+  }, [messages, forceScroll]);
 
   function shouldShowReplyInput(message: any) {
     if (replyToMessageId !== message.id) return false;

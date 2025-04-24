@@ -1,3 +1,4 @@
 
-import { MessageInput } from "./message-input/MessageInput";
-export { MessageInput };
+import { MessageInput as MessageInputComponent } from "./message-input/MessageInput";
+
+export { MessageInputComponent as MessageInput };

@@ -24,6 +24,7 @@ export function useMessageScroll({
   const initialLoadRef = useRef<boolean>(true);
   const scrollAttemptsRef = useRef<number>(0);
   const forceScrollRef = useRef<boolean>(false);
+  const scrollSuccessRef = useRef<boolean>(false);
   
   // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
@@ -34,8 +35,8 @@ export function useMessageScroll({
     const endRef = messagesEndRef.current;
     
     if (!container || !endRef) {
-      console.log('Scroll refs not ready, will retry');
-      if (scrollAttemptsRef.current < 3) {
+      console.log('[Scroll] Scroll refs not ready, will retry');
+      if (scrollAttemptsRef.current < 5) {
         setTimeout(() => scrollToBottom(behavior, force), 100);
         scrollAttemptsRef.current += 1;
       }
@@ -46,16 +47,31 @@ export function useMessageScroll({
       forceScrollRef.current = true;
     }
 
+    scrollSuccessRef.current = false;
+
     const doScroll = () => {
       try {
+        console.log('[Scroll] Attempting to scroll to bottom...');
+        
+        // Try to scroll the container directly
+        const scrollHeight = container.scrollHeight;
+        container.scrollTo({
+          top: scrollHeight,
+          behavior: behavior
+        });
+        
+        // Also try the scrollIntoView method as a backup
         endRef.scrollIntoView({ behavior });
+        
         lastScrollTimeRef.current = Date.now();
         scrollAttemptsRef.current = 0;
         forceScrollRef.current = false;
-        console.log('Scrolled to bottom successfully');
+        scrollSuccessRef.current = true;
+        
+        console.log('[Scroll] Scrolled to bottom successfully');
       } catch (error) {
-        console.error('Error scrolling:', error);
-        if (scrollAttemptsRef.current < 3) {
+        console.error('[Scroll] Error scrolling:', error);
+        if (scrollAttemptsRef.current < 5) {
           setTimeout(() => scrollToBottom(behavior, force), 100);
           scrollAttemptsRef.current += 1;
         }
@@ -73,9 +89,21 @@ export function useMessageScroll({
     if (!messages.length) return;
 
     if (initialLoadRef.current) {
-      console.log('Initial load scroll triggered');
+      console.log('[Scroll] Initial load scroll triggered');
       scrollToBottom("instant", true);
       initialLoadRef.current = false;
+    }
+  }, [messages, scrollToBottom]);
+
+  // Add a verification scroll if we haven't successfully scrolled
+  useEffect(() => {
+    if (!scrollSuccessRef.current && messages.length > 0 && !initialLoadRef.current) {
+      const timer = setTimeout(() => {
+        console.log('[Scroll] Verification scroll triggered');
+        scrollToBottom("instant", true);
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
   }, [messages, scrollToBottom]);
 
@@ -90,7 +118,7 @@ export function useMessageScroll({
     const lastMessage = messages[messages.length - 1];
     const isOwnMessage = lastMessage?.sender_id === currentUserId;
     
-    console.log('Message update detected:', {
+    console.log('[Scroll] Message update detected:', {
       isNewMessage,
       isOwnMessage,
       currentLength: messages.length,
@@ -110,18 +138,49 @@ export function useMessageScroll({
       return;
     }
 
-    // Force scroll for sent messages or when forced
-    if (isNewMessage && isOwnMessage) {
-      console.log('Triggering scroll to bottom - new message or forced scroll');
-      scrollToBottom("smooth", true);
+    // Check if we're already near the bottom (within 100px) or if it's our own message
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    // Force scroll for sent messages, when we're near bottom, or when forced
+    if ((isNewMessage && isOwnMessage) || isNearBottom || forceScrollRef.current) {
+      console.log('[Scroll] Triggering scroll to bottom - new message or forced scroll');
+      scrollToBottom(isOwnMessage ? "instant" : "smooth", isOwnMessage);
     }
   }, [messages, isFetchingNextPage, currentUserId, scrollToBottom]);
+
+  // Maintain scroll position after loading older messages
+  useEffect(() => {
+    if (isFetchingNextPage) {
+      return;
+    }
+    
+    const container = scrollContainerRef.current;
+    if (!container || previousScrollHeight.current === 0) {
+      return;
+    }
+
+    // If we just finished fetching older messages, restore scroll position
+    if (container.scrollHeight !== previousScrollHeight.current && previousScrollTop.current > 0) {
+      const newScrollTop = container.scrollHeight - previousScrollHeight.current + previousScrollTop.current;
+      console.log('[Scroll] Restoring scroll position after loading older messages', {
+        previous: previousScrollTop.current,
+        new: newScrollTop,
+        heightDiff: container.scrollHeight - previousScrollHeight.current
+      });
+      
+      container.scrollTop = newScrollTop;
+      
+      // Reset these values
+      previousScrollHeight.current = 0;
+      previousScrollTop.current = 0;
+    }
+  }, [messages, isFetchingNextPage]);
 
   // Handle infinite scroll for older messages
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
-    console.log('Setting up Intersection Observer', {
+    console.log('[Scroll] Setting up Intersection Observer', {
       hasNextPage,
       isFetchingNextPage,
       refetchAvailable: !!refetch
@@ -130,7 +189,7 @@ export function useMessageScroll({
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          console.log('Loading more messages - intersection detected');
+          console.log('[Scroll] Loading more messages - intersection detected');
           refetch();
         }
       },
