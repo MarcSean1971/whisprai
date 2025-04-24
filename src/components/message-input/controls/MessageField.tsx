@@ -1,4 +1,3 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
@@ -37,11 +36,21 @@ export function MessageField({
   useEffect(() => {
     if (textareaRef.current) {
       const resetHeight = () => {
-        textareaRef.current!.style.height = '40px';
-        const scrollHeight = textareaRef.current!.scrollHeight;
-        textareaRef.current!.style.height = `${Math.min(scrollHeight, 120)}px`;
+        const textarea = textareaRef.current!;
+        textarea.style.height = '40px';
+        textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
       };
       resetHeight();
+      
+      // Also handle resize on focus
+      const handleFocus = () => {
+        setTimeout(resetHeight, 0);
+      };
+      
+      textareaRef.current.addEventListener('focus', handleFocus);
+      return () => {
+        textareaRef.current?.removeEventListener('focus', handleFocus);
+      };
     }
   }, [message]);
 

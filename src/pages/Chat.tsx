@@ -141,7 +141,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         className="flex-1 overflow-hidden relative"
         style={{
           paddingTop: 'calc(0.28rem + env(safe-area-inset-top, 0px))',
-          paddingBottom: 'calc(2.45rem + env(safe-area-inset-bottom, 0px))'
+          paddingBottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))'
         }}
       >
         <ErrorBoundary>
@@ -168,13 +168,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t z-50">
-        <div 
-          className="py-1"
-          style={{ 
-            paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))'
-          }}
-        >
+      <div className="bg-background/80 backdrop-blur-sm border-t z-50">
+        <div className="py-1">
           <ChatInput
             conversationId={conversationId}
             onSendMessage={handleSendMessage}

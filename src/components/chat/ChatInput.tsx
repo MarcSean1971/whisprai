@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -20,11 +19,11 @@ interface ChatInputProps {
   isLoadingSuggestions?: boolean;
 }
 
-export function ChatInput({
+export function ChatInput({ 
   conversationId,
-  onSendMessage,
+  onSendMessage, 
   suggestions = [],
-  isLoadingSuggestions = false
+  isLoadingSuggestions = false 
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
@@ -94,34 +93,23 @@ export function ChatInput({
   };
 
   return (
-    <div className={cn(
-      "fixed bottom-0 left-0 right-0 bg-background border-t",
-      "z-[100] w-full"
-    )}>
-      <div 
-        className="px-4"
-        style={{ 
-          paddingTop: '0.5rem',
-          paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
-        }}
-      >
-        {isRecording ? (
-          <VoiceRecorder
-            onSendVoice={handleVoiceMessage}
-            onCancel={() => setIsRecording(false)}
-            className="flex justify-center"
-            isProcessing={isProcessingVoice}
-          />
-        ) : (
-          <MessageInput
-            onSendMessage={handleSendMessage}
-            onStartRecording={() => setIsRecording(true)}
-            suggestions={suggestions}
-            isLoadingSuggestions={isLoadingSuggestions}
-            disabled={isProcessingVoice}
-          />
-        )}
-      </div>
+    <div className="px-4">
+      {isRecording ? (
+        <VoiceRecorder
+          onSendVoice={handleVoiceMessage}
+          onCancel={() => setIsRecording(false)}
+          className="flex justify-center"
+          isProcessing={isProcessingVoice}
+        />
+      ) : (
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onStartRecording={() => setIsRecording(true)}
+          suggestions={suggestions}
+          isLoadingSuggestions={isLoadingSuggestions}
+          disabled={isProcessingVoice}
+        />
+      )}
     </div>
   );
 }
