@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -94,24 +95,32 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "px-4 py-2 transition-all bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      "sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t",
+      "z-20 w-full"
     )}>
-      {isRecording ? (
-        <VoiceRecorder
-          onSendVoice={handleVoiceMessage}
-          onCancel={() => setIsRecording(false)}
-          className="flex justify-center"
-          isProcessing={isProcessingVoice}
-        />
-      ) : (
-        <MessageInput
-          onSendMessage={handleSendMessage}
-          onStartRecording={() => setIsRecording(true)}
-          suggestions={suggestions}
-          isLoadingSuggestions={isLoadingSuggestions}
-          disabled={isProcessingVoice}
-        />
-      )}
+      <div 
+        className="px-4 py-2"
+        style={{ 
+          paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
+        }}
+      >
+        {isRecording ? (
+          <VoiceRecorder
+            onSendVoice={handleVoiceMessage}
+            onCancel={() => setIsRecording(false)}
+            className="flex justify-center"
+            isProcessing={isProcessingVoice}
+          />
+        ) : (
+          <MessageInput
+            onSendMessage={handleSendMessage}
+            onStartRecording={() => setIsRecording(true)}
+            suggestions={suggestions}
+            isLoadingSuggestions={isLoadingSuggestions}
+            disabled={isProcessingVoice}
+          />
+        )}
+      </div>
     </div>
   );
 }
