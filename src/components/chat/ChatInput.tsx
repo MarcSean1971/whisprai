@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -95,8 +94,7 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "px-4 py-1 transition-all bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-      suggestions.length > 0 && "pb-2" // Reduced from pb-3 to pb-2
+      "px-4 py-2 transition-all bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
       {isRecording ? (
         <VoiceRecorder
