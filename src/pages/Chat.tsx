@@ -88,7 +88,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
 
   if (error) {
     return (
-      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      <div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden">
         <ChatHeader 
           conversationId={conversationId} 
           replyToMessageId={replyToMessageId}
@@ -114,7 +114,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
 
   if (isLoading || isLoadingProfile) {
     return (
-      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      <div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden">
         <ChatHeader 
           conversationId={conversationId} 
           replyToMessageId={null}
@@ -132,7 +132,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden">
       <ChatHeader 
         conversationId={conversationId} 
         replyToMessageId={replyToMessageId}

@@ -28,23 +28,14 @@ export function useFullscreenMode() {
       return;
     }
 
-    let lastTouchTime = 0;
-    let timer: number;
+    // Request fullscreen immediately on mobile
+    requestFullscreen();
 
+    // Handle user interaction to maintain fullscreen
     const handleUserInteraction = () => {
-      lastTouchTime = Date.now();
-      requestFullscreen();
-      
-      // Clear existing timer
-      if (timer) window.clearTimeout(timer);
-      
-      // Set new timer
-      timer = window.setTimeout(() => {
-        const timeSinceLastTouch = Date.now() - lastTouchTime;
-        if (timeSinceLastTouch > 3000) {
-          exitFullscreen();
-        }
-      }, 3000);
+      if (!document.fullscreenElement) {
+        requestFullscreen();
+      }
     };
 
     document.addEventListener('touchstart', handleUserInteraction, { passive: true });
@@ -53,7 +44,7 @@ export function useFullscreenMode() {
     return () => {
       document.removeEventListener('touchstart', handleUserInteraction);
       document.removeEventListener('scroll', handleUserInteraction);
-      if (timer) window.clearTimeout(timer);
+      exitFullscreen();
     };
   }, [isMobile, isLoading, requestFullscreen, exitFullscreen]);
 
