@@ -1,8 +1,5 @@
-
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
-import { useMessageProcessor } from "@/hooks/use-message-processor";
-import { MessageList } from "./message/MessageList";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { MessageReplyInput } from "./message/MessageReplyInput";
 import { AlertCircle } from "lucide-react";
@@ -12,6 +9,7 @@ import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -62,6 +60,24 @@ export function ChatMessages({
     isFetchingNextPage
   });
 
+  // Keep track of the viewport dimensions for safe area handling
+  const [safeAreaPaddingBottom, setSafeAreaPaddingBottom] = useState('7rem');
+  
+  useEffect(() => {
+    // Update safe area padding when component mounts
+    const updateSafeAreaPadding = () => {
+      const safeAreaBottom = getComputedStyle(document.documentElement)
+        .getPropertyValue('--sab') || '0px';
+      
+      setSafeAreaPaddingBottom(`calc(7rem + ${safeAreaBottom})`);
+    };
+    
+    updateSafeAreaPadding();
+    window.addEventListener('resize', updateSafeAreaPadding);
+    
+    return () => window.removeEventListener('resize', updateSafeAreaPadding);
+  }, []);
+
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
     if (ref && typeof ref.scrollIntoView === "function") {
@@ -100,10 +116,14 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
           style={{
-            paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))'
+            paddingBottom: safeAreaPaddingBottom
           }}
         >
           <div ref={loadMoreRef} className="h-4" />
+          <LoadMoreMessages 
+            isLoading={isFetchingNextPage || false} 
+            hasNextPage={hasNextPage || false} 
+          />
           <div className="flex-1" />
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 
@@ -121,7 +141,7 @@ export function ChatMessages({
               scrollToMessage={scrollToMessage}
             />
           </div>
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-1" />
         </div>
       </TranslationProvider>
     </ErrorBoundary>

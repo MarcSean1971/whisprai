@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Fragment, memo } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -21,7 +22,8 @@ interface TranslationConsumerProps {
   scrollToMessage: (messageId: string) => void;
 }
 
-export function TranslationConsumer({
+// Use memo to prevent unnecessary re-renders
+export const TranslationConsumer = memo(function TranslationConsumer({
   messages,
   currentUserId,
   userLanguage,
@@ -72,39 +74,40 @@ export function TranslationConsumer({
         }
         
         return (
-          <div
-            key={message.id}
-            ref={el => {
-              messageRefs.current[message.id] = el;
-            }}
-          >
-            <ErrorBoundary>
-              <MessageList
-                messages={[message]}
-                currentUserId={currentUserId}
-                profile={{ language: userLanguage }}
-                translatedContents={translatedContents}
-                onReply={onReply}
-                replyToMessageId={replyToMessageId}
-                scrollToMessage={scrollToMessage}
-              />
-            </ErrorBoundary>
-            {sendReply && cancelReply && shouldShowReplyInput(message) && (
-              <div className="ml-10 mb-4">
-                <MessageReplyInput
-                  onSubmit={async (content: string) => {
-                    const sent = await sendReply(content);
-                    if (sent && refetch) {
-                      refetch();
-                    }
-                  }}
-                  onCancel={cancelReply}
+          <Fragment key={message.id}>
+            <div
+              ref={el => {
+                messageRefs.current[message.id] = el;
+              }}
+            >
+              <ErrorBoundary>
+                <MessageList
+                  messages={[message]}
+                  currentUserId={currentUserId}
+                  profile={{ language: userLanguage }}
+                  translatedContents={translatedContents}
+                  onReply={onReply}
+                  replyToMessageId={replyToMessageId}
+                  scrollToMessage={scrollToMessage}
                 />
-              </div>
-            )}
-          </div>
+              </ErrorBoundary>
+              {sendReply && cancelReply && shouldShowReplyInput(message) && (
+                <div className="ml-10 mb-4">
+                  <MessageReplyInput
+                    onSubmit={async (content: string) => {
+                      const sent = await sendReply(content);
+                      if (sent && refetch) {
+                        refetch();
+                      }
+                    }}
+                    onCancel={cancelReply}
+                  />
+                </div>
+              )}
+            </div>
+          </Fragment>
         );
       })}
     </>
   );
-}
+});

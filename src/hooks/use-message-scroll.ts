@@ -18,6 +18,7 @@ export function useMessageScroll({
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasScrolledToBottom = useRef(false);
+  const isUserScrolling = useRef(false);
   
   // Store previous scroll info
   const previousScrollHeight = useRef<number>(0);
@@ -32,7 +33,7 @@ export function useMessageScroll({
       !hasScrolledToBottom.current
     ) {
       console.log('Scrolling to bottom on initial load');
-      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
+      messagesEndRef.current.scrollIntoView({ block: "end" });
       hasScrolledToBottom.current = true;
     }
   }, [messages, isFetchingNextPage]);
@@ -48,11 +49,10 @@ export function useMessageScroll({
   // Restore scroll position after loading older messages
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container) {
+    if (container && !isUserScrolling.current) {
       const heightDifference = container.scrollHeight - previousScrollHeight.current;
-      if (heightDifference > 0) {
+      if (heightDifference > 0 && isFetchingNextPage) {
         console.log('Restoring scroll position after loading more messages');
-        console.log('Height difference:', heightDifference);
         requestAnimationFrame(() => {
           if (container) {
             container.scrollTop = previousScrollTop.current + heightDifference;
@@ -60,7 +60,37 @@ export function useMessageScroll({
         });
       }
     }
-  }, [messages.length]);
+  }, [messages.length, isFetchingNextPage]);
+
+  // Scroll to bottom when new messages arrive and user is at bottom
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (container && messages.length > 0 && !isFetchingNextPage) {
+      const isNearBottom = 
+        container.scrollHeight - container.clientHeight - container.scrollTop < 100;
+      
+      if (isNearBottom && messagesEndRef.current) {
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+    }
+  }, [messages.length, isFetchingNextPage]);
+
+  // Handle user scroll events
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      isUserScrolling.current = true;
+      // Reset after a short delay
+      setTimeout(() => {
+        isUserScrolling.current = false;
+      }, 100);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
