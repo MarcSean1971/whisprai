@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { MessageControls } from "./controls/MessageControls";
 import { AttachmentList } from "./file-handling/AttachmentList";
@@ -18,6 +17,7 @@ interface MessageInputProps {
   messageInputRef?: React.RefObject<HTMLInputElement>;
   suggestions?: any[];
   isLoadingSuggestions?: boolean;
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
 export function MessageInput({
@@ -32,33 +32,30 @@ export function MessageInput({
   className,
   messageInputRef: externalInputRef,
   suggestions = [],
-  isLoadingSuggestions = false
+  isLoadingSuggestions = false,
+  onSuggestionClick
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
   
-  // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const internalInputRef = useRef<HTMLInputElement>(null);
   const inputRef = externalInputRef || internalInputRef;
 
-  // Effect to handle forced focus
   useEffect(() => {
     if (forceFocus && inputRef.current) {
       inputRef.current.focus();
     }
   }, [forceFocus, inputRef]);
 
-  // Clear message when conversation changes
   useEffect(() => {
     setMessage("");
     setAttachments([]);
   }, [conversationId]);
 
-  // Handle typing indicators
   useEffect(() => {
     if (!setTyping) return;
 
@@ -160,6 +157,12 @@ export function MessageInput({
               inputRef.current.focus();
             }
           }}
+          onSuggestionClick={onSuggestionClick || ((suggestion) => {
+            setMessage(suggestion);
+            if (inputRef.current) {
+              inputRef.current.focus();
+            }
+          })}
           conversationId={conversationId}
           suggestions={suggestions}
           isLoading={isLoadingSuggestions}

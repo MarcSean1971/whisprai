@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -18,13 +17,15 @@ interface ChatInputProps {
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
+  onSuggestionClick?: (suggestion: string) => void;
 }
 
 export function ChatInput({ 
   conversationId,
   onSendMessage, 
   suggestions = [],
-  isLoadingSuggestions = false 
+  isLoadingSuggestions = false,
+  onSuggestionClick
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
@@ -48,7 +49,6 @@ export function ChatInput({
     files?: File[]
   ): Promise<boolean> => {
     try {
-      // Convert File[] to the expected attachment format
       const attachments = files?.map(file => ({
         url: URL.createObjectURL(file),
         name: file.name,
@@ -67,7 +67,6 @@ export function ChatInput({
         onSendMessage(content, undefined, undefined, attachments);
       }
       
-      // Clean up object URLs
       attachments?.forEach(attachment => URL.revokeObjectURL(attachment.url));
       
       return true;
@@ -160,6 +159,7 @@ export function ChatInput({
               isLoadingSuggestions={isLoadingSuggestions}
               disabled={isProcessingVoice}
               conversationId={conversationId}
+              onSuggestionClick={onSuggestionClick}
             />
           )}
         </div>
