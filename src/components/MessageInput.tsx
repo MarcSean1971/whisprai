@@ -19,6 +19,7 @@ interface MessageInputProps {
   isLoadingSuggestions?: boolean;
   className?: string;
   disabled?: boolean;
+  hideControlsOnKeyboard?: boolean;
 }
 
 export function MessageInput({
@@ -28,6 +29,7 @@ export function MessageInput({
   isLoadingSuggestions = false,
   className,
   disabled = false,
+  hideControlsOnKeyboard = false,
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -100,6 +102,7 @@ export function MessageInput({
         disabled={disabled}
         inputRef={inputRef}
         canAttach={attachments.length < 5}
+        hideControlsOnKeyboard={hideControlsOnKeyboard}
       />
     </div>
   );
