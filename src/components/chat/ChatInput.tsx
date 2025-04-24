@@ -139,7 +139,7 @@ export function ChatInput({
     >
       <div className="bg-background/95 backdrop-blur-sm border-t">
         <div 
-          className="px-4 py-2"
+          className="px-2 py-2"
           style={{ 
             paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
           }}

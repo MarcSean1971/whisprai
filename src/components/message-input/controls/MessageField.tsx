@@ -75,14 +75,14 @@ export function MessageField({
   );
 
   return (
-    <div ref={containerRef} className="relative flex-1">
+    <div ref={containerRef} className="relative flex-1 min-w-0">
       <Textarea
         ref={textareaRef}
         value={message}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar resize-none",
+          "min-h-[40px] max-h-[120px] w-full pr-10 py-2 rounded-full no-scrollbar resize-none",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm"
         )}

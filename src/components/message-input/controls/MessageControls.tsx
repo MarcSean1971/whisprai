@@ -78,8 +78,8 @@ export function MessageControls({
 
   return (
     <>
-      <form onSubmit={handleSubmit} className="flex gap-1 md:gap-2 items-center relative">
-        <div className="flex gap-0.5 md:gap-1">
+      <form onSubmit={handleSubmit} className="flex gap-1 w-full items-center">
+        <div className="flex-shrink-0 flex gap-0.5">
           <AttachmentControls
             onAttachmentClick={onAttachmentClick}
             onCameraClick={onCameraClick}
@@ -103,12 +103,14 @@ export function MessageControls({
           inputRef={inputRef}
         />
 
-        <SendButton
-          hasMessage={!!message.trim()}
-          buttonStyle={buttonStyle}
-          onStartRecording={onStartRecording}
-          disabled={disabled}
-        />
+        <div className="flex-shrink-0">
+          <SendButton
+            hasMessage={!!message.trim()}
+            buttonStyle={buttonStyle}
+            onStartRecording={onStartRecording}
+            disabled={disabled}
+          />
+        </div>
       </form>
 
       <WarningDialog
