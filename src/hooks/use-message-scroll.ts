@@ -21,10 +21,28 @@ export function useMessageScroll({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageLengthRef = useRef<number>(0);
   const lastScrollTimeRef = useRef<number>(0);
+  const initialLoadRef = useRef<boolean>(true);
   
   // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
+
+  // Initial load scroll handling
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const endRef = messagesEndRef.current;
+    
+    if (!container || !endRef || !messages.length) return;
+
+    if (initialLoadRef.current) {
+      console.log('Initial load scroll triggered');
+      requestAnimationFrame(() => {
+        endRef.scrollIntoView({ behavior: "instant" });
+        lastScrollTimeRef.current = Date.now();
+        initialLoadRef.current = false;
+      });
+    }
+  }, [messages]);
 
   // Handle scrolling for new messages and initial load
   useEffect(() => {
@@ -50,7 +68,8 @@ export function useMessageScroll({
       scrollHeight: container.scrollHeight,
       scrollTop: container.scrollTop,
       clientHeight: container.clientHeight,
-      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current
+      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current,
+      isInitialLoad: initialLoadRef.current
     });
 
     lastMessageLengthRef.current = messages.length;
@@ -132,3 +151,4 @@ export function useMessageScroll({
     messagesEndRef
   };
 }
+
