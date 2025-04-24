@@ -1,4 +1,3 @@
-
 import { useEffect, useRef } from "react";
 
 interface UseMessageScrollProps {
@@ -57,19 +56,16 @@ export function useMessageScroll({
     const isNewMessage = messages.length > lastMessageLengthRef.current;
     const lastMessage = messages[messages.length - 1];
     const isOwnMessage = lastMessage?.sender?.id === currentUserId;
-    const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
     
     console.log('Scroll check:', {
       isNewMessage,
       isOwnMessage,
-      isNearBottom,
       currentLength: messages.length,
       lastLength: lastMessageLengthRef.current,
       scrollHeight: container.scrollHeight,
       scrollTop: container.scrollTop,
       clientHeight: container.clientHeight,
-      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current,
-      isInitialLoad: initialLoadRef.current
+      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current
     });
 
     lastMessageLengthRef.current = messages.length;
@@ -81,11 +77,10 @@ export function useMessageScroll({
       return;
     }
 
-    // Always scroll to bottom for own messages or if near bottom for others
-    if (isNewMessage && (isOwnMessage || isNearBottom)) {
-      console.log('Scrolling to latest message:', { isOwnMessage, isNearBottom });
+    // Always scroll to bottom for sent messages
+    if (isNewMessage && isOwnMessage) {
+      console.log('Scrolling to latest message (sent message)');
       
-      // Use requestAnimationFrame to ensure content is rendered
       requestAnimationFrame(() => {
         endRef.scrollIntoView({ behavior: "smooth" });
         lastScrollTimeRef.current = Date.now();
@@ -151,4 +146,3 @@ export function useMessageScroll({
     messagesEndRef
   };
 }
-
