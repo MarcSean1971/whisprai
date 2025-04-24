@@ -1,5 +1,5 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
@@ -22,94 +22,102 @@ export function useMessageScroll({
   const lastMessageLengthRef = useRef<number>(0);
   const lastScrollTimeRef = useRef<number>(0);
   const initialLoadRef = useRef<boolean>(true);
+  const scrollAttemptsRef = useRef<number>(0);
+  const forceScrollRef = useRef<boolean>(false);
   
   // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
 
-  // Initial load scroll handling
-  useEffect(() => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth", force: boolean = false) => {
     const container = scrollContainerRef.current;
     const endRef = messagesEndRef.current;
     
-    if (!container || !endRef || !messages.length) return;
+    if (!container || !endRef) {
+      console.log('Scroll refs not ready, will retry');
+      if (scrollAttemptsRef.current < 3) {
+        setTimeout(() => scrollToBottom(behavior, force), 100);
+        scrollAttemptsRef.current += 1;
+      }
+      return;
+    }
+
+    if (force) {
+      forceScrollRef.current = true;
+    }
+
+    const doScroll = () => {
+      try {
+        endRef.scrollIntoView({ behavior });
+        lastScrollTimeRef.current = Date.now();
+        scrollAttemptsRef.current = 0;
+        forceScrollRef.current = false;
+        console.log('Scrolled to bottom successfully');
+      } catch (error) {
+        console.error('Error scrolling:', error);
+        if (scrollAttemptsRef.current < 3) {
+          setTimeout(() => scrollToBottom(behavior, force), 100);
+          scrollAttemptsRef.current += 1;
+        }
+      }
+    };
+
+    // Double RAF to ensure DOM is ready
+    requestAnimationFrame(() => {
+      requestAnimationFrame(doScroll);
+    });
+  }, []);
+
+  // Initial load scroll handling
+  useEffect(() => {
+    if (!messages.length) return;
 
     if (initialLoadRef.current) {
       console.log('Initial load scroll triggered');
-      requestAnimationFrame(() => {
-        endRef.scrollIntoView({ behavior: "instant" });
-        lastScrollTimeRef.current = Date.now();
-        initialLoadRef.current = false;
-      });
+      scrollToBottom("instant", true);
+      initialLoadRef.current = false;
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  // Handle scrolling for new messages and initial load
+  // Handle new messages scrolling
   useEffect(() => {
     if (!messages.length) return;
 
     const container = scrollContainerRef.current;
-    const endRef = messagesEndRef.current;
-    
-    if (!container || !endRef) return;
+    if (!container) return;
 
-    // Check if new messages were added
     const isNewMessage = messages.length > lastMessageLengthRef.current;
     const lastMessage = messages[messages.length - 1];
-    const isOwnMessage = lastMessage?.sender?.id === currentUserId;
-    const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+    const isOwnMessage = lastMessage?.sender_id === currentUserId;
     
-    console.log('Scroll check:', {
+    console.log('Message update detected:', {
       isNewMessage,
       isOwnMessage,
-      isNearBottom,
       currentLength: messages.length,
       lastLength: lastMessageLengthRef.current,
       scrollHeight: container.scrollHeight,
       scrollTop: container.scrollTop,
       clientHeight: container.clientHeight,
-      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current,
-      isInitialLoad: initialLoadRef.current
+      forceScroll: forceScrollRef.current
     });
 
     lastMessageLengthRef.current = messages.length;
 
-    // If loading older messages, store current scroll position
+    // Skip scroll during older messages fetch
     if (isFetchingNextPage) {
       previousScrollHeight.current = container.scrollHeight;
       previousScrollTop.current = container.scrollTop;
       return;
     }
 
-    // Always scroll to bottom for own messages or if near bottom for others
-    if (isNewMessage && (isOwnMessage || isNearBottom)) {
-      console.log('Scrolling to latest message:', { isOwnMessage, isNearBottom });
-      
-      // Use requestAnimationFrame to ensure content is rendered
-      requestAnimationFrame(() => {
-        endRef.scrollIntoView({ behavior: "smooth" });
-        lastScrollTimeRef.current = Date.now();
-      });
+    // Force scroll for sent messages or when forced
+    if (isNewMessage && isOwnMessage) {
+      console.log('Triggering scroll to bottom - new message or forced scroll');
+      scrollToBottom("smooth", true);
     }
-  }, [messages, isFetchingNextPage, currentUserId]);
+  }, [messages, isFetchingNextPage, currentUserId, scrollToBottom]);
 
-  // Restore scroll position after loading older messages
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container && isFetchingNextPage) {
-      const heightDifference = container.scrollHeight - previousScrollHeight.current;
-      if (heightDifference > 0) {
-        console.log('Restoring scroll position after loading more messages');
-        requestAnimationFrame(() => {
-          if (container) {
-            container.scrollTop = previousScrollTop.current + heightDifference;
-          }
-        });
-      }
-    }
-  }, [messages.length, isFetchingNextPage]);
-
-  // Intersection Observer for infinite scroll
+  // Handle infinite scroll for older messages
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
@@ -135,7 +143,6 @@ export function useMessageScroll({
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
       observer.observe(currentLoadMoreRef);
-      console.log('Observing loadMoreRef for infinite scroll');
     }
 
     return () => {
@@ -148,7 +155,7 @@ export function useMessageScroll({
   return {
     scrollContainerRef,
     loadMoreRef,
-    messagesEndRef
+    messagesEndRef,
+    scrollToBottom
   };
 }
-
