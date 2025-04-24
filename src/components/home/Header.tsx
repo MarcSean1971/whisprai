@@ -3,6 +3,7 @@ import { SearchBar } from "./SearchBar";
 import { useLocation } from "react-router-dom";
 import { ShareButton } from "@/components/shared/ShareButton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 interface HeaderProps {
   isSearching: boolean;
