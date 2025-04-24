@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -166,7 +167,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
+      <div className="sticky bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur">
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
