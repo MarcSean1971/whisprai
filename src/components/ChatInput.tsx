@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -94,9 +95,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "w-full transition-all bg-background p-4",
-      "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
-      "md:pb-4"
+      "p-4 border-t transition-all",
+      suggestions.length > 0 && "pb-6"
     )}>
       {isRecording ? (
         <VoiceRecorder

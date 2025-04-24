@@ -6,7 +6,6 @@ import { PredictiveAnswer } from "@/types/predictive-answer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
 
 interface ChatInputProps {
   conversationId: string;
@@ -20,16 +19,32 @@ interface ChatInputProps {
   isLoadingSuggestions?: boolean;
 }
 
-export function ChatInput({ 
+export function ChatInput({
   conversationId,
-  onSendMessage, 
+  onSendMessage,
   suggestions = [],
-  isLoadingSuggestions = false 
+  isLoadingSuggestions = false
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const isKeyboardVisible = useKeyboardVisibility();
+
+  const handleSendMessage = async (
+    content: string, 
+    attachments?: { url: string; name: string; type: string }[]
+  ) => {
+    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
+    const mightNeedLocation = locationKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword)
+    );
+
+    if (mightNeedLocation) {
+      const location = await requestLocation();
+      onSendMessage(content, undefined, location || undefined, attachments);
+    } else {
+      onSendMessage(content, undefined, undefined, attachments);
+    }
+  };
 
   const handleVoiceMessage = async (base64Audio: string) => {
     try {
@@ -77,28 +92,10 @@ export function ChatInput({
     }
   };
 
-  const handleSendMessage = async (
-    content: string, 
-    attachments?: { url: string; name: string; type: string }[]
-  ) => {
-    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
-    const mightNeedLocation = locationKeywords.some(keyword => 
-      content.toLowerCase().includes(keyword)
-    );
-
-    if (mightNeedLocation) {
-      const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined, attachments);
-    } else {
-      onSendMessage(content, undefined, undefined, attachments);
-    }
-  };
-
   return (
     <div className={cn(
-      "w-full bg-background px-4",
-      "md:pb-6", // Desktop padding
-      isKeyboardVisible ? "pb-4" : "pb-safe pb-6" // Mobile padding with and without keyboard
+      "p-4 border-t transition-all bg-background z-20",
+      suggestions.length > 0 && "pb-6"
     )}>
       {isRecording ? (
         <VoiceRecorder
@@ -114,7 +111,6 @@ export function ChatInput({
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
           disabled={isProcessingVoice}
-          hideControlsOnKeyboard={true}
         />
       )}
     </div>

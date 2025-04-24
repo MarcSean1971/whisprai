@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AttachmentControls } from "./controls/AttachmentControls";
 import { EnhanceButton } from "./controls/EnhanceButton";
@@ -7,9 +8,6 @@ import { WarningDialog } from "./controls/WarningDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
-import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
 
 interface MessageControlsProps {
   message: string;
@@ -21,7 +19,6 @@ interface MessageControlsProps {
   disabled?: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
   canAttach?: boolean;
-  hideControlsOnKeyboard?: boolean;
 }
 
 export function MessageControls({
@@ -33,34 +30,32 @@ export function MessageControls({
   onSubmit,
   disabled = false,
   inputRef,
-  canAttach = true,
-  hideControlsOnKeyboard = false
+  canAttach = true
 }: MessageControlsProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
-  const isKeyboardVisible = useKeyboardVisibility();
-  const isMobile = useIsMobile();
-  
-  const showControls = !hideControlsOnKeyboard || !isKeyboardVisible;
 
+  // Analyze toxicity when message changes
   useEffect(() => {
     if (message.trim()) {
       const timeoutId = setTimeout(() => {
         analyzeToxicity(message);
-      }, 500);
+      }, 500); // Debounce to avoid too many API calls
 
       return () => clearTimeout(timeoutId);
     }
   }, [message, analyzeToxicity]);
 
+  // Update last toxicity score when current score changes
   useEffect(() => {
     if (toxicityScore > 0) {
       setLastToxicityScore(toxicityScore);
     }
   }, [toxicityScore]);
 
+  // Utility function to get button style based on toxicity score
   const getButtonStyle = () => {
     if (!message.trim()) {
       if (lastToxicityScore > 0) {
@@ -129,28 +124,20 @@ export function MessageControls({
   return (
     <>
       <form onSubmit={handleSubmit} className="flex gap-1 md:gap-2 items-center relative">
-        <div className={cn(
-          "flex gap-0 md:gap-1 items-center",
-          "transition-all duration-200 ease-in-out",
-          hideControlsOnKeyboard && isKeyboardVisible ? "opacity-0 w-0" : "opacity-100"
-        )}>
-          {showControls && (
-            <>
-              <AttachmentControls
-                onAttachmentClick={onAttachmentClick}
-                onCameraClick={onCameraClick}
-                disabled={disabled}
-                canAttach={canAttach}
-              />
+        <div className="flex gap-0.5 md:gap-1">
+          <AttachmentControls
+            onAttachmentClick={onAttachmentClick}
+            onCameraClick={onCameraClick}
+            disabled={disabled}
+            canAttach={canAttach}
+          />
 
-              <EnhanceButton
-                onEnhance={handleEnhanceMessage}
-                isEnhancing={isEnhancing}
-                disabled={disabled}
-                hasContent={!!message.trim()}
-              />
-            </>
-          )}
+          <EnhanceButton
+            onEnhance={handleEnhanceMessage}
+            isEnhancing={isEnhancing}
+            disabled={disabled}
+            hasContent={!!message.trim()}
+          />
         </div>
 
         <MessageField
@@ -159,8 +146,6 @@ export function MessageControls({
           disabled={disabled}
           isAnalyzing={isAnalyzing}
           inputRef={inputRef}
-          isKeyboardVisible={hideControlsOnKeyboard && isKeyboardVisible}
-          isMobile={isMobile}
         />
 
         <SendButton

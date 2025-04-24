@@ -2,75 +2,57 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useIsMobile } from './use-mobile';
 
-interface UseFullscreenModeProps {
-  enabled?: boolean;
-}
-
-export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = {}) {
+export function useFullscreenMode() {
   const isMobile = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  const exitFullscreen = useCallback(() => {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen()
-        .then(() => {
-          setIsFullscreen(false);
-          if ('wakeLock' in navigator) {
-            // Release wake lock if it exists
-            (navigator as any).wakeLock.release?.()
-              .catch(err => console.error('Wake Lock release error:', err));
-          }
-        })
-        .catch(err => console.error('Error attempting to exit fullscreen:', err));
-    }
-  }, []);
-
   const requestFullscreen = useCallback(() => {
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen()
-        .then(() => {
-          setIsFullscreen(true);
-          if ('wakeLock' in navigator) {
-            (navigator as any).wakeLock.request('screen')
-              .catch(err => console.error('Wake Lock error:', err));
-          }
-        })
+        .then(() => setIsFullscreen(true))
         .catch(err => console.error('Error attempting to enable fullscreen:', err));
     }
   }, []);
 
-  useEffect(() => {
-    // Only enable fullscreen if explicitly enabled AND on mobile
-    if (!enabled || !isMobile) {
-      exitFullscreen();
-      return;
+  const exitFullscreen = useCallback(() => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(err => console.error('Error attempting to exit fullscreen:', err));
     }
-    
-    const enableFullscreen = () => {
+  }, []);
+
+  useEffect(() => {
+    if (!isMobile) return;
+
+    let lastTouchTime = 0;
+    let timer: number;
+
+    const handleUserInteraction = () => {
+      lastTouchTime = Date.now();
       requestFullscreen();
-      document.body.style.overflow = 'hidden';
-      document.body.style.overscrollBehavior = 'none';
+      
+      // Clear existing timer
+      if (timer) window.clearTimeout(timer);
+      
+      // Set new timer
+      timer = window.setTimeout(() => {
+        const timeSinceLastTouch = Date.now() - lastTouchTime;
+        if (timeSinceLastTouch > 3000) {
+          exitFullscreen();
+        }
+      }, 3000);
     };
 
-    enableFullscreen();
+    document.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    document.addEventListener('scroll', handleUserInteraction, { passive: true });
 
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && isMobile) {
-        enableFullscreen();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Cleanup function
     return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      document.body.style.overflow = '';
-      document.body.style.overscrollBehavior = '';
-      exitFullscreen();
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('scroll', handleUserInteraction);
+      if (timer) window.clearTimeout(timer);
     };
-  }, [isMobile, requestFullscreen, exitFullscreen, enabled]);
+  }, [isMobile, requestFullscreen, exitFullscreen]);
 
   return { isFullscreen };
 }
-

@@ -2,27 +2,24 @@
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles } from "lucide-react";
 import { PredictiveAnswer } from "@/types/predictive-answer";
-import { cn } from "@/lib/utils";
 
 interface MessageSuggestionsProps {
   suggestions: PredictiveAnswer[];
   isLoading: boolean;
   onSuggestionClick: (text: string) => void;
   disabled?: boolean;
-  hideOnKeyboard?: boolean;
 }
 
 export function MessageSuggestions({ 
   suggestions, 
   isLoading, 
   onSuggestionClick,
-  disabled,
-  hideOnKeyboard = false
+  disabled 
 }: MessageSuggestionsProps) {
-  if ((!suggestions.length && !isLoading) || hideOnKeyboard) return null;
+  if (!suggestions.length && !isLoading) return null;
 
   return (
-    <div className="mb-2 overflow-x-auto no-scrollbar relative z-30 transition-all duration-200">
+    <div className="mb-2 overflow-x-auto no-scrollbar relative z-30">
       <div className="flex gap-2 pb-1">
         {isLoading ? (
           <Button

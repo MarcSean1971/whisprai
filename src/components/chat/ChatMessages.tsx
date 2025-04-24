@@ -11,6 +11,7 @@ import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
+import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -43,6 +44,13 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
+  console.log('ChatMessages render:', {
+    messagesCount: messages.length,
+    isFetchingNextPage,
+    hasNextPage,
+    refetchAvailable: !!refetch
+  });
+  
   const { 
     scrollContainerRef, 
     loadMoreRef, 
@@ -51,9 +59,10 @@ export function ChatMessages({
     messages,
     refetch,
     hasNextPage,
-    isFetchingNextPage,
-    currentUserId
+    isFetchingNextPage
   });
+
+  useFullscreenMode();
 
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
@@ -93,7 +102,7 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
           style={{
-            paddingBottom: 'calc(10rem + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))'
           }}
         >
           <div ref={loadMoreRef} className="h-4" />
@@ -114,7 +123,7 @@ export function ChatMessages({
               scrollToMessage={scrollToMessage}
             />
           </div>
-          <div ref={messagesEndRef} className="h-4" />
+          <div ref={messagesEndRef} />
         </div>
       </TranslationProvider>
     </ErrorBoundary>
