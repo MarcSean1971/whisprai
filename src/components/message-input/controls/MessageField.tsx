@@ -1,4 +1,3 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
@@ -62,8 +61,8 @@ export function MessageField({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] py-2 rounded-full no-scrollbar",
-          "resize-none focus-visible:ring-1",
+          "min-h-[40px] max-h-[120px] py-2 rounded-full",
+          "resize-none focus-visible:ring-1 no-scrollbar",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm",
           showEmojiPicker ? "pr-10" : "pr-4"

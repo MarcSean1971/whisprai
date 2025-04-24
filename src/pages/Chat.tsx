@@ -136,13 +136,13 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen w-full bg-background">
+    <div className="flex flex-col h-[100dvh] w-full overflow-hidden bg-background">
       <ChatHeader 
         conversationId={conversationId} 
         replyToMessageId={replyToMessageId}
         onCancelReply={cancelReply}
       />
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 relative">
         <ErrorBoundary>
           <Suspense fallback={
             <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
@@ -167,7 +167,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
+      <div className="relative z-50 bg-background">
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -97,8 +96,7 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "w-full bg-background",
-      "px-4 pt-2",
+      "w-full bg-background px-4 py-2",
       "pb-safe"
     )}>
       {isRecording ? (
