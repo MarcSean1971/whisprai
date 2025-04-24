@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
 import { useLocation } from "@/hooks/use-location";
@@ -17,67 +17,36 @@ interface ChatInputProps {
   ) => void;
   suggestions: PredictiveAnswer[];
   isLoadingSuggestions?: boolean;
-  onSuggestionClick?: (suggestion: string) => void;
 }
 
-export function ChatInput({ 
+export function ChatInput({
   conversationId,
-  onSendMessage, 
+  onSendMessage,
   suggestions = [],
-  isLoadingSuggestions = false,
-  onSuggestionClick
+  isLoadingSuggestions = false
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const isKeyboard = window.visualViewport 
-        ? window.visualViewport.height < window.innerHeight
-        : false;
-      setKeyboardVisible(isKeyboard);
-    };
-
-    window.visualViewport?.addEventListener('resize', handleResize);
-    return () => window.visualViewport?.removeEventListener('resize', handleResize);
-  }, []);
 
   const handleSendMessage = async (
     content: string, 
-    files?: File[]
-  ): Promise<boolean> => {
-    try {
-      const attachments = files?.map(file => ({
-        url: URL.createObjectURL(file),
-        name: file.name,
-        type: file.type
-      }));
-      
-      const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
-      const mightNeedLocation = locationKeywords.some(keyword => 
-        content.toLowerCase().includes(keyword)
-      );
-  
-      if (mightNeedLocation) {
-        const location = await requestLocation();
-        onSendMessage(content, undefined, location || undefined, attachments);
-      } else {
-        onSendMessage(content, undefined, undefined, attachments);
-      }
-      
-      attachments?.forEach(attachment => URL.revokeObjectURL(attachment.url));
-      
-      return true;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-      return false;
+    attachments?: { url: string; name: string; type: string }[]
+  ) => {
+    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
+    const mightNeedLocation = locationKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword)
+    );
+
+    if (mightNeedLocation) {
+      const location = await requestLocation();
+      onSendMessage(content, undefined, location || undefined, attachments);
+    } else {
+      onSendMessage(content, undefined, undefined, attachments);
     }
   };
 
-  const handleVoiceMessage = async (base64Audio: string): Promise<boolean> => {
+  const handleVoiceMessage = async (base64Audio: string) => {
     try {
       setIsProcessingVoice(true);
       toast.info('Processing voice message...');
@@ -114,12 +83,9 @@ export function ChatInput({
         base64Audio, 
         audioPath: data.audioPath 
       });
-      
-      return true;
     } catch (error) {
       console.error('Error processing voice message:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
-      return false;
     } finally {
       setIsProcessingVoice(false);
       setIsRecording(false);
@@ -127,43 +93,27 @@ export function ChatInput({
   };
 
   return (
-    <div 
-      className={cn(
-        "fixed left-0 right-0 bottom-0 w-full z-[100] transition-transform duration-200",
-        keyboardVisible && "transform -translate-y-3"
+    <div className={cn(
+      "p-4 border-t transition-all bg-background z-20",
+      "pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]",
+      suggestions.length > 0 && "pb-6"
+    )}>
+      {isRecording ? (
+        <VoiceRecorder
+          onSendVoice={handleVoiceMessage}
+          onCancel={() => setIsRecording(false)}
+          className="flex justify-center"
+          isProcessing={isProcessingVoice}
+        />
+      ) : (
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          onStartRecording={() => setIsRecording(true)}
+          suggestions={suggestions}
+          isLoadingSuggestions={isLoadingSuggestions}
+          disabled={isProcessingVoice}
+        />
       )}
-      style={{
-        paddingBottom: 'env(keyboard-inset-height, 0px)',
-        minHeight: 'env(keyboard-inset-height, 0px)'
-      }}
-    >
-      <div className="bg-background/95 backdrop-blur-sm border-t">
-        <div 
-          className="px-2 py-2"
-          style={{ 
-            paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
-          }}
-        >
-          {isRecording ? (
-            <VoiceRecorder
-              onSendVoice={handleVoiceMessage}
-              onCancel={() => setIsRecording(false)}
-              className="flex justify-center"
-              isProcessing={isProcessingVoice}
-            />
-          ) : (
-            <MessageInput
-              onSendMessage={handleSendMessage}
-              onStartRecording={() => setIsRecording(true)}
-              suggestions={suggestions}
-              isLoadingSuggestions={isLoadingSuggestions}
-              disabled={isProcessingVoice}
-              conversationId={conversationId}
-              onSuggestionClick={onSuggestionClick}
-            />
-          )}
-        </div>
-      </div>
     </div>
   );
 }

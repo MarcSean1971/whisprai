@@ -32,36 +32,18 @@ export function ChatInput({
 
   const handleSendMessage = async (
     content: string, 
-    files?: File[]
-  ): Promise<boolean> => {
-    try {
-      // Convert File[] to the expected attachment format
-      const attachments = files?.map(file => ({
-        url: URL.createObjectURL(file),
-        name: file.name,
-        type: file.type
-      }));
-      
-      const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
-      const mightNeedLocation = locationKeywords.some(keyword => 
-        content.toLowerCase().includes(keyword)
-      );
-  
-      if (mightNeedLocation) {
-        const location = await requestLocation();
-        onSendMessage(content, undefined, location || undefined, attachments);
-      } else {
-        onSendMessage(content, undefined, undefined, attachments);
-      }
-      
-      // Clean up object URLs
-      attachments?.forEach(attachment => URL.revokeObjectURL(attachment.url));
-      
-      return true;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast.error('Failed to send message');
-      return false;
+    attachments?: { url: string; name: string; type: string }[]
+  ) => {
+    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
+    const mightNeedLocation = locationKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword)
+    );
+
+    if (mightNeedLocation) {
+      const location = await requestLocation();
+      onSendMessage(content, undefined, location || undefined, attachments);
+    } else {
+      onSendMessage(content, undefined, undefined, attachments);
     }
   };
 
@@ -102,11 +84,9 @@ export function ChatInput({
         base64Audio, 
         audioPath: data.audioPath 
       });
-      return true;
     } catch (error) {
       console.error('Error processing voice message:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
-      return false;
     } finally {
       setIsProcessingVoice(false);
       setIsRecording(false);
@@ -115,8 +95,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "px-4 pt-1 pb-2 border-t transition-all bg-background z-20",
-      suggestions.length > 0 && "pb-4"
+      "p-4 border-t transition-all",
+      suggestions.length > 0 && "pb-6"
     )}>
       {isRecording ? (
         <VoiceRecorder
@@ -132,7 +112,6 @@ export function ChatInput({
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
           disabled={isProcessingVoice}
-          conversationId={conversationId}
         />
       )}
     </div>

@@ -5,7 +5,6 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useEffect, useState, useCallback } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -20,7 +19,6 @@ interface TranslationConsumerProps {
   refetch?: () => void;
   messageRefs: React.MutableRefObject<{ [key: string]: HTMLDivElement | null }>;
   scrollToMessage: (messageId: string) => void;
-  forceScroll?: boolean;
 }
 
 export function TranslationConsumer({
@@ -35,8 +33,7 @@ export function TranslationConsumer({
   cancelReply,
   refetch,
   messageRefs,
-  scrollToMessage,
-  forceScroll
+  scrollToMessage
 }: TranslationConsumerProps) {
   const { translatedContents } = useMessageProcessor(
     messages,
@@ -46,22 +43,17 @@ export function TranslationConsumer({
     onTranslation
   );
 
-  const [processedMessages, setProcessedMessages] = useState(messages);
-
-  useEffect(() => {
-    setProcessedMessages(messages);
-  }, [messages]);
-
-  const shouldShowReplyInput = useCallback((message: any) => {
+  function shouldShowReplyInput(message: any) {
     if (replyToMessageId !== message.id) return false;
     const target = messages.find((m: any) => m.id === replyToMessageId);
     if (target && target.parent && target.parent.id) {
-      return !messages.some((m: any) => m.id === target.parent.id);
+      const parentIsVisible = messages.some((m: any) => m.id === target.parent.id);
+      if (parentIsVisible) return false;
     }
     return true;
-  }, [replyToMessageId, messages]);
+  }
 
-  if (!Array.isArray(processedMessages) || processedMessages.length === 0) {
+  if (!Array.isArray(messages) || messages.length === 0) {
     return (
       <EmptyState
         icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
@@ -73,7 +65,7 @@ export function TranslationConsumer({
 
   return (
     <>
-      {processedMessages.map((message) => {
+      {messages.map((message) => {
         if (!message || !message.id) {
           console.error('Invalid message object:', message);
           return null;

@@ -1,4 +1,3 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
@@ -24,41 +23,16 @@ export function MessageField({
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const { isMobile } = useIsMobile();
-
+  const isMobile = useIsMobile();
+  
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-    }
   };
 
   useEffect(() => {
     if (textareaRef.current) {
-      const resetHeight = () => {
-        const textarea = textareaRef.current!;
-        textarea.style.height = '40px';
-        textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-      };
-      
-      const handleFocus = () => {
-        setTimeout(() => {
-          resetHeight();
-          if (containerRef.current) {
-            containerRef.current.scrollIntoView({ behavior: 'smooth' });
-          }
-        }, 100);
-      };
-      
-      resetHeight();
-      textareaRef.current.addEventListener('focus', handleFocus);
-      
-      return () => {
-        if (textareaRef.current) {
-          textareaRef.current.removeEventListener('focus', handleFocus);
-        }
-      };
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
 
@@ -75,14 +49,15 @@ export function MessageField({
   );
 
   return (
-    <div ref={containerRef} className="relative flex-1 min-w-0">
+    <div className="relative flex-1">
       <Textarea
         ref={textareaRef}
         value={message}
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] w-full pr-10 py-2 rounded-full no-scrollbar resize-none",
+          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar",
+          "resize-none focus-visible:ring-1",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm"
         )}

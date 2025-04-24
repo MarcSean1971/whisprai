@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from "react";
+
+import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
 import { MessageList } from "./message/MessageList";
@@ -11,8 +12,6 @@ import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
-import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -44,26 +43,23 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const { isMobile } = useIsMobile();
-  const fullscreenMode = useFullscreenMode();
-
-  useEffect(() => {
-    if (isMobile) {
-      fullscreenMode.enable();
-    }
-    return () => {
-      if (isMobile) {
-        fullscreenMode.disable();
-      }
-    };
-  }, [isMobile, fullscreenMode]);
-
-  const { scrollContainerRef, loadMoreRef, messagesEndRef } = useMessageScroll({
+  
+  console.log('ChatMessages render:', {
+    messagesCount: messages.length,
+    isFetchingNextPage,
+    hasNextPage,
+    refetchAvailable: !!refetch
+  });
+  
+  const { 
+    scrollContainerRef, 
+    loadMoreRef, 
+    messagesEndRef
+  } = useMessageScroll({
     messages,
     refetch,
     hasNextPage,
-    isFetchingNextPage,
-    currentUserId
+    isFetchingNextPage
   });
 
   const scrollToMessage = (messageId: string) => {
@@ -102,12 +98,13 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto overscroll-none"
+          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
           style={{
-            paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
+            paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))'
           }}
         >
           <div ref={loadMoreRef} className="h-4" />
+          <div className="flex-1" />
           <div className="px-4 py-2 space-y-4">
             <TranslationConsumer 
               messages={messages} 
