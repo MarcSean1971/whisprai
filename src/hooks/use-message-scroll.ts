@@ -6,22 +6,23 @@ interface UseMessageScrollProps {
   refetch?: () => void;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
+  currentUserId?: string | null;
 }
 
 export function useMessageScroll({ 
   messages, 
   refetch, 
   hasNextPage = false,
-  isFetchingNextPage = false 
+  isFetchingNextPage = false,
+  currentUserId
 }: UseMessageScrollProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasScrolledToBottom = useRef(false);
-  
-  // Store previous scroll info
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
+  const lastMessageSender = useRef<string | null>(null);
 
   // Initial scroll to bottom when messages are first loaded
   useEffect(() => {
@@ -36,6 +37,27 @@ export function useMessageScroll({
       hasScrolledToBottom.current = true;
     }
   }, [messages, isFetchingNextPage]);
+
+  // Auto-scroll on new message if it's from current user or if already near bottom
+  useEffect(() => {
+    if (!messages.length || !scrollContainerRef.current || !messagesEndRef.current) return;
+
+    const container = scrollContainerRef.current;
+    const lastMessage = messages[messages.length - 1];
+    const isFromCurrentUser = lastMessage?.sender_id === currentUserId;
+    
+    // Check if we're already near the bottom (within 100px)
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+
+    if (lastMessage?.sender_id !== lastMessageSender.current) {
+      lastMessageSender.current = lastMessage?.sender_id;
+      
+      if (isFromCurrentUser || isNearBottom) {
+        console.log('Auto-scrolling to new message');
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages, currentUserId]);
 
   // Preserve scroll position when loading older messages
   useEffect(() => {
@@ -66,12 +88,6 @@ export function useMessageScroll({
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
-    console.log('Setting up Intersection Observer', {
-      hasNextPage,
-      isFetchingNextPage,
-      refetchAvailable: !!refetch
-    });
-
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
@@ -88,7 +104,6 @@ export function useMessageScroll({
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
       observer.observe(currentLoadMoreRef);
-      console.log('Observing loadMoreRef for infinite scroll');
     }
 
     return () => {

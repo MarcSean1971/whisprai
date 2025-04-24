@@ -43,13 +43,6 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
-  console.log('ChatMessages render:', {
-    messagesCount: messages.length,
-    isFetchingNextPage,
-    hasNextPage,
-    refetchAvailable: !!refetch
-  });
-  
   const { 
     scrollContainerRef, 
     loadMoreRef, 
@@ -58,7 +51,8 @@ export function ChatMessages({
     messages,
     refetch,
     hasNextPage,
-    isFetchingNextPage
+    isFetchingNextPage,
+    currentUserId
   });
 
   const scrollToMessage = (messageId: string) => {
@@ -99,7 +93,7 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
           style={{
-            paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'calc(10rem + env(safe-area-inset-bottom, 0px))',
           }}
         >
           <div ref={loadMoreRef} className="h-4" />
@@ -120,7 +114,7 @@ export function ChatMessages({
               scrollToMessage={scrollToMessage}
             />
           </div>
-          <div ref={messagesEndRef} />
+          <div ref={messagesEndRef} className="h-4" />
         </div>
       </TranslationProvider>
     </ErrorBoundary>
