@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -25,7 +25,7 @@
     --ring: 262.1 83.3% 57.8%;
     --radius: 0.5rem;
   }
- 
+
   .dark {
     --background: 240 10% 3.9%;
     --foreground: 0 0% 98%;
@@ -69,6 +69,6 @@
   }
 
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
   }
 }

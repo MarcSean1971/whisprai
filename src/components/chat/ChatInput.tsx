@@ -96,8 +96,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "w-full bg-background px-4 py-2",
-      "pb-safe"
+      "w-full bg-background px-4",
+      isKeyboardVisible ? "pb-2" : "pb-safe"
     )}>
       {isRecording ? (
         <VoiceRecorder

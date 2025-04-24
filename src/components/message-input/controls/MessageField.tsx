@@ -70,6 +70,7 @@ export function MessageField({
         disabled={disabled}
         rows={1}
       />
+      
       {isAnalyzing && (
         <div className="absolute right-12 top-1/2 -translate-y-1/2">
           <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full" />
