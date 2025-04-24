@@ -24,7 +24,7 @@ export function MessageField({
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const isMobile = useIsMobile();
+  const { isMobile } = useIsMobile();
   
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);

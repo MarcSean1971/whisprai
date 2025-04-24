@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -12,6 +13,7 @@ import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
 import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -43,6 +45,7 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const { isMobile } = useIsMobile();
   
   console.log('ChatMessages render:', {
     messagesCount: messages.length,
@@ -62,7 +65,10 @@ export function ChatMessages({
     isFetchingNextPage
   });
 
-  useFullscreenMode();
+  // Only call useFullscreenMode on mobile devices
+  if (isMobile) {
+    useFullscreenMode();
+  }
 
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
