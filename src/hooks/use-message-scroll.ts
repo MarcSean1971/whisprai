@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+
+import { useEffect, useRef, useCallback } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
@@ -21,51 +22,72 @@ export function useMessageScroll({
   const lastMessageLengthRef = useRef<number>(0);
   const lastScrollTimeRef = useRef<number>(0);
   const initialLoadRef = useRef<boolean>(true);
+  const scrollAttemptsRef = useRef<number>(0);
   
   // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
 
-  // Initial load scroll handling
-  useEffect(() => {
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
     const container = scrollContainerRef.current;
     const endRef = messagesEndRef.current;
     
-    if (!container || !endRef || !messages.length) return;
+    if (!container || !endRef) {
+      console.log('Scroll refs not ready');
+      return;
+    }
+
+    const maxAttempts = 3;
+    scrollAttemptsRef.current += 1;
+
+    requestAnimationFrame(() => {
+      try {
+        endRef.scrollIntoView({ behavior });
+        lastScrollTimeRef.current = Date.now();
+        scrollAttemptsRef.current = 0;
+        console.log('Scrolled to bottom successfully');
+      } catch (error) {
+        console.error('Error scrolling:', error);
+        if (scrollAttemptsRef.current < maxAttempts) {
+          setTimeout(() => scrollToBottom(behavior), 100);
+        }
+      }
+    });
+  }, []);
+
+  // Initial load scroll handling
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    
+    if (!container || !messages.length) return;
 
     if (initialLoadRef.current) {
       console.log('Initial load scroll triggered');
-      requestAnimationFrame(() => {
-        endRef.scrollIntoView({ behavior: "instant" });
-        lastScrollTimeRef.current = Date.now();
-        initialLoadRef.current = false;
-      });
+      scrollToBottom("instant");
+      initialLoadRef.current = false;
     }
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
-  // Handle scrolling for new messages and initial load
+  // Handle scrolling for new messages
   useEffect(() => {
     if (!messages.length) return;
 
     const container = scrollContainerRef.current;
-    const endRef = messagesEndRef.current;
-    
-    if (!container || !endRef) return;
+    if (!container) return;
 
     // Check if new messages were added
     const isNewMessage = messages.length > lastMessageLengthRef.current;
     const lastMessage = messages[messages.length - 1];
     const isOwnMessage = lastMessage?.sender?.id === currentUserId;
     
-    console.log('Scroll check:', {
+    console.log('Message update detected:', {
       isNewMessage,
       isOwnMessage,
       currentLength: messages.length,
       lastLength: lastMessageLengthRef.current,
       scrollHeight: container.scrollHeight,
       scrollTop: container.scrollTop,
-      clientHeight: container.clientHeight,
-      timeSinceLastScroll: Date.now() - lastScrollTimeRef.current
+      clientHeight: container.clientHeight
     });
 
     lastMessageLengthRef.current = messages.length;
@@ -77,16 +99,12 @@ export function useMessageScroll({
       return;
     }
 
-    // Always scroll to bottom for sent messages
+    // Always scroll to bottom for new sent messages
     if (isNewMessage && isOwnMessage) {
-      console.log('Scrolling to latest message (sent message)');
-      
-      requestAnimationFrame(() => {
-        endRef.scrollIntoView({ behavior: "smooth" });
-        lastScrollTimeRef.current = Date.now();
-      });
+      console.log('New sent message detected - scrolling to bottom');
+      scrollToBottom();
     }
-  }, [messages, isFetchingNextPage, currentUserId]);
+  }, [messages, isFetchingNextPage, currentUserId, scrollToBottom]);
 
   // Restore scroll position after loading older messages
   useEffect(() => {
