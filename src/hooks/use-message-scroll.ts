@@ -42,6 +42,10 @@ export function useMessageScroll({
       return;
     }
 
+    if (force) {
+      forceScrollRef.current = true;
+    }
+
     const doScroll = () => {
       try {
         endRef.scrollIntoView({ behavior });
@@ -107,29 +111,13 @@ export function useMessageScroll({
     }
 
     // Force scroll for sent messages or when forced
-    if ((isNewMessage && isOwnMessage) || forceScrollRef.current) {
+    if (isNewMessage && isOwnMessage) {
       console.log('Triggering scroll to bottom - new message or forced scroll');
       scrollToBottom("smooth", true);
     }
   }, [messages, isFetchingNextPage, currentUserId, scrollToBottom]);
 
-  // Restore scroll position after loading older messages
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (container && isFetchingNextPage) {
-      const heightDifference = container.scrollHeight - previousScrollHeight.current;
-      if (heightDifference > 0) {
-        console.log('Restoring scroll position after loading more messages');
-        requestAnimationFrame(() => {
-          if (container) {
-            container.scrollTop = previousScrollTop.current + heightDifference;
-          }
-        });
-      }
-    }
-  }, [messages.length, isFetchingNextPage]);
-
-  // Intersection Observer for infinite scroll
+  // Handle infinite scroll for older messages
   useEffect(() => {
     if (!refetch || !hasNextPage || isFetchingNextPage) return;
 
@@ -155,7 +143,6 @@ export function useMessageScroll({
     const currentLoadMoreRef = loadMoreRef.current;
     if (currentLoadMoreRef) {
       observer.observe(currentLoadMoreRef);
-      console.log('Observing loadMoreRef for infinite scroll');
     }
 
     return () => {
@@ -169,6 +156,6 @@ export function useMessageScroll({
     scrollContainerRef,
     loadMoreRef,
     messagesEndRef,
-    scrollToBottom // Export scroll function for manual triggers
+    scrollToBottom
   };
 }
