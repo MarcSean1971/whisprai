@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -130,5 +131,16 @@
 
   .no-scrollbar::-webkit-scrollbar {
     display: none !important;
+  }
+}
+
+/* Fix for mobile keyboard handling */
+@supports (-webkit-touch-callout: none) {
+  body {
+    height: -webkit-fill-available;
+  }
+  
+  .h-screen {
+    height: -webkit-fill-available;
   }
 }
