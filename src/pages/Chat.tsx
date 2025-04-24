@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -131,7 +132,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden">
+    <div className="flex flex-col h-[100dvh] w-full bg-background overflow-hidden touch-none">
       <ChatHeader 
         conversationId={conversationId} 
         replyToMessageId={replyToMessageId}
@@ -140,7 +141,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
       <div 
         className="flex-1 overflow-hidden relative"
         style={{
-          paddingTop: 'calc(2.5rem + env(safe-area-inset-top, 0px))'
+          paddingTop: 'calc(2.5rem + env(safe-area-inset-top, 0px))',
+          paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
         }}
       >
         <ErrorBoundary>
@@ -167,13 +169,15 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="bg-background border-t sticky bottom-0 z-20">
-        <ChatInput
-          conversationId={conversationId}
-          onSendMessage={handleSendMessage}
-          suggestions={suggestions}
-          isLoadingSuggestions={isLoadingSuggestions}
-        />
+      <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-sm border-t z-50">
+        <div style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <ChatInput
+            conversationId={conversationId}
+            onSendMessage={handleSendMessage}
+            suggestions={suggestions}
+            isLoadingSuggestions={isLoadingSuggestions}
+          />
+        </div>
       </div>
     </div>
   );

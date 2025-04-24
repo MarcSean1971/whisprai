@@ -90,14 +90,11 @@ export function ChatMessages({
       <TranslationProvider>
         <div 
           ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
-          style={{
-            paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
-          }}
+          className="absolute inset-0 overflow-y-auto overscroll-none flex flex-col z-10"
         >
           <div ref={loadMoreRef} className="h-4" />
           <div className="flex-1" />
-          <div className="px-4 py-2 space-y-4">
+          <div className="px-4 py-2 space-y-4 mb-safe">
             <TranslationConsumer 
               messages={messages} 
               currentUserId={currentUserId}
