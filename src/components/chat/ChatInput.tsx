@@ -95,8 +95,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "px-4 py-1.5 transition-all bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
-      suggestions.length > 0 && "pb-3" // Reduced from pb-6 to pb-3
+      "px-4 py-1 transition-all bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      suggestions.length > 0 && "pb-2" // Reduced from pb-3 to pb-2
     )}>
       {isRecording ? (
         <VoiceRecorder
