@@ -54,7 +54,9 @@ export function ChatMessages({
     currentUserId
   });
 
-  useFullscreenMode();
+  if (isMobile) {
+    useFullscreenMode();
+  }
 
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];
