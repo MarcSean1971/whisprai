@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { PredictiveAnswer } from "@/types/predictive-answer";
 import { FileAttachment } from "./message-input/FileAttachment";
@@ -58,9 +57,14 @@ export function MessageInput({
   };
 
   return (
-    <div className={cn("w-full bg-background", className)}>
+    <div className={cn(
+      "w-full bg-background relative", 
+      "pb-[env(safe-area-inset-bottom,0px)]",
+      className
+    )}>
       <FileInputs
-        ref={{ fileInput: fileInputRef.current, cameraInput: cameraInputRef.current }}
+        fileInputRef={fileInputRef}
+        cameraInputRef={cameraInputRef}
         onFileChange={handleFileChange}
         disabled={disabled}
         maxFiles={5}

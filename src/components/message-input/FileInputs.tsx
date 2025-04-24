@@ -7,23 +7,25 @@ interface FileInputsProps {
   disabled: boolean;
   maxFiles: number;
   currentFiles: number;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  cameraInputRef: React.RefObject<HTMLInputElement>;
 }
 
-export const FileInputs = forwardRef<
-  { fileInput: HTMLInputElement | null; cameraInput: HTMLInputElement | null },
-  FileInputsProps
->(({ onFileChange, disabled, maxFiles, currentFiles }, ref) => {
+export function FileInputs({ 
+  onFileChange, 
+  disabled, 
+  maxFiles, 
+  currentFiles,
+  fileInputRef,
+  cameraInputRef
+}: FileInputsProps) {
   return (
     <>
       <input 
         type="file" 
         multiple
         accept={ALLOWED_FILE_TYPES.join(',')}
-        ref={(el) => {
-          if (typeof ref === 'object' && ref !== null) {
-            (ref as any).fileInput = el;
-          }
-        }}
+        ref={fileInputRef}
         className="hidden" 
         onChange={onFileChange}
         disabled={disabled || currentFiles >= maxFiles}
@@ -33,17 +35,13 @@ export const FileInputs = forwardRef<
         type="file" 
         accept="image/*,video/*"
         capture="environment"
-        ref={(el) => {
-          if (typeof ref === 'object' && ref !== null) {
-            (ref as any).cameraInput = el;
-          }
-        }}
+        ref={cameraInputRef}
         className="hidden" 
         onChange={onFileChange}
         disabled={disabled || currentFiles >= maxFiles}
       />
     </>
   );
-});
+}
 
 FileInputs.displayName = "FileInputs";
