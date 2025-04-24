@@ -19,7 +19,7 @@ export function MessageSuggestions({
   if (!suggestions.length && !isLoading) return null;
 
   return (
-    <div className="mb-1 overflow-x-auto no-scrollbar relative z-30">
+    <div className="mb-0.5 overflow-x-auto no-scrollbar relative z-30">
       <div className="flex gap-2 pb-0.5">
         {isLoading ? (
           <Button
@@ -52,3 +52,4 @@ export function MessageSuggestions({
     </div>
   );
 }
+

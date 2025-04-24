@@ -95,8 +95,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "px-4 pt-2 pb-4 border-t transition-all bg-background z-20", // Adjusted padding
-      suggestions.length > 0 && "pb-6"
+      "px-4 pt-1 pb-2 border-t transition-all bg-background z-20",
+      suggestions.length > 0 && "pb-4"
     )}>
       {isRecording ? (
         <VoiceRecorder
