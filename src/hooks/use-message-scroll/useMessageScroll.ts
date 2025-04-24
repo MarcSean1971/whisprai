@@ -1,5 +1,5 @@
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import { useScrollToBottom } from "./useScrollToBottom";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { useScrollPosition } from "./useScrollPosition";
@@ -41,37 +41,43 @@ export function useMessageScroll({
     isFetchingNextPage
   });
 
-  // Initial load scroll effect
-  if (!messages.length) {
-    // Skip if no messages
-  } else if (initialLoadRef.current) {
-    console.log('[Scroll] Initial load scroll triggered');
-    scrollToBottom("instant", true);
-    initialLoadRef.current = false;
-  }
+  // Handle initial load scroll
+  useEffect(() => {
+    if (!messages.length) return;
+    
+    if (initialLoadRef.current) {
+      console.log('[Scroll] Initial load scroll triggered');
+      scrollToBottom("instant", true);
+      initialLoadRef.current = false;
+    }
+  }, [messages.length, scrollToBottom]);
 
-  // Verification scroll effect
-  if (!scrollSuccessRef.current && messages.length > 0 && !initialLoadRef.current) {
-    console.log('[Scroll] Verification scroll triggered');
-    scrollToBottom("instant", true);
-  }
+  // Handle verification scroll
+  useEffect(() => {
+    if (!scrollSuccessRef.current && messages.length > 0 && !initialLoadRef.current) {
+      console.log('[Scroll] Verification scroll triggered');
+      scrollToBottom("instant", true);
+    }
+  }, [messages.length, scrollToBottom]);
 
   // Handle new messages scrolling
-  if (messages.length > 0) {
+  useEffect(() => {
+    if (messages.length === 0) return;
+    
     const container = scrollContainerRef.current;
-    if (container) {
-      const isNewMessage = messages.length > lastMessageLengthRef.current;
-      lastMessageLengthRef.current = messages.length;
+    if (!container) return;
 
-      if (!isFetchingNextPage) {
-        const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-        if (isNewMessage && isNearBottom || forceScrollRef.current) {
-          console.log('[Scroll] Triggering scroll to bottom - new message or forced scroll');
-          scrollToBottom("smooth");
-        }
+    const isNewMessage = messages.length > lastMessageLengthRef.current;
+    lastMessageLengthRef.current = messages.length;
+
+    if (!isFetchingNextPage) {
+      const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      if ((isNewMessage && isNearBottom) || forceScrollRef.current) {
+        console.log('[Scroll] Triggering scroll to bottom - new message or forced scroll');
+        scrollToBottom("smooth");
       }
     }
-  }
+  }, [messages, isFetchingNextPage, scrollToBottom]);
 
   return {
     scrollContainerRef,

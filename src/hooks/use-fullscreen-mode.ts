@@ -1,13 +1,17 @@
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
-export function useFullscreenMode() {
+interface UseFullscreenModeReturn {
+  enable: () => Promise<void>;
+  disable: () => Promise<void>;
+}
+
+export function useFullscreenMode(): UseFullscreenModeReturn {
   const hasRequestedFullscreen = useRef(false);
 
-  const enableFullscreen = useCallback(async () => {
+  const enable = useCallback(async () => {
     if (!document.fullscreenElement && 
         document.documentElement.requestFullscreen && 
-        window.innerWidth < 768 &&
         !hasRequestedFullscreen.current) {
       try {
         hasRequestedFullscreen.current = true;
@@ -19,18 +23,22 @@ export function useFullscreenMode() {
     }
   }, []);
 
-  useEffect(() => {
-    // Small delay to ensure component is mounted
-    const timer = setTimeout(enableFullscreen, 100);
-
-    return () => {
-      clearTimeout(timer);
-      if (document.fullscreenElement && document.exitFullscreen && hasRequestedFullscreen.current) {
-        document.exitFullscreen().catch(err => {
-          console.error('Failed to exit fullscreen:', err);
-        });
+  const disable = useCallback(async () => {
+    if (document.fullscreenElement && document.exitFullscreen && hasRequestedFullscreen.current) {
+      try {
+        await document.exitFullscreen();
         hasRequestedFullscreen.current = false;
+      } catch (error) {
+        console.error('Failed to exit fullscreen:', error);
       }
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      disable();
     };
-  }, [enableFullscreen]);
+  }, [disable]);
+
+  return { enable, disable };
 }

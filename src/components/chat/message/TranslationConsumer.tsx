@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -46,24 +46,22 @@ export function TranslationConsumer({
     onTranslation
   );
 
-  // Log when messages change or forceScroll is true
-  useEffect(() => {
-    if (messages.length > 0) {
-      console.log('[TranslationConsumer] Messages updated, count:', messages.length, 'forceScroll:', forceScroll);
-    }
-  }, [messages, forceScroll]);
+  const [processedMessages, setProcessedMessages] = useState(messages);
 
-  function shouldShowReplyInput(message: any) {
+  useEffect(() => {
+    setProcessedMessages(messages);
+  }, [messages]);
+
+  const shouldShowReplyInput = useCallback((message: any) => {
     if (replyToMessageId !== message.id) return false;
     const target = messages.find((m: any) => m.id === replyToMessageId);
     if (target && target.parent && target.parent.id) {
-      const parentIsVisible = messages.some((m: any) => m.id === target.parent.id);
-      if (parentIsVisible) return false;
+      return !messages.some((m: any) => m.id === target.parent.id);
     }
     return true;
-  }
+  }, [replyToMessageId, messages]);
 
-  if (!Array.isArray(messages) || messages.length === 0) {
+  if (!Array.isArray(processedMessages) || processedMessages.length === 0) {
     return (
       <EmptyState
         icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
@@ -75,7 +73,7 @@ export function TranslationConsumer({
 
   return (
     <>
-      {messages.map((message) => {
+      {processedMessages.map((message) => {
         if (!message || !message.id) {
           console.error('Invalid message object:', message);
           return null;

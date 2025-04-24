@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
 import { MessageList } from "./message/MessageList";
@@ -45,10 +45,18 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const { isMobile } = useIsMobile();
+  const fullscreenMode = useFullscreenMode();
 
-  if (isMobile) {
-    useFullscreenMode();
-  }
+  useEffect(() => {
+    if (isMobile) {
+      fullscreenMode.enable();
+    }
+    return () => {
+      if (isMobile) {
+        fullscreenMode.disable();
+      }
+    };
+  }, [isMobile, fullscreenMode]);
 
   const { scrollContainerRef, loadMoreRef, messagesEndRef } = useMessageScroll({
     messages,
