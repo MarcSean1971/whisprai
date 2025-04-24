@@ -1,19 +1,13 @@
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useIsMobile } from './use-mobile';
 
 export function useFullscreenMode() {
   const { isMobile, isLoading } = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const hasRequestedFullscreen = useRef(false);
-  const fullscreenTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const requestFullscreen = useCallback(() => {
-    // Only request fullscreen on mobile devices
-    if (!document.fullscreenElement && 
-        document.documentElement.requestFullscreen && 
-        window.innerWidth < 768) { // Double-check width
-      hasRequestedFullscreen.current = true;
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       document.documentElement.requestFullscreen()
         .then(() => setIsFullscreen(true))
         .catch(err => console.error('Error attempting to enable fullscreen:', err));
@@ -21,15 +15,9 @@ export function useFullscreenMode() {
   }, []);
 
   const exitFullscreen = useCallback(() => {
-    // Only exit if we were the ones who requested fullscreen
-    if (document.fullscreenElement && 
-        document.exitFullscreen && 
-        hasRequestedFullscreen.current) {
+    if (document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen()
-        .then(() => {
-          setIsFullscreen(false);
-          hasRequestedFullscreen.current = false;
-        })
+        .then(() => setIsFullscreen(false))
         .catch(err => console.error('Error attempting to exit fullscreen:', err));
     }
   }, []);
@@ -40,14 +28,12 @@ export function useFullscreenMode() {
       return;
     }
 
-    // Add a small delay before requesting fullscreen
-    fullscreenTimerRef.current = setTimeout(() => {
-      requestFullscreen();
-    }, 150); // Small delay to ensure route transition is complete
+    // Request fullscreen immediately on mobile
+    requestFullscreen();
 
     // Handle user interaction to maintain fullscreen
     const handleUserInteraction = () => {
-      if (!document.fullscreenElement && isMobile) {
+      if (!document.fullscreenElement) {
         requestFullscreen();
       }
     };
@@ -58,9 +44,6 @@ export function useFullscreenMode() {
     return () => {
       document.removeEventListener('touchstart', handleUserInteraction);
       document.removeEventListener('scroll', handleUserInteraction);
-      if (fullscreenTimerRef.current) {
-        clearTimeout(fullscreenTimerRef.current);
-      }
       exitFullscreen();
     };
   }, [isMobile, isLoading, requestFullscreen, exitFullscreen]);
