@@ -99,7 +99,7 @@ export function ChatInput({
     <div className={cn(
       "w-full bg-background",
       "px-4 pt-2",
-      "pb-[env(safe-area-inset-bottom,16px)]"
+      "pb-safe"
     )}>
       {isRecording ? (
         <VoiceRecorder
