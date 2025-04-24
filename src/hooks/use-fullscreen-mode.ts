@@ -1,6 +1,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useIsMobile } from './use-mobile';
+import { toast } from 'sonner';
 
 interface UseFullscreenModeProps {
   enabled?: boolean;
@@ -10,61 +11,64 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
   const isMobile = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const wakeLockRef = useRef<any>(null);
-  
-  const exitFullscreen = useCallback(() => {
-    if (document.fullscreenElement && document.exitFullscreen) {
-      document.exitFullscreen()
-        .then(() => {
-          setIsFullscreen(false);
-          if (wakeLockRef.current) {
-            wakeLockRef.current.release()
-              .then(() => {
-                wakeLockRef.current = null;
-                console.log('Wake lock released');
-              })
-              .catch((err: Error) => console.error('Wake Lock release error:', err));
+
+  const exitFullscreen = useCallback(async () => {
+    try {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+        
+        if (wakeLockRef.current) {
+          try {
+            await wakeLockRef.current.release();
+            wakeLockRef.current = null;
+          } catch (err) {
+            console.error('Wake Lock release error:', err);
           }
-        })
-        .catch(err => console.error('Error attempting to exit fullscreen:', err));
+        }
+      }
+    } catch (err) {
+      console.error('Error exiting fullscreen:', err);
+    } finally {
+      // Always cleanup styles
+      document.body.style.overflow = '';
+      document.body.style.overscrollBehavior = '';
+      document.documentElement.style.setProperty('--sab', '0px');
     }
-    
-    // Clean up mobile-specific styles
-    document.body.style.overflow = '';
-    document.body.style.overscrollBehavior = '';
-    document.documentElement.style.setProperty('--sab', '0px');
   }, []);
 
   const requestFullscreen = useCallback(async () => {
     // Only proceed if we're on mobile and enabled is true
     if (!isMobile || !enabled) return;
     
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      try {
+    try {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
         await document.documentElement.requestFullscreen();
         setIsFullscreen(true);
         
-        // Try to acquire wake lock to keep screen on
+        // Try to acquire wake lock
         if ('wakeLock' in navigator) {
           try {
             wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
-            console.log('Wake lock acquired');
             
             wakeLockRef.current.addEventListener('release', () => {
-              console.log('Wake lock released');
               wakeLockRef.current = null;
             });
           } catch (err) {
-            console.error('Wake Lock error:', err);
+            // Don't show error for wake lock - it's optional
+            console.warn('Wake Lock not available:', err);
           }
         }
-      } catch (err) {
-        console.error('Error attempting to enable fullscreen:', err);
       }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
+      toast.error('Could not enable fullscreen mode');
+      // Cleanup on error
+      exitFullscreen();
     }
-  }, [isMobile, enabled]);
+  }, [isMobile, enabled, exitFullscreen]);
 
   useEffect(() => {
-    // Only enable fullscreen if explicitly enabled AND on mobile
     if (!enabled || !isMobile) {
       exitFullscreen();
       return;
@@ -75,7 +79,6 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
       
-      // Set CSS variable for safe area bottom (mobile only)
       const safeAreaBottom = window.getComputedStyle(document.documentElement)
         .getPropertyValue('env(safe-area-inset-bottom)') || '0px';
       document.documentElement.style.setProperty('--sab', safeAreaBottom);
@@ -92,7 +95,6 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
       if (!document.fullscreenElement && enabled && isMobile) {
-        // Try to re-enable fullscreen if it was exited externally (mobile only)
         setTimeout(() => {
           if (document.visibilityState === 'visible') {
             enableFullscreen();
@@ -104,7 +106,6 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
-    // Cleanup function
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);

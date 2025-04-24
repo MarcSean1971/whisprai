@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/hooks/use-translation';
 import { useTranslationContext } from '@/contexts/TranslationContext';
@@ -21,14 +22,17 @@ export function useMessageProcessor(
   } = useTranslationContext();
 
   const processTranslations = useCallback(async () => {
-    if (!userLanguage || !currentUserId || translationsInProgress > 0) return;
+    if (!userLanguage || !currentUserId || translationsInProgress > 0 || !Array.isArray(messages)) {
+      return;
+    }
 
     const pendingTranslations = messages
       .filter(message => 
-        message.sender_id !== currentUserId &&
-        message.sender_id !== null &&
-        message.original_language &&
-        message.original_language !== userLanguage &&
+        message?.sender_id !== currentUserId &&
+        message?.sender_id !== null &&
+        message?.original_language &&
+        message?.original_language !== userLanguage &&
+        message?.id &&
         !translatedContents[message.id]
       )
       .slice(0, 5);
@@ -40,45 +44,44 @@ export function useMessageProcessor(
     try {
       await Promise.all(
         pendingTranslations.map(async (message) => {
-          const translated = await translateMessage(message.content, userLanguage);
-          if (translated !== message.content) {
-            const newTranslations = {
-              ...translatedContents,
-              [message.id]: translated
-            };
-            setTranslatedContents(newTranslations);
-            
-            onTranslation?.(message.id, translated);
+          try {
+            const translated = await translateMessage(message.content, userLanguage);
+            if (translated && translated !== message.content) {
+              setTranslatedContents(prev => ({
+                ...prev,
+                [message.id]: translated
+              }));
+              
+              onTranslation?.(message.id, translated);
+            }
+          } catch (error) {
+            console.error(`Translation error for message ${message.id}:`, error);
           }
         })
       );
-    } catch (error) {
-      console.error('Translation error:', error);
     } finally {
       setTranslationsInProgress(0);
     }
   }, [messages, userLanguage, currentUserId, translatedContents, translateMessage, onTranslation, setTranslatedContents, setTranslationsInProgress, translationsInProgress]);
 
   useEffect(() => {
-    let mounted = true;
+    if (!Array.isArray(messages) || !currentUserId || !messages.length || translationsInProgress > 0) {
+      return;
+    }
+    
+    const lastMessage = messages[messages.length - 1];
+    if (!lastMessage?.id || lastMessage.id === lastProcessedMessageId) {
+      return;
+    }
 
-    const processNewMessage = () => {
-      if (!messages.length || !currentUserId || translationsInProgress > 0) return;
-      
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage.id === lastProcessedMessageId) return;
-
-      if (lastMessage.sender_id !== currentUserId) {
-        setLastProcessedMessageId(lastMessage.id);
-        playMessageSound();
-        onNewReceivedMessage?.();
-      }
-    };
-
-    processNewMessage();
+    if (lastMessage.sender_id !== currentUserId) {
+      setLastProcessedMessageId(lastMessage.id);
+      playMessageSound();
+      onNewReceivedMessage?.();
+    }
 
     return () => {
-      mounted = false;
+      // Cleanup if needed
     };
   }, [messages, currentUserId, lastProcessedMessageId, onNewReceivedMessage, translationsInProgress, playMessageSound]);
 

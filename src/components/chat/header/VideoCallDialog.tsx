@@ -2,10 +2,11 @@
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 interface VideoCallDialogProps {
   open: boolean;
@@ -17,52 +18,45 @@ interface VideoCallDialogProps {
 
 export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipientName }: VideoCallDialogProps) {
   const isMobile = useIsMobile();
+  const [iframeMounted, setIframeMounted] = useState(false);
   
   const userParams = new URLSearchParams({
-    roomID: roomId,
+    roomID: roomId || '',
     userName: userName || 'User',
     recipientName: recipientName || 'Recipient'
   }).toString();
 
   const updateCallStatus = useCallback(async () => {
+    if (!roomId) return;
+    
     try {
       const { error } = await supabase
         .from('video_call_invitations')
         .update({ status: 'ended' })
         .eq('room_id', roomId);
 
-      if (error) {
-        console.error('Error updating call status:', error);
-        throw error;
-      }
+      if (error) throw error;
     } catch (error) {
       console.error('Failed to update call status:', error);
-      toast.error('Failed to end call properly', {
-        description: 'The connection may have been lost'
-      });
+      toast.error('Failed to end call properly');
     }
   }, [roomId]);
 
   const handleOpenChange = useCallback(async (newOpen: boolean) => {
-    console.log('Video call dialog state changing to:', newOpen);
     if (!newOpen) {
-      console.log('Closing video call dialog, updating status for room ID:', roomId);
       await updateCallStatus();
+      setIframeMounted(false);
     }
     onOpenChange(newOpen);
-  }, [onOpenChange, roomId, updateCallStatus]);
+  }, [onOpenChange, updateCallStatus]);
 
   useEffect(() => {
     if (open && roomId) {
-      console.log('Opening video call dialog with validated room ID:', roomId);
+      setIframeMounted(true);
     }
   }, [open, roomId]);
 
   if (!roomId) {
-    console.error('No room ID provided to VideoCallDialog');
-    toast.error("Unable to join video call", {
-      description: "Missing room information"
-    });
     return null;
   }
 
@@ -88,10 +82,9 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
       >
         <DialogTitle className="sr-only">Video Call</DialogTitle>
         <DialogDescription className="sr-only">
-          You are in an active video call with {recipientName}.
+          Video call with {recipientName}
         </DialogDescription>
         
-        {/* Custom close button */}
         <div className="absolute right-4 top-4 z-50">
           <button
             onClick={() => handleOpenChange(false)}
@@ -102,14 +95,17 @@ export function VideoCallDialog({ open, onOpenChange, roomId, userName, recipien
           </button>
         </div>
 
-        {/* Video content */}
         <div className="w-full h-full">
-          <iframe
-            src={`/video-call.html?${userParams}`}
-            title="Video Call"
-            className="w-full h-full border-0"
-            allow="camera; microphone; clipboard-write; display-capture"
-          />
+          <ErrorBoundary>
+            {iframeMounted && (
+              <iframe
+                src={`/video-call.html?${userParams}`}
+                title="Video Call"
+                className="w-full h-full border-0"
+                allow="camera; microphone; clipboard-write; display-capture"
+              />
+            )}
+          </ErrorBoundary>
         </div>
       </DialogContent>
     </Dialog>
