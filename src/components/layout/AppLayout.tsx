@@ -12,9 +12,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <div className={cn(
-      "bg-background min-h-screen w-full",
-      !window.location.pathname.includes('/chat/') && !isMobile && "mx-auto max-w-2xl px-4",
-      isMobile && "pb-[72px]" // Add padding at the bottom for the navigation bar
+      "min-h-screen w-full bg-background",
+      !window.location.pathname.includes('/chat/') && !isMobile && "mx-auto max-w-2xl",
+      isMobile ? "pb-[72px]" : "px-0" // Adjust padding based on mobile/desktop
     )}>
       {children}
     </div>

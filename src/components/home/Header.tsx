@@ -46,7 +46,7 @@ export function Header({
     <header className="flex flex-col border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className={cn(
         "flex items-center justify-between gap-4 border-b",
-        isMobile ? "px-3 py-2" : "px-4 py-3"
+        isMobile ? "px-4 py-2" : "px-6 py-3"
       )}>
         <Logo variant="full" />
         <ShareButton />
@@ -54,7 +54,7 @@ export function Header({
       
       <div className={cn(
         "flex items-center justify-between gap-2",
-        isMobile ? "px-3 py-2" : "px-4 py-2"
+        isMobile ? "px-4 py-2" : "px-6 py-3"
       )}>
         <div className="flex-1">
           <SearchBar 
