@@ -166,11 +166,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className={cn(
-        "z-20 w-full bg-background",
-        "transition-all duration-200 ease-in-out",
-        "pb-[env(safe-area-inset-bottom,0px)]"
-      )}>
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-background">
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}

@@ -97,8 +97,8 @@ export function ChatInput({
   return (
     <div className={cn(
       "w-full transition-all duration-200",
-      "p-4",
-      isKeyboardVisible ? "pb-4" : "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
+      "px-4 pt-2",
+      "pb-[calc(env(safe-area-inset-bottom,1rem)+0.5rem)]",
     )}>
       {isRecording ? (
         <VoiceRecorder
@@ -114,7 +114,7 @@ export function ChatInput({
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
           disabled={isProcessingVoice}
-          hideControlsOnKeyboard={isKeyboardVisible}
+          hideControlsOnKeyboard={true}
         />
       )}
     </div>

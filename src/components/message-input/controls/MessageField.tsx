@@ -1,4 +1,3 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
@@ -67,7 +66,7 @@ export function MessageField({
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm",
           showEmojiPicker ? "pr-10" : "pr-4",
-          isKeyboardVisible && isMobile && "w-full"
+          isKeyboardVisible && "pb-[env(safe-area-inset-bottom,0px)]"
         )}
         disabled={disabled}
         rows={1}
