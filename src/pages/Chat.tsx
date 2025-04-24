@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -31,7 +30,7 @@ export default function Chat() {
   
   if (!id) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center min-h-screen">
         <AlertCircle className="h-10 w-10 text-destructive mr-2" />
         <p>Invalid conversation ID. Redirecting...</p>
       </div>
@@ -91,13 +90,13 @@ function ChatContent({ conversationId }: { conversationId: string }) {
 
   if (error) {
     return (
-      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      <div className="flex flex-col min-h-screen w-full bg-background">
         <ChatHeader 
           conversationId={conversationId} 
           replyToMessageId={replyToMessageId}
           onCancelReply={cancelReply}
         />
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
+        <div className="flex-1 overflow-hidden relative">
           <EmptyState
             icon={<AlertCircle className="h-10 w-10 text-destructive" />}
             title="Error loading chat"
@@ -117,13 +116,13 @@ function ChatContent({ conversationId }: { conversationId: string }) {
 
   if (isLoading || isLoadingProfile) {
     return (
-      <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+      <div className="flex flex-col min-h-screen w-full bg-background">
         <ChatHeader 
           conversationId={conversationId} 
           replyToMessageId={null}
           onCancelReply={() => {}}
         />
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)]">
+        <div className="flex-1 overflow-hidden relative">
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
             <MessageSkeleton />
             <MessageSkeleton />
@@ -135,7 +134,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-screen w-full bg-background overflow-hidden">
+    <div className="flex flex-col min-h-screen w-full bg-background">
       <ChatHeader 
         conversationId={conversationId} 
         replyToMessageId={replyToMessageId}
@@ -166,12 +165,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div
-        className="sticky left-0 right-0 bottom-0 bg-background border-t z-20"
-        style={{
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-        }}
-      >
+      <div className="fixed bottom-0 left-0 right-0 bg-background border-t z-20">
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}
