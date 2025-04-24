@@ -6,6 +6,7 @@ import { PredictiveAnswer } from "@/types/predictive-answer";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
 
 interface ChatInputProps {
   conversationId: string;
@@ -19,15 +20,16 @@ interface ChatInputProps {
   isLoadingSuggestions?: boolean;
 }
 
-export function ChatInput({
+export function ChatInput({ 
   conversationId,
-  onSendMessage,
+  onSendMessage, 
   suggestions = [],
-  isLoadingSuggestions = false
+  isLoadingSuggestions = false 
 }: ChatInputProps) {
   const { requestLocation } = useLocation();
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessingVoice, setIsProcessingVoice] = useState(false);
+  const isKeyboardVisible = useKeyboardVisibility();
 
   const handleSendMessage = async (
     content: string, 
@@ -97,7 +99,8 @@ export function ChatInput({
       "w-full transition-all bg-background p-4",
       "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
       "md:pb-4",
-      !isRecording && suggestions.length > 0 && "pb-6"
+      !isRecording && suggestions.length > 0 && !isKeyboardVisible && "pb-6",
+      isKeyboardVisible && "fixed bottom-0 left-0 right-0 z-50"
     )}>
       {isRecording ? (
         <VoiceRecorder
@@ -113,6 +116,7 @@ export function ChatInput({
           suggestions={suggestions}
           isLoadingSuggestions={isLoadingSuggestions}
           disabled={isProcessingVoice}
+          hideControlsOnKeyboard={isKeyboardVisible}
         />
       )}
     </div>

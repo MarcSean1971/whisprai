@@ -42,18 +42,6 @@ export function MessageField({
 
   const showEmojiPicker = !isMobile || !isKeyboardVisible;
 
-  const emojiTrigger = (
-    <Button 
-      variant="ghost" 
-      size="sm" 
-      className="h-8 w-8 rounded-full p-0"
-      disabled={disabled}
-    >
-      <Smile className="h-4 w-4" />
-      <span className="sr-only">Emoji</span>
-    </Button>
-  );
-
   return (
     <div className="relative flex-1">
       <Textarea

@@ -19,13 +19,10 @@ export function MessageSuggestions({
   disabled,
   hideOnKeyboard = false
 }: MessageSuggestionsProps) {
-  if (!suggestions.length && !isLoading) return null;
+  if ((!suggestions.length && !isLoading) || hideOnKeyboard) return null;
 
   return (
-    <div className={cn(
-      "mb-2 overflow-x-auto no-scrollbar relative z-30 transition-all duration-200",
-      hideOnKeyboard && "md:block hidden"
-    )}>
+    <div className="mb-2 overflow-x-auto no-scrollbar relative z-30 transition-all duration-200">
       <div className="flex gap-2 pb-1">
         {isLoading ? (
           <Button

@@ -20,6 +20,7 @@ interface MessageControlsProps {
   disabled?: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
   canAttach?: boolean;
+  hideControlsOnKeyboard?: boolean;
 }
 
 export function MessageControls({
@@ -31,17 +32,17 @@ export function MessageControls({
   onSubmit,
   disabled = false,
   inputRef,
-  canAttach = true
+  canAttach = true,
+  hideControlsOnKeyboard = false
 }: MessageControlsProps) {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const { toxicityScore, isAnalyzing, analyzeToxicity } = useToxicityAnalysis();
   const [lastToxicityScore, setLastToxicityScore] = useState(0);
-
   const isKeyboardVisible = useKeyboardVisibility();
   const isMobile = useIsMobile();
   
-  const showControls = !isMobile || !isKeyboardVisible;
+  const showControls = !hideControlsOnKeyboard || !isKeyboardVisible;
 
   useEffect(() => {
     if (message.trim()) {
