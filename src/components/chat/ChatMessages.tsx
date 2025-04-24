@@ -92,7 +92,7 @@ export function ChatMessages({
           ref={scrollContainerRef}
           className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
           style={{
-            paddingBottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))'
+            paddingBottom: 'calc(4.5rem + env(safe-area-inset-bottom, 0px))'
           }}
         >
           <div ref={loadMoreRef} className="h-4" />
