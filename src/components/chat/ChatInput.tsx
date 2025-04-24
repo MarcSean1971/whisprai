@@ -95,12 +95,13 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "sticky bottom-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t",
-      "z-20 w-full"
+      "fixed bottom-0 left-0 right-0 bg-background border-t",
+      "z-[100] w-full"
     )}>
       <div 
-        className="px-4 py-2"
+        className="px-4"
         style={{ 
+          paddingTop: '0.5rem',
           paddingBottom: 'calc(0.5rem + env(safe-area-inset-bottom, 0px))'
         }}
       >

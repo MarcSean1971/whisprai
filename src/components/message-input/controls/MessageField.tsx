@@ -28,20 +28,20 @@ export function MessageField({
   
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
   };
 
   // Auto-resize functionality
   useEffect(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
-    }
-  }, [message]);
-
-  // Reset height when message is empty
-  useEffect(() => {
-    if (!message && textareaRef.current) {
-      textareaRef.current.style.height = '40px';
+      const resetHeight = () => {
+        textareaRef.current!.style.height = '40px';
+        const scrollHeight = textareaRef.current!.scrollHeight;
+        textareaRef.current!.style.height = `${Math.min(scrollHeight, 120)}px`;
+      };
+      resetHeight();
     }
   }, [message]);
 
@@ -66,7 +66,7 @@ export function MessageField({
         onChange={(e) => onChange(e.target.value)}
         placeholder="Type a message..."
         className={cn(
-          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar",
+          "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar resize-none",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm"
         )}
