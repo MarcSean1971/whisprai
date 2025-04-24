@@ -167,7 +167,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           </Suspense>
         </ErrorBoundary>
       </div>
-      <div className="sticky bottom-0 left-0 right-0 z-50 bg-background/95 backdrop-blur">
+      <div className="sticky bottom-0 left-0 right-0 z-50 bg-background">
         <ChatInput
           conversationId={conversationId}
           onSendMessage={handleSendMessage}

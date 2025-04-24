@@ -97,9 +97,9 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "w-full transition-all duration-200",
+      "w-full bg-background",
       "px-4 pt-2",
-      "pb-[calc(env(safe-area-inset-bottom,0.5rem)+0.5rem)]",
+      "pb-[env(safe-area-inset-bottom,16px)]"
     )}>
       {isRecording ? (
         <VoiceRecorder
