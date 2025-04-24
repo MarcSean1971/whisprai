@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from "react";
 import { Smile } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
 
 interface MessageFieldProps {
   message: string;
@@ -13,6 +14,7 @@ interface MessageFieldProps {
   disabled: boolean;
   isAnalyzing: boolean;
   inputRef: React.RefObject<HTMLInputElement>;
+  className?: string;
 }
 
 export function MessageField({
@@ -20,11 +22,13 @@ export function MessageField({
   onChange,
   disabled,
   isAnalyzing,
-  inputRef
+  inputRef,
+  className
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMobile = useIsMobile();
+  const isKeyboardVisible = useKeyboardVisibility();
   
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
@@ -56,7 +60,11 @@ export function MessageField({
   );
 
   return (
-    <div className="relative flex-1">
+    <div className={cn(
+      "relative",
+      isKeyboardVisible ? "flex-1" : "flex-1",
+      className
+    )}>
       <Textarea
         ref={textareaRef}
         value={message}
@@ -77,17 +85,19 @@ export function MessageField({
         </div>
       )}
       
-      <div className="absolute right-2 top-1/2 -translate-y-1/2">
-        <EmojiPicker
-          onEmojiSelect={handleEmojiSelect}
-          triggerButton={emojiTrigger}
-          open={isEmojiPickerOpen}
-          onOpenChange={setIsEmojiPickerOpen}
-          side="top"
-          align="end"
-          sideOffset={5}
-        />
-      </div>
+      {!isKeyboardVisible && (
+        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+          <EmojiPicker
+            onEmojiSelect={handleEmojiSelect}
+            triggerButton={emojiTrigger}
+            open={isEmojiPickerOpen}
+            onOpenChange={setIsEmojiPickerOpen}
+            side="top"
+            align="end"
+            sideOffset={5}
+          />
+        </div>
+      )}
     </div>
   );
 }
