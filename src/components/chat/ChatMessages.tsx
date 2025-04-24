@@ -1,4 +1,3 @@
-
 import { useState, useRef } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { useMessageProcessor } from "@/hooks/use-message-processor";
@@ -46,29 +45,14 @@ export function ChatMessages({
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const { isMobile } = useIsMobile();
-  
-  console.log('ChatMessages render:', {
-    messagesCount: messages.length,
-    isFetchingNextPage,
-    hasNextPage,
-    refetchAvailable: !!refetch
-  });
-  
-  const { 
-    scrollContainerRef, 
-    loadMoreRef, 
-    messagesEndRef
-  } = useMessageScroll({
+  const { scrollContainerRef, loadMoreRef, messagesEndRef } = useMessageScroll({
     messages,
     refetch,
     hasNextPage,
     isFetchingNextPage
   });
 
-  // Only call useFullscreenMode on mobile devices
-  if (isMobile) {
-    useFullscreenMode();
-  }
+  useFullscreenMode();
 
   const scrollToMessage = (messageId: string) => {
     const ref = messageRefs.current[messageId];

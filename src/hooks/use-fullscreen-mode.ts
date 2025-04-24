@@ -23,8 +23,10 @@ export function useFullscreenMode() {
   }, []);
 
   useEffect(() => {
-    // Only proceed if we're certain about the device type
-    if (isLoading || !isMobile) return;
+    // Only proceed if loading is complete and we're on mobile
+    if (isLoading || !isMobile) {
+      return;
+    }
 
     let lastTouchTime = 0;
     let timer: number;
