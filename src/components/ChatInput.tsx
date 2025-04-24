@@ -95,7 +95,7 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "p-4 border-t transition-all",
+      "px-4 pt-2 pb-4 border-t transition-all bg-background z-20", // Adjusted padding
       suggestions.length > 0 && "pb-6"
     )}>
       {isRecording ? (
@@ -117,3 +117,4 @@ export function ChatInput({
     </div>
   );
 }
+
