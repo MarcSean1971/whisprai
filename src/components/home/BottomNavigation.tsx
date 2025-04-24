@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { 
   MessageSquarePlus, 
@@ -10,6 +11,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { TodoListDrawer } from "@/components/todo/TodoListDrawer";
+import { cn } from "@/lib/utils";
 
 interface BottomNavigationProps { 
   activeTab?: 'chats' | 'contacts' | 'profile' | 'admin';
@@ -43,8 +45,11 @@ export function BottomNavigation({
   }
 
   return (
-    <div className="border-t bg-background py-2 px-2 fixed bottom-0 left-0 right-0">
-      <div className="flex justify-around w-full max-w-screen-xl mx-auto">
+    <div className={cn(
+      "fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+      "safe-area-bottom" // Add safe area padding for mobile devices
+    )}>
+      <div className="flex justify-around w-full max-w-screen-xl mx-auto px-2 py-1">
         <Button
           variant={currentTab === 'chats' ? 'default' : 'ghost'}
           className="w-[70px] px-2 h-auto flex flex-col items-center justify-center py-1 gap-1"
