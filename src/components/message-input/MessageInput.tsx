@@ -16,6 +16,8 @@ interface MessageInputProps {
   onMessageSent?: () => void;
   className?: string;
   messageInputRef?: React.RefObject<HTMLInputElement>;
+  suggestions?: any[];
+  isLoadingSuggestions?: boolean;
 }
 
 export function MessageInput({
@@ -29,6 +31,8 @@ export function MessageInput({
   onMessageSent,
   className,
   messageInputRef: externalInputRef,
+  suggestions = [],
+  isLoadingSuggestions = false
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
@@ -157,6 +161,8 @@ export function MessageInput({
             }
           }}
           conversationId={conversationId}
+          suggestions={suggestions}
+          isLoading={isLoadingSuggestions}
         />
       </div>
       

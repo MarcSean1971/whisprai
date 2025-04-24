@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { MessageInput } from "@/components/MessageInput";
 import { cn } from "@/lib/utils";
@@ -44,22 +45,40 @@ export function ChatInput({
 
   const handleSendMessage = async (
     content: string, 
-    attachments?: { url: string; name: string; type: string }[]
-  ) => {
-    const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
-    const mightNeedLocation = locationKeywords.some(keyword => 
-      content.toLowerCase().includes(keyword)
-    );
-
-    if (mightNeedLocation) {
-      const location = await requestLocation();
-      onSendMessage(content, undefined, location || undefined, attachments);
-    } else {
-      onSendMessage(content, undefined, undefined, attachments);
+    files?: File[]
+  ): Promise<boolean> => {
+    try {
+      // Convert File[] to the expected attachment format
+      const attachments = files?.map(file => ({
+        url: URL.createObjectURL(file),
+        name: file.name,
+        type: file.type
+      }));
+      
+      const locationKeywords = ['where', 'location', 'nearby', 'close', 'around', 'here'];
+      const mightNeedLocation = locationKeywords.some(keyword => 
+        content.toLowerCase().includes(keyword)
+      );
+  
+      if (mightNeedLocation) {
+        const location = await requestLocation();
+        onSendMessage(content, undefined, location || undefined, attachments);
+      } else {
+        onSendMessage(content, undefined, undefined, attachments);
+      }
+      
+      // Clean up object URLs
+      attachments?.forEach(attachment => URL.revokeObjectURL(attachment.url));
+      
+      return true;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
+      return false;
     }
   };
 
-  const handleVoiceMessage = async (base64Audio: string) => {
+  const handleVoiceMessage = async (base64Audio: string): Promise<boolean> => {
     try {
       setIsProcessingVoice(true);
       toast.info('Processing voice message...');
@@ -96,9 +115,12 @@ export function ChatInput({
         base64Audio, 
         audioPath: data.audioPath 
       });
+      
+      return true;
     } catch (error) {
       console.error('Error processing voice message:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to process voice message');
+      return false;
     } finally {
       setIsProcessingVoice(false);
       setIsRecording(false);
@@ -137,6 +159,7 @@ export function ChatInput({
               suggestions={suggestions}
               isLoadingSuggestions={isLoadingSuggestions}
               disabled={isProcessingVoice}
+              conversationId={conversationId}
             />
           )}
         </div>

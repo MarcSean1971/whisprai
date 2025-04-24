@@ -1,13 +1,27 @@
 
 import { File, FileImage, FileVideo, FileAudio, FileArchive, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
 
 interface AttachmentListProps {
-  attachments: { file: File; url: string }[];
-  onClear: (index?: number) => void;
+  attachments: File[];
+  onRemove: (index: number) => void;
 }
 
-export function AttachmentList({ attachments, onClear }: AttachmentListProps) {
+export function AttachmentList({ attachments, onRemove }: AttachmentListProps) {
+  const [urls, setUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Create and manage object URLs for attachments
+    const newUrls = attachments.map(file => URL.createObjectURL(file));
+    setUrls(newUrls);
+    
+    // Cleanup function to revoke object URLs when component unmounts or attachments change
+    return () => {
+      newUrls.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [attachments]);
+
   const getFileIcon = (file: File) => {
     const iconProps = { className: "h-5 w-5 mr-2 text-primary" };
     
@@ -32,7 +46,7 @@ export function AttachmentList({ attachments, onClear }: AttachmentListProps) {
             variant="destructive" 
             size="icon" 
             className="absolute top-2 right-2 rounded-full"
-            onClick={() => onClear(index)}
+            onClick={() => onRemove(index)}
           >
             <X className="h-4 w-4" />
           </Button>
@@ -50,7 +64,7 @@ export function AttachmentList({ attachments, onClear }: AttachmentListProps) {
           variant="ghost" 
           size="icon" 
           className="text-destructive hover:text-destructive/80"
-          onClick={() => onClear(index)}
+          onClick={() => onRemove(index)}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -60,8 +74,8 @@ export function AttachmentList({ attachments, onClear }: AttachmentListProps) {
 
   return (
     <div className="space-y-2">
-      {attachments.map((attachment, index) => 
-        renderPreview(attachment.file, attachment.url, index)
+      {attachments.map((file, index) => 
+        renderPreview(file, urls[index] || '', index)
       )}
     </div>
   );

@@ -19,46 +19,18 @@ const ALLOWED_FILE_TYPES = [
 ];
 
 interface FileInputsProps {
-  attachments: { file: File; url: string }[];
-  setAttachments: React.Dispatch<React.SetStateAction<{ file: File; url: string }[]>>;
-  disabled: boolean;
+  fileInputRef?: React.RefObject<HTMLInputElement>;
+  cameraInputRef?: React.RefObject<HTMLInputElement>;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
-export function FileInputs({ attachments, setAttachments, disabled }: FileInputsProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-
-  const validateFile = (file: File) => {
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`File ${file.name} is too large. Maximum size is 10MB.`);
-      return false;
-    }
-    
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      toast.error(`File type ${file.type} is not supported.`);
-      return false;
-    }
-    
-    return true;
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = e.target.files ? Array.from(e.target.files) : [];
-    const validFiles = newFiles.filter(validateFile);
-    
-    if (validFiles.length === 0) return;
-    
-    const newUrls = validFiles.map(file => URL.createObjectURL(file));
-    
-    const combinedFiles = [
-      ...attachments, 
-      ...validFiles.map((file, index) => ({ file, url: newUrls[index] }))
-    ];
-    
-    // Limit to 5 files
-    const limitedFiles = combinedFiles.slice(0, 5);
-    setAttachments(limitedFiles);
-  };
+export function FileInputs({ fileInputRef, cameraInputRef, onFileChange }: FileInputsProps) {
+  const internalFileInputRef = useRef<HTMLInputElement>(null);
+  const internalCameraInputRef = useRef<HTMLInputElement>(null);
+  
+  // Use passed refs or internal refs
+  const fileRef = fileInputRef || internalFileInputRef;
+  const cameraRef = cameraInputRef || internalCameraInputRef;
 
   return (
     <>
@@ -66,20 +38,18 @@ export function FileInputs({ attachments, setAttachments, disabled }: FileInputs
         type="file" 
         multiple
         accept={ALLOWED_FILE_TYPES.join(',')}
-        ref={fileInputRef}
+        ref={fileRef}
         className="hidden" 
-        onChange={handleFileChange}
-        disabled={disabled || attachments.length >= 5}
+        onChange={onFileChange}
       />
       
       <input 
         type="file" 
         accept="image/*,video/*"
         capture="environment"
-        ref={cameraInputRef}
+        ref={cameraRef}
         className="hidden" 
-        onChange={handleFileChange}
-        disabled={disabled || attachments.length >= 5}
+        onChange={onFileChange}
       />
     </>
   );

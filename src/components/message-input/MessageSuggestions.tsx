@@ -9,15 +9,30 @@ interface MessageSuggestionsProps {
   isLoading: boolean;
   onSuggestionClick: (text: string) => void;
   disabled?: boolean;
+  isVisible?: boolean;
+  onSelect?: (suggestion: string) => void;
+  conversationId?: string;
 }
 
 export function MessageSuggestions({ 
-  suggestions, 
-  isLoading, 
+  suggestions = [], 
+  isLoading = false, 
   onSuggestionClick,
-  disabled 
+  disabled = false,
+  isVisible,
+  onSelect,
+  conversationId
 }: MessageSuggestionsProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Support both callback patterns
+  const handleSelect = (suggestion: string) => {
+    if (onSelect) {
+      onSelect(suggestion);
+    } else if (onSuggestionClick) {
+      onSuggestionClick(suggestion);
+    }
+  };
 
   // Auto-scroll to start when suggestions change
   useEffect(() => {
@@ -26,7 +41,8 @@ export function MessageSuggestions({
     }
   }, [suggestions]);
 
-  if (!suggestions.length && !isLoading) return null;
+  // Don't render if explicitly set to not visible or if there are no suggestions and not loading
+  if (isVisible === false || (!suggestions.length && !isLoading)) return null;
 
   return (
     <div className="mb-0.5 relative z-30">
@@ -42,7 +58,7 @@ export function MessageSuggestions({
               <SuggestionItem
                 key={suggestion.id}
                 suggestion={suggestion}
-                onSelect={onSuggestionClick}
+                onSelect={handleSelect}
                 disabled={disabled}
               />
             ))
