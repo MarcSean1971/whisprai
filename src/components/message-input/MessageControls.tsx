@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useToxicityAnalysis } from "@/hooks/use-toxicity-analysis";
 import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/utils/cn";
+import { cn } from "@/lib/utils";
 
 interface MessageControlsProps {
   message: string;
@@ -132,9 +132,9 @@ export function MessageControls({
         <div className={cn(
           "flex gap-0 md:gap-1 items-center",
           "transition-all duration-200 ease-in-out",
-          hideControlsOnKeyboard ? "opacity-0 w-0" : "opacity-100"
+          hideControlsOnKeyboard && isKeyboardVisible ? "opacity-0 w-0" : "opacity-100"
         )}>
-          {!hideControlsOnKeyboard && (
+          {showControls && (
             <>
               <AttachmentControls
                 onAttachmentClick={onAttachmentClick}
@@ -159,7 +159,7 @@ export function MessageControls({
           disabled={disabled}
           isAnalyzing={isAnalyzing}
           inputRef={inputRef}
-          isKeyboardVisible={hideControlsOnKeyboard}
+          isKeyboardVisible={hideControlsOnKeyboard && isKeyboardVisible}
           isMobile={isMobile}
         />
 
