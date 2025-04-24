@@ -93,7 +93,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           replyToMessageId={replyToMessageId}
           onCancelReply={cancelReply}
         />
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(2.5rem+env(safe-area-inset-top,0px))]">
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
           <EmptyState
             icon={<AlertCircle className="h-10 w-10 text-destructive" />}
             title="Error loading chat"
@@ -119,7 +119,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
           replyToMessageId={null}
           onCancelReply={() => {}}
         />
-        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(2.5rem+env(safe-area-inset-top,0px))]">
+        <div className="flex-1 overflow-hidden relative pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] mt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
           <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4">
             <MessageSkeleton />
             <MessageSkeleton />
@@ -140,7 +140,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
       <div 
         className="flex-1 overflow-hidden relative"
         style={{
-          paddingTop: 'calc(2.5rem + env(safe-area-inset-top, 0px))',
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top, 0px))',
           paddingBottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))'
         }}
       >
