@@ -30,16 +30,10 @@ export function MessageField({
     onChange(message + emojiData.emoji);
   };
 
-  // Reset textarea height when message is empty
   useEffect(() => {
-    if (!textareaRef.current) return;
-
-    if (!message) {
-      textareaRef.current.style.height = '40px'; // Reset to single line height
-    } else {
-      textareaRef.current.style.height = '0px';
-      const scrollHeight = textareaRef.current.scrollHeight;
-      textareaRef.current.style.height = `${Math.min(scrollHeight, 120)}px`; // Cap at max height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [message]);
 
@@ -64,7 +58,7 @@ export function MessageField({
         placeholder="Type a message..."
         className={cn(
           "min-h-[40px] max-h-[120px] pr-10 py-2 rounded-full no-scrollbar",
-          "resize-none focus-visible:ring-1 transition-[height]",
+          "resize-none focus-visible:ring-1",
           isAnalyzing && "pr-16",
           isMobile ? "text-base" : "text-sm"
         )}
