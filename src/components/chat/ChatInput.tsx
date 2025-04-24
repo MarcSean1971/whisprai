@@ -94,8 +94,8 @@ export function ChatInput({
 
   return (
     <div className={cn(
-      "p-4 transition-all bg-background",
-      suggestions.length > 0 && "pb-6"
+      "px-4 pt-1 pb-2 transition-all bg-background z-20",
+      suggestions.length > 0 && "pb-4"
     )}>
       {isRecording ? (
         <VoiceRecorder
