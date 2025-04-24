@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useIsMobile } from './use-mobile';
 
@@ -26,9 +27,17 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
         })
         .catch(err => console.error('Error attempting to exit fullscreen:', err));
     }
+    
+    // Clean up mobile-specific styles
+    document.body.style.overflow = '';
+    document.body.style.overscrollBehavior = '';
+    document.documentElement.style.setProperty('--sab', '0px');
   }, []);
 
   const requestFullscreen = useCallback(async () => {
+    // Only proceed if we're on mobile and enabled is true
+    if (!isMobile || !enabled) return;
+    
     if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
       try {
         await document.documentElement.requestFullscreen();
@@ -52,7 +61,7 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
         console.error('Error attempting to enable fullscreen:', err);
       }
     }
-  }, []);
+  }, [isMobile, enabled]);
 
   useEffect(() => {
     // Only enable fullscreen if explicitly enabled AND on mobile
@@ -66,7 +75,7 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
       document.body.style.overflow = 'hidden';
       document.body.style.overscrollBehavior = 'none';
       
-      // Set CSS variable for safe area bottom
+      // Set CSS variable for safe area bottom (mobile only)
       const safeAreaBottom = window.getComputedStyle(document.documentElement)
         .getPropertyValue('env(safe-area-inset-bottom)') || '0px';
       document.documentElement.style.setProperty('--sab', safeAreaBottom);
@@ -83,7 +92,7 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
       if (!document.fullscreenElement && enabled && isMobile) {
-        // Try to re-enable fullscreen if it was exited externally
+        // Try to re-enable fullscreen if it was exited externally (mobile only)
         setTimeout(() => {
           if (document.visibilityState === 'visible') {
             enableFullscreen();
@@ -99,8 +108,6 @@ export function useFullscreenMode({ enabled = false }: UseFullscreenModeProps = 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.body.style.overflow = '';
-      document.body.style.overscrollBehavior = '';
       exitFullscreen();
     };
   }, [isMobile, requestFullscreen, exitFullscreen, enabled]);
