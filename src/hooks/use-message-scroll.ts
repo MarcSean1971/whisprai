@@ -19,11 +19,11 @@ export function useMessageScroll({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageLengthRef = useRef<number>(0);
   
-  // Store previous scroll info
+  // Store previous scroll info for loading older messages
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
 
-  // Initial scroll to bottom and handle new messages
+  // Handle scrolling for new messages and initial load
   useEffect(() => {
     if (!messages.length) return;
 
@@ -34,18 +34,30 @@ export function useMessageScroll({
 
     // Check if new messages were added
     const isNewMessage = messages.length > lastMessageLengthRef.current;
+    const isNearBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+    
+    console.log('Scroll check:', {
+      isNewMessage,
+      isNearBottom,
+      currentLength: messages.length,
+      lastLength: lastMessageLengthRef.current,
+      scrollHeight: container.scrollHeight,
+      scrollTop: container.scrollTop,
+      clientHeight: container.clientHeight
+    });
+
     lastMessageLengthRef.current = messages.length;
 
-    // If loading older messages, preserve scroll position
+    // If loading older messages, store current scroll position
     if (isFetchingNextPage) {
       previousScrollHeight.current = container.scrollHeight;
       previousScrollTop.current = container.scrollTop;
       return;
     }
 
-    // Scroll to bottom for new messages or initial load
-    if (isNewMessage) {
-      console.log('New message detected, scrolling to bottom');
+    // Scroll to bottom for new messages (if near bottom) or initial load
+    if (isNewMessage && isNearBottom) {
+      console.log('Scrolling to latest message');
       endRef.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isFetchingNextPage]);
