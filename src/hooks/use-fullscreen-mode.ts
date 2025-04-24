@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useIsMobile } from './use-mobile';
 
 export function useFullscreenMode() {
-  const isMobile = useIsMobile();
+  const { isMobile, isLoading } = useIsMobile();
   const [isFullscreen, setIsFullscreen] = useState(false);
   
   const requestFullscreen = useCallback(() => {
@@ -23,7 +23,8 @@ export function useFullscreenMode() {
   }, []);
 
   useEffect(() => {
-    if (!isMobile) return;
+    // Only proceed if we're certain about the device type
+    if (isLoading || !isMobile) return;
 
     let lastTouchTime = 0;
     let timer: number;
@@ -52,7 +53,7 @@ export function useFullscreenMode() {
       document.removeEventListener('scroll', handleUserInteraction);
       if (timer) window.clearTimeout(timer);
     };
-  }, [isMobile, requestFullscreen, exitFullscreen]);
+  }, [isMobile, isLoading, requestFullscreen, exitFullscreen]);
 
   return { isFullscreen };
 }
