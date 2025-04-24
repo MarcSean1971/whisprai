@@ -17,42 +17,46 @@ export function useMessageScroll({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const hasScrolledToBottom = useRef(false);
+  const lastMessageLengthRef = useRef<number>(0);
   
   // Store previous scroll info
   const previousScrollHeight = useRef<number>(0);
   const previousScrollTop = useRef<number>(0);
 
-  // Initial scroll to bottom when messages are first loaded
+  // Initial scroll to bottom and handle new messages
   useEffect(() => {
-    if (
-      messages.length > 0 && 
-      !isFetchingNextPage && 
-      messagesEndRef.current && 
-      !hasScrolledToBottom.current
-    ) {
-      console.log('Scrolling to bottom on initial load');
-      messagesEndRef.current.scrollIntoView({ behavior: "instant" });
-      hasScrolledToBottom.current = true;
+    if (!messages.length) return;
+
+    const container = scrollContainerRef.current;
+    const endRef = messagesEndRef.current;
+    
+    if (!container || !endRef) return;
+
+    // Check if new messages were added
+    const isNewMessage = messages.length > lastMessageLengthRef.current;
+    lastMessageLengthRef.current = messages.length;
+
+    // If loading older messages, preserve scroll position
+    if (isFetchingNextPage) {
+      previousScrollHeight.current = container.scrollHeight;
+      previousScrollTop.current = container.scrollTop;
+      return;
+    }
+
+    // Scroll to bottom for new messages or initial load
+    if (isNewMessage) {
+      console.log('New message detected, scrolling to bottom');
+      endRef.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isFetchingNextPage]);
-
-  // Preserve scroll position when loading older messages
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      previousScrollHeight.current = scrollContainerRef.current.scrollHeight;
-      previousScrollTop.current = scrollContainerRef.current.scrollTop;
-    }
-  }, [messages.length]);
 
   // Restore scroll position after loading older messages
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (container) {
+    if (container && isFetchingNextPage) {
       const heightDifference = container.scrollHeight - previousScrollHeight.current;
       if (heightDifference > 0) {
         console.log('Restoring scroll position after loading more messages');
-        console.log('Height difference:', heightDifference);
         requestAnimationFrame(() => {
           if (container) {
             container.scrollTop = previousScrollTop.current + heightDifference;
@@ -60,7 +64,7 @@ export function useMessageScroll({
         });
       }
     }
-  }, [messages.length]);
+  }, [messages.length, isFetchingNextPage]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
