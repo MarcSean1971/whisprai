@@ -1,3 +1,4 @@
+
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { EmojiPicker } from "@/components/shared/EmojiPicker";
@@ -23,8 +24,9 @@ export function MessageField({
 }: MessageFieldProps) {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const { isMobile } = useIsMobile();
-  
+
   const handleEmojiSelect = (emojiData: any) => {
     onChange(message + emojiData.emoji);
     if (textareaRef.current) {
@@ -32,7 +34,6 @@ export function MessageField({
     }
   };
 
-  // Auto-resize functionality
   useEffect(() => {
     if (textareaRef.current) {
       const resetHeight = () => {
@@ -40,21 +41,27 @@ export function MessageField({
         textarea.style.height = '40px';
         textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
       };
-      resetHeight();
       
-      // Also handle resize on focus
       const handleFocus = () => {
-        setTimeout(resetHeight, 0);
+        setTimeout(() => {
+          resetHeight();
+          if (containerRef.current) {
+            containerRef.current.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 100);
       };
       
+      resetHeight();
       textareaRef.current.addEventListener('focus', handleFocus);
+      
       return () => {
-        textareaRef.current?.removeEventListener('focus', handleFocus);
+        if (textareaRef.current) {
+          textareaRef.current.removeEventListener('focus', handleFocus);
+        }
       };
     }
   }, [message]);
 
-  // Emoji picker trigger button
   const emojiTrigger = (
     <Button 
       variant="ghost" 
@@ -68,7 +75,7 @@ export function MessageField({
   );
 
   return (
-    <div className="relative flex-1">
+    <div ref={containerRef} className="relative flex-1">
       <Textarea
         ref={textareaRef}
         value={message}
