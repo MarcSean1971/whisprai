@@ -1,3 +1,4 @@
+
 import { useState, useRef } from "react";
 import { PredictiveAnswer } from "@/types/predictive-answer";
 import { FileAttachment } from "./message-input/FileAttachment";
@@ -5,6 +6,7 @@ import { MessageSuggestions } from "./message-input/MessageSuggestions";
 import { MessageControls } from "./message-input/MessageControls";
 import { FileInputs } from "./message-input/FileInputs";
 import { useMessageAttachments } from "@/hooks/use-message-attachments";
+import { useKeyboardVisibility } from "@/hooks/use-keyboard-visibility";
 import { cn } from "@/lib/utils";
 
 interface MessageInputProps {
@@ -29,6 +31,7 @@ export function MessageInput({
 }: MessageInputProps) {
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const isKeyboardVisible = useKeyboardVisibility();
   const {
     attachments,
     handleFileChange,
@@ -84,6 +87,7 @@ export function MessageInput({
         isLoading={isLoadingSuggestions}
         onSuggestionClick={handleSuggestionClick}
         disabled={disabled}
+        hideOnKeyboard={isKeyboardVisible}
       />
 
       <MessageControls

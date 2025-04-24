@@ -97,7 +97,7 @@ export function ChatInput({
       "w-full transition-all bg-background p-4",
       "pb-[calc(env(safe-area-inset-bottom,1rem)+1rem)]",
       "md:pb-4",
-      suggestions.length > 0 && "pb-6"
+      !isRecording && suggestions.length > 0 && "pb-6"
     )}>
       {isRecording ? (
         <VoiceRecorder
