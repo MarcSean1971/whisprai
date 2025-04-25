@@ -159,7 +159,6 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/verify" element={<Verify />} />
                 <Route path="/" element={<Navigate to="/chats" replace />} />
-                <Route path="/home" element={<Navigate to="/chats" replace />} />
                 <Route path="/profile-setup" element={
                   <ProtectedRoute>
                     <ProfileSetup />

@@ -33,7 +33,8 @@ export function LoginForm() {
 
       if (data.user) {
         toast.success("Successfully logged in");
-        navigate("/home");
+        // Change: Navigate directly to /chats instead of /home
+        navigate("/chats", { replace: true });
       }
     } catch (error) {
       console.error("Login error:", error);

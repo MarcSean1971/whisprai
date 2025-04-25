@@ -10,27 +10,37 @@ export function useAuthProtection() {
   const { data: session, isLoading, error } = useQuery({
     queryKey: ['auth-session'],
     queryFn: async () => {
-      console.log('Fetching auth session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Error fetching session:', error);
+      try {
+        console.log('Fetching auth session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error fetching session:', error);
+          throw error;
+        }
+        
+        if (!session) {
+          console.log('No session found, will redirect to auth');
+          throw new Error('No active session');
+        }
+        
+        console.log('Session fetched successfully:', session.user?.id);
+        return session;
+      } catch (error) {
+        console.error('Session fetch error:', error);
         throw error;
       }
-      
-      console.log('Session fetched:', session ? 'exists' : 'none');
-      return session;
     },
-    retry: 1,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false,
+    staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
-    if (!isLoading && !session) {
-      console.log('No session found, redirecting to auth');
+    if (!isLoading && !session && !error) {
+      console.log('No session found in useEffect, redirecting to auth');
       navigate('/auth', { replace: true });
     }
-  }, [session, isLoading, navigate]);
+  }, [session, isLoading, navigate, error]);
 
   return { 
     isLoading, 
