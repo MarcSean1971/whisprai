@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
