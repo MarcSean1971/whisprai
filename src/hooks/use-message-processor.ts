@@ -47,10 +47,12 @@ export function useMessageProcessor(
           try {
             const translated = await translateMessage(message.content, userLanguage);
             if (translated && translated !== message.content) {
-              setTranslatedContents(prev => ({
-                ...prev,
+              // Fix: Create a new object instead of using a function to update the previous state
+              const updatedContents = {
+                ...translatedContents,
                 [message.id]: translated
-              }));
+              };
+              setTranslatedContents(updatedContents);
               
               onTranslation?.(message.id, translated);
             }
