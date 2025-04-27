@@ -89,9 +89,14 @@
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 265 90% 65%;
   }
-}
 
-@layer base {
+  :root {
+    --sat: env(safe-area-inset-top);
+    --sab: env(safe-area-inset-bottom);
+    --sal: env(safe-area-inset-left);
+    --sar: env(safe-area-inset-right);
+  }
+
   * {
     @apply border-border;
   }

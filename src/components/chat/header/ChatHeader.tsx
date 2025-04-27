@@ -1,11 +1,11 @@
 
-import { ChatHeaderActions } from "./ChatHeaderActions";
 import { BackButton } from "@/components/ui/back-button";
 import { useConversation } from "@/hooks/use-conversation";
 import { useProfile } from "@/hooks/use-profile";
 import { useUserPresence } from "@/hooks/use-user-presence";
 import { useState } from "react";
 import { ChatParticipantDialog } from "../ChatParticipantDialog";
+import { ChatHeaderActions } from "./ChatHeaderActions";
 import { ChatParticipantsInfo } from "./ChatParticipantsInfo";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -46,14 +46,11 @@ export function ChatHeader({
         "border-b w-full",
         isMobile ? "fixed top-0 left-0 z-50" : "sticky top-0 z-20"
       )}
+      style={{
+        paddingTop: isMobile ? 'max(env(safe-area-inset-top), 0.5rem)' : '0.5rem'
+      }}
     >
-      <div 
-        className="flex items-center justify-between px-3 py-1"
-        style={{
-          paddingTop: isMobile ? 'calc(env(safe-area-inset-top) + 0.25rem)' : '0.25rem',
-          paddingBottom: '0.25rem'
-        }}
-      >
+      <div className="flex items-center justify-between px-3 pb-1">
         <div className="flex items-center gap-3">
           <BackButton to="/chats" />
           <ChatParticipantsInfo 
