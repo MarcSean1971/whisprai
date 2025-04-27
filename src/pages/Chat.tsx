@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -14,7 +13,6 @@ import { useState, useCallback, Suspense, useEffect } from "react";
 import { MessageSkeleton } from "@/components/chat/message/MessageSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
-import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 
@@ -22,8 +20,6 @@ export default function Chat() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isMobile = useIsMobile();
-  
-  useFullscreenMode({ enabled: isMobile });
   
   useEffect(() => {
     if (!id) {
@@ -54,7 +50,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   const { sendMessage, userId } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
-  const isMobile = useIsMobile(); // Add this line to fix the error
+  const isMobile = useIsMobile();
   
   const { 
     suggestions, 
