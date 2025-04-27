@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
 import { useFullscreenMode } from "@/hooks/use-fullscreen-mode";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -168,7 +169,11 @@ function ChatContent({ conversationId }: { conversationId: string }) {
         </ErrorBoundary>
       </div>
       <div
-        className="sticky left-0 right-0 bottom-0 bg-background border-t z-20"
+        className={cn(
+          "bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+          "border-t z-20 w-full left-0",
+          isMobile ? "fixed bottom-0" : "sticky bottom-0"
+        )}
         style={{
           paddingBottom: 'env(safe-area-inset-bottom, 0px)'
         }}
