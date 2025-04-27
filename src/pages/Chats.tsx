@@ -19,7 +19,7 @@ export default function Chats() {
   const [searchQuery, setSearchQuery] = useState("");
   const { isAdmin } = useAdmin();
   const { data: conversations, isLoading, error, refetch } = useUserConversations();
-  const { isLoading: isAuthLoading } = useAuthProtection();
+  const { isLoading: isAuthLoading, isAuthenticated } = useAuthProtection();
   
   // Only show loading state when auth is being checked
   if (isAuthLoading) {
@@ -29,6 +29,11 @@ export default function Chats() {
         <span className="ml-2 text-muted-foreground">Loading...</span>
       </div>
     );
+  }
+
+  // Additional check to catch any auth issues
+  if (!isAuthenticated) {
+    return null; // useAuthProtection will handle redirection
   }
 
   const filteredConversations = searchQuery && conversations

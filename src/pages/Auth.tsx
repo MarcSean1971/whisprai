@@ -19,8 +19,8 @@ export default function Auth() {
         console.log('Auth page: Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          console.log("Session found in Auth page, navigating to /home");
-          navigate('/home', { replace: true });
+          console.log("Session found in Auth page, navigating to /chats");
+          navigate('/chats', { replace: true });
         }
       } catch (error) {
         console.error("Error checking session:", error);

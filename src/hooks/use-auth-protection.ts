@@ -1,11 +1,12 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 export function useAuthProtection() {
   const navigate = useNavigate();
+  const [hasCheckedSession, setHasCheckedSession] = useState(false);
   
   const { data: session, isLoading, error } = useQuery({
     queryKey: ['auth-session'],
@@ -29,18 +30,34 @@ export function useAuthProtection() {
       } catch (error) {
         console.error('Session fetch error:', error);
         throw error;
+      } finally {
+        setHasCheckedSession(true);
       }
     },
-    retry: false,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
   });
 
   useEffect(() => {
-    if (!isLoading && !session && !error) {
-      console.log('No session found in useEffect, redirecting to auth');
+    if (hasCheckedSession && !isLoading && !session) {
+      console.log('No session found after check, redirecting to auth');
       navigate('/auth', { replace: true });
     }
-  }, [session, isLoading, navigate, error]);
+  }, [session, isLoading, navigate, hasCheckedSession]);
+
+  // Set up auth state change listener
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, changedSession) => {
+      console.log('Auth state changed:', event);
+      if (event === 'SIGNED_OUT') {
+        navigate('/auth', { replace: true });
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   return { 
     isLoading, 
