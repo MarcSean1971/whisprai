@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 
 interface ChatMessagesProps {
   messages: any[];
-  userId: string | null; // Changed to receive userId directly from parent
+  userId: string | null; // Ensure this is defined properly
   userLanguage?: string;
   onNewReceivedMessage?: () => void;
   onTranslation?: (messageId: string, translatedContent: string) => void;
