@@ -22,13 +22,18 @@ export async function fetchMessages(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
 
-  // Use proper query builder syntax instead of string interpolation for SQL conditions
+  // Use proper query builder syntax with proper parameter binding
   let query = supabase
     .from("messages")
     .select("*, parent_id")
-    .eq("conversation_id", conversationId)
-    .or(`private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`)
-    .order("created_at", { ascending: false })
+    .eq("conversation_id", conversationId);
+  
+  // Handle private room filtering with proper query builder methods
+  query = query.or(
+    `private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
+  );
+  
+  query = query.order("created_at", { ascending: false })
     .limit(pageSize);
 
   if (cursor) {

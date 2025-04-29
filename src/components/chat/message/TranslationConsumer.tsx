@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -44,6 +44,19 @@ export const TranslationConsumer = memo(function TranslationConsumer({
     onTranslation
   );
 
+  // Group messages by id to ensure we don't process the same message twice
+  const messagesById = useMemo(() => {
+    const msgMap: Record<string, any> = {};
+    if (Array.isArray(messages)) {
+      messages.forEach(message => {
+        if (message && message.id) {
+          msgMap[message.id] = message;
+        }
+      });
+    }
+    return msgMap;
+  }, [messages]);
+
   function shouldShowReplyInput(message: any) {
     if (replyToMessageId !== message.id) return false;
     const target = messages.find((m: any) => m.id === replyToMessageId);
@@ -68,7 +81,7 @@ export const TranslationConsumer = memo(function TranslationConsumer({
 
   return (
     <>
-      {messages.map((message) => {
+      {Object.values(messagesById).map((message) => {
         if (!message || !message.id) {
           console.error('Invalid message object:', message);
           return null;

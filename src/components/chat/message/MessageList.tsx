@@ -39,9 +39,16 @@ export function MessageList({
     }
 
     try {
+      // Determine if this message is from the current user
       const isOwn = message.sender_id === currentUserId;
       const isAI = message.private_room === 'AI';
       const isAIPrompt = message.content.toLowerCase().startsWith('ai:') || message.content.toLowerCase().startsWith('a:');
+      
+      console.log(`Message ${message.id} rendering:`, { 
+        isOwn, 
+        currentUserId, 
+        messageSenderId: message.sender_id 
+      });
       
       const showSender = !isOwn && !isAI && !isAIPrompt && 
                         (index === 0 || (messages[index - 1] && messages[index - 1].sender_id !== message.sender_id));

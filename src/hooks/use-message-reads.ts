@@ -19,30 +19,44 @@ export function useMessageReads(conversationId?: string) {
           throw new Error('Not authenticated');
         }
         
-        // Get unread messages in this conversation using proper query methods
-        const { data: unreadMessageIds, error: messagesError } = await supabase
+        // First, get all messages in this conversation not sent by the current user
+        const { data: messages, error: messagesError } = await supabase
           .from('messages')
           .select('id')
           .eq('conversation_id', conversationId)
-          .neq('sender_id', user.id) // Only messages not sent by current user
-          .not('id', 'in', supabase
-            .from('message_reads')
-            .select('message_id')
-            .eq('user_id', user.id)
-            .eq('conversation_id', conversationId)
-          );
+          .neq('sender_id', user.id);
           
         if (messagesError) {
-          console.error('Error fetching unread messages:', messagesError);
+          console.error('Error fetching messages:', messagesError);
           return;
         }
         
-        if (!unreadMessageIds || unreadMessageIds.length === 0) {
-          return; // No unread messages
+        if (!messages || messages.length === 0) {
+          return; // No messages to mark as read
         }
         
-        // Mark all messages as read
-        const messageReads = unreadMessageIds.map(message => ({
+        // Get already read message IDs
+        const { data: readMessages, error: readError } = await supabase
+          .from('message_reads')
+          .select('message_id')
+          .eq('user_id', user.id)
+          .eq('conversation_id', conversationId);
+          
+        if (readError) {
+          console.error('Error fetching read messages:', readError);
+          return;
+        }
+        
+        // Find messages that haven't been marked as read yet
+        const readMessageIds = new Set((readMessages || []).map(m => m.message_id));
+        const unreadMessages = messages.filter(msg => !readMessageIds.has(msg.id));
+        
+        if (unreadMessages.length === 0) {
+          return; // All messages are already marked as read
+        }
+        
+        // Mark all unread messages as read
+        const messageReads = unreadMessages.map(message => ({
           user_id: user.id,
           message_id: message.id,
           conversation_id: conversationId,

@@ -7,9 +7,6 @@ export function useMessagesRealtime(conversationId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // If no conversation ID is provided, we'll just listen for any message updates
-    // This is used in the main conversation list to update unread counts
-    
     // Create a unique channel name
     const channelName = conversationId 
       ? `messages:${conversationId}` 
@@ -23,14 +20,17 @@ export function useMessagesRealtime(conversationId?: string) {
         schema: 'public',
         table: 'messages',
         ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
-      }, (_) => {
+      }, (payload) => {
+        console.log('Messages real-time update:', payload);
         // Invalidate related queries
         if (conversationId) {
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         }
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Messages channel ${channelName} status:`, status);
+      });
 
     // Subscribe to message_reads changes
     const readsChannelName = conversationId 
@@ -44,11 +44,14 @@ export function useMessagesRealtime(conversationId?: string) {
         schema: 'public',
         table: 'message_reads',
         ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
-      }, (_) => {
+      }, (payload) => {
+        console.log('Message reads real-time update:', payload);
         // Invalidate related queries
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log(`Message reads channel ${readsChannelName} status:`, status);
+      });
 
     return () => {
       supabase.removeChannel(messagesChannel);
