@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { memo, useEffect, useMemo } from "react";
+import { memo, useEffect, useMemo, useCallback } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
