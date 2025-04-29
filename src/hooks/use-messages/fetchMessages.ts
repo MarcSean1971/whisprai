@@ -27,137 +27,148 @@ export async function fetchMessages(
   
   console.log('Current user ID for message filtering:', user.id);
 
-  // Start building the query
-  let query = supabase
-    .from("messages")
-    .select("*, parent_id")
-    .eq("conversation_id", conversationId);
-  
-  // Fix: Use proper query structure with separate or conditions
-  query = query.or('private_room.is.null');
-  
-  // Only add user filters if we have a user ID
-  if (user.id) {
-    try {
+  try {
+    // Start building the query for base conditions
+    let query = supabase
+      .from("messages")
+      .select("*, parent_id")
+      .eq("conversation_id", conversationId);
+    
+    // Apply proper filter logic using Supabase filter methods
+    // We want messages that are either:
+    // 1. Public messages (private_room IS NULL)
+    // 2. AI messages where the user is either the sender or recipient
+
+    if (user.id) {
+      // This filter construction uses proper Supabase methods instead of string manipulation
       query = query.or(
-        `and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
+        // First condition: public messages
+        'private_room.is.null, ' + 
+        // Second condition: AI private messages where user is sender
+        'and(private_room.eq.AI,sender_id.eq.' + user.id + '), ' + 
+        // Third condition: AI private messages where user is recipient
+        'and(private_room.eq.AI,private_recipient.eq.' + user.id + ')'
       );
-    } catch (err) {
-      console.error("Error adding user filtering:", err);
-      // Fallback to just showing public messages if the filter fails
+    } else {
+      // If no user, just show public messages
+      query = query.filter('private_room', 'is', null);
     }
-  }
-  
-  // Add pagination
-  query = query.order("created_at", { ascending: false })
-    .limit(pageSize);
+    
+    // Add pagination
+    query = query.order("created_at", { ascending: false })
+      .limit(pageSize);
 
-  if (cursor) {
-    query = query.lt("created_at", cursor);
-  }
+    if (cursor) {
+      query = query.lt("created_at", cursor);
+    }
 
-  console.log('Executing messages query');
-  const { data: messages, error: messagesError } = await query;
+    console.log('Executing messages query with filters');
+    const { data: messages, error: messagesError } = await query;
 
-  if (messagesError) {
-    console.error("Error fetching messages:", messagesError);
-    toast.error("Failed to load messages: " + messagesError.message);
-    throw messagesError;
-  }
+    if (messagesError) {
+      console.error("Error fetching messages:", messagesError);
+      toast.error("Failed to load messages: " + messagesError.message);
+      throw messagesError;
+    }
 
-  if (!messages) {
-    console.warn("No messages returned from query");
-    return { messages: [] };
-  }
+    if (!messages) {
+      console.warn("No messages returned from query");
+      return { messages: [] };
+    }
 
-  console.log(`Fetched ${messages.length} messages`);
+    console.log(`Fetched ${messages.length} messages`);
 
-  // Get the next cursor from the oldest message
-  const nextCursor = messages.length === pageSize ? 
-    messages[messages.length - 1].created_at : 
-    undefined;
+    // Get the next cursor from the oldest message
+    const nextCursor = messages.length === pageSize ? 
+      messages[messages.length - 1].created_at : 
+      undefined;
 
-  // Fetch user profiles for message senders
-  const senderIds: string[] = messages
-    .map((m: any) => m.sender_id)
-    .filter(Boolean)
-    .filter((v, i, a) => a.indexOf(v) === i);
+    // Fetch user profiles for message senders
+    const senderIds: string[] = messages
+      .map((m: any) => m.sender_id)
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
 
-  // Fetch parent messages for replies
-  const parentIds: string[] = messages
-    .map((m: any) => m.parent_id)
-    .filter(Boolean)
-    .filter((v, i, a) => a.indexOf(v) === i);
+    // Fetch parent messages for replies
+    const parentIds: string[] = messages
+      .map((m: any) => m.parent_id)
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
 
-  console.log('Fetching supplementary data:', {
-    uniqueSenderIds: senderIds.length,
-    uniqueParentIds: parentIds.length
-  });
+    console.log('Fetching supplementary data:', {
+      uniqueSenderIds: senderIds.length,
+      uniqueParentIds: parentIds.length
+    });
 
-  let profiles = {};
-  let parentMessages = {};
-  
-  try {
-    profiles = await getProfiles(senderIds);
-  } catch (err) {
-    console.error("Error fetching profiles:", err);
-  }
-  
-  try {
-    parentMessages = await getParentMessages(parentIds);
-  } catch (err) {
-    console.error("Error fetching parent messages:", err);
-  }
+    let profiles = {};
+    let parentMessages = {};
+    
+    try {
+      profiles = await getProfiles(senderIds);
+    } catch (err) {
+      console.error("Error fetching profiles:", err);
+    }
+    
+    try {
+      parentMessages = await getParentMessages(parentIds);
+    } catch (err) {
+      console.error("Error fetching parent messages:", err);
+    }
 
-  // Format result as array of Message and reverse to display correctly
-  const formattedMessages = messages
-    .map((message: any) => {
-      if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
-        console.error("Invalid message structure:", message);
-        return null;
-      }
-      
-      const isOwnMessage = message.sender_id === user.id;
-      
-      return {
-        id: message.id,
-        content: message.content,
-        created_at: message.created_at,
-        conversation_id: message.conversation_id,
-        sender_id: message.sender_id,
-        status: message.status || "sent",
-        original_language: message.original_language,
-        metadata: message.metadata,
-        private_room: message.private_room,
-        private_recipient: message.private_recipient,
-        sender: message.sender_id
-          ? {
-              id: message.sender_id,
-              profiles: profiles[message.sender_id] || {},
-            }
-          : undefined,
-        parent:
-          message.parent_id && parentMessages[message.parent_id]
+    // Format result as array of Message and reverse to display correctly
+    const formattedMessages = messages
+      .map((message: any) => {
+        if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
+          console.error("Invalid message structure:", message);
+          return null;
+        }
+        
+        const isOwnMessage = message.sender_id === user.id;
+        
+        return {
+          id: message.id,
+          content: message.content,
+          created_at: message.created_at,
+          conversation_id: message.conversation_id,
+          sender_id: message.sender_id,
+          status: message.status || "sent",
+          original_language: message.original_language,
+          metadata: message.metadata,
+          private_room: message.private_room,
+          private_recipient: message.private_recipient,
+          sender: message.sender_id
             ? {
-                id: parentMessages[message.parent_id].id,
-                content: parentMessages[message.parent_id].content,
-                created_at: parentMessages[message.parent_id].created_at,
-                sender: parentMessages[message.parent_id].sender,
+                id: message.sender_id,
+                profiles: profiles[message.sender_id] || {},
               }
-            : null,
-      } as Message;
-    })
-    .filter(Boolean) as Message[];
+            : undefined,
+          parent:
+            message.parent_id && parentMessages[message.parent_id]
+              ? {
+                  id: parentMessages[message.parent_id].id,
+                  content: parentMessages[message.parent_id].content,
+                  created_at: parentMessages[message.parent_id].created_at,
+                  sender: parentMessages[message.parent_id].sender,
+                }
+              : null,
+        } as Message;
+      })
+      .filter(Boolean) as Message[];
 
-  console.log('Returning formatted messages:', {
-    count: formattedMessages.length,
-    nextCursor,
-    oldestMessageDate: formattedMessages.length > 0 ? 
-      formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages'
-  });
+    console.log('Returning formatted messages:', {
+      count: formattedMessages.length,
+      nextCursor,
+      oldestMessageDate: formattedMessages.length > 0 ? 
+        formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages'
+    });
 
-  return { 
-    messages: formattedMessages,
-    nextCursor 
-  };
+    return { 
+      messages: formattedMessages,
+      nextCursor 
+    };
+  } catch (error) {
+    console.error('Error in fetchMessages:', error);
+    toast.error('Failed to load messages: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    throw error;
+  }
 }

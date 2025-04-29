@@ -1,46 +1,21 @@
 
-import { useEffect, useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function useMessageSubscription(
-  conversationId: string,
+  conversationId: string | undefined,
   userId: string | null,
   isAuthChecked: boolean,
-  queryClient: QueryClient
+  queryClient: any
 ) {
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
   const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // Reset subscription error each time conversation ID changes or auth state changes
+  // Reset subscription error each time conversation ID changes or focus returns
   useEffect(() => {
     setSubscriptionError(null);
-  }, [conversationId, userId, isAuthChecked]);
-
-  // Re-subscribe to message updates on focus or visibility change
-  useEffect(() => {
-    function handleFocusOrVisibility() {
-      // Only invalidate if we have the necessary data
-      if (conversationId && userId && isAuthChecked) {
-        console.log('Refreshing messages on focus/visibility change');
-        setSubscriptionError(null);
-        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-      }
-    }
-    
-    window.addEventListener('focus', handleFocusOrVisibility);
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === "visible") {
-        handleFocusOrVisibility();
-      }
-    });
-    
-    return () => {
-      window.removeEventListener('focus', handleFocusOrVisibility);
-      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
-    };
-  }, [conversationId, userId, isAuthChecked, queryClient]);
+  }, [conversationId]);
 
   // Set up realtime subscription when user is authenticated and we have a conversation ID
   useEffect(() => {
@@ -58,25 +33,15 @@ export function useMessageSubscription(
       userId
     });
     
-    // Clean up any previous subscription first
-    if (messagesChannelRef.current) {
-      try {
-        console.log('Removing previous messages channel');
-        supabase.removeChannel(messagesChannelRef.current);
-        messagesChannelRef.current = null;
-      } catch (err) {
-        console.error('Error removing previous channel:', err);
-      }
-    }
-    
+    let messagesChannel: ReturnType<typeof supabase.channel>;
     setSubscriptionError(null); // Clear previous error before (re)subscribing
 
     try {
-      const channelName = `messages:${conversationId}:${userId}`;
-      console.log(`Creating new channel: ${channelName}`);
+      const channelId = `messages:${conversationId}:${userId}`;
+      console.log(`Creating channel with ID: ${channelId}`);
       
-      messagesChannelRef.current = supabase
-        .channel(channelName)
+      messagesChannel = supabase
+        .channel(channelId)
         .on(
           'postgres_changes',
           {
@@ -89,21 +54,23 @@ export function useMessageSubscription(
             console.log('Messages event received:', payload);
             try {
               queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+              console.log('Messages cache invalidated successfully');
             } catch (err) {
               console.error('Error invalidating queries:', err);
               setSubscriptionError(err instanceof Error ? err : new Error('Failed to process message update'));
             }
           }
         )
-        .subscribe((status: string) => {
-          console.log(`Subscription status for ${channelName}:`, status);
+        .subscribe((status: any) => {
+          console.log(`Subscription status for ${channelId}:`, status);
           if (status === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));
             toast.error('Failed to subscribe to message updates. Try refreshing.');
           } else if (status === 'SUBSCRIBED') {
-            console.log('Messages channel subscribed successfully');
+            console.log(`Messages channel ${channelId} subscribed successfully`);
           }
         });
+      messagesChannelRef.current = messagesChannel;
     } catch (err) {
       console.error('Error setting up subscription:', err);
       setSubscriptionError(err instanceof Error ? err : new Error('Failed to subscribe to message updates'));
@@ -112,6 +79,7 @@ export function useMessageSubscription(
     return () => {
       if (messagesChannelRef.current) {
         try {
+          console.log('Cleaning up messages channel subscription');
           supabase.removeChannel(messagesChannelRef.current);
           messagesChannelRef.current = null;
           console.log('Messages channel removed cleanly');
@@ -121,6 +89,31 @@ export function useMessageSubscription(
       }
     };
   }, [conversationId, userId, isAuthChecked, queryClient]);
+
+  // Re-subscribe to message updates on focus
+  useEffect(() => {
+    function handleFocusOrVisibility() {
+      // clear error before trying to setup the subscription again
+      setSubscriptionError(null);
+      // We'll let useEffect above re-run due to dependency on conversationId
+      if (conversationId && queryClient) {
+        console.log('Re-subscribing to messages on focus/visibility change');
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      }
+    }
+    
+    window.addEventListener('focus', handleFocusOrVisibility);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === "visible") {
+        handleFocusOrVisibility();
+      }
+    });
+    
+    return () => {
+      window.removeEventListener('focus', handleFocusOrVisibility);
+      document.removeEventListener('visibilitychange', handleFocusOrVisibility);
+    };
+  }, [conversationId, queryClient]);
 
   return { subscriptionError };
 }
