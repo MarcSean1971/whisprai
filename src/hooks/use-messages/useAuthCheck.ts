@@ -26,6 +26,7 @@ export function useAuthCheck() {
       if (newUserId !== userId) {
         console.log('User ID changed from', userId, 'to', newUserId);
         setUserId(newUserId);
+        setAuthError(null); // Clear error on successful auth state change
         
         // If auth state changes, invalidate messages to refetch with new user context
         if (queryClient && newUserId !== userId) {
@@ -33,9 +34,14 @@ export function useAuthCheck() {
           queryClient.invalidateQueries({ queryKey: ['messages'] });
         }
       }
+      
+      // Always make sure isAuthChecked is true after auth state change
+      if (!isAuthChecked) {
+        setIsAuthChecked(true);
+      }
     });
     
-    // Then check for existing session
+    // Then check for existing session (get it immediately)
     const checkAuth = async () => {
       try {
         console.log('Checking existing auth session');
@@ -76,7 +82,13 @@ export function useAuthCheck() {
       authListener.subscription.unsubscribe();
       console.log('useAuthCheck: Cleaned up auth listener');
     };
-  }, [queryClient, userId]);
+  }, [queryClient, userId, isAuthChecked]);
 
-  return { isAuthChecked, userId, authError };
+  return { 
+    isAuthChecked, 
+    userId, 
+    authError,
+    // Add a helper function to easily check if we're ready
+    isReady: isAuthChecked && userId !== null && !authError
+  };
 }

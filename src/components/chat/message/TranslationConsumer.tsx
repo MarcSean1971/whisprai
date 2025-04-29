@@ -55,15 +55,15 @@ export const TranslationConsumer = memo(function TranslationConsumer({
     }
   }, [currentUserId, messages.length, messages]);
 
-  // Early guard: if userId is null, show loading state
+  // Early guard: if userId is null, show the warning
   if (currentUserId === null) {
-    console.warn("TranslationConsumer: currentUserId is null, cannot render messages properly");
+    console.error("TranslationConsumer: currentUserId is null, cannot render messages properly");
     return (
       <div>
         <EmptyState
-          icon={<AlertCircle className="h-10 w-10 text-muted-foreground animate-pulse" />}
-          title="Loading user information..."
-          description="Please wait while we load your chat..."
+          icon={<AlertCircle className="h-10 w-10 text-destructive" />}
+          title="User information missing"
+          description="Please try refreshing the page."
         />
       </div>
     );

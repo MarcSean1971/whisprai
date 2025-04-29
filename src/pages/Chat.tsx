@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -46,9 +47,19 @@ export default function Chat() {
 }
 
 function ChatContent({ conversationId }: { conversationId: string }) {
-  const { messages, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(conversationId);
+  // Get messages and userId from the useMessages hook
+  const { 
+    messages, 
+    isLoading, 
+    error, 
+    fetchNextPage, 
+    hasNextPage, 
+    isFetchingNextPage,
+    userId // Get userId from useMessages hook
+  } = useMessages(conversationId);
+  
   const { profile, isLoading: isLoadingProfile } = useProfile();
-  const { sendMessage, userId } = useChat(conversationId);
+  const { sendMessage } = useChat(conversationId);
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   const isMobile = useIsMobile();
@@ -160,7 +171,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
             </div>
           }>
             <ChatMessages 
-              messages={messages} 
+              messages={messages}
+              userId={userId} // Pass userId directly from useMessages
               userLanguage={profile?.language}
               onNewReceivedMessage={handleNewReceivedMessage}
               onTranslation={handleTranslation}
@@ -171,6 +183,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
               refetch={refetch}
               isFetchingNextPage={isFetchingNextPage}
               hasNextPage={hasNextPage}
+              error={error}
+              isLoading={isLoading}
             />
           </Suspense>
         </ErrorBoundary>

@@ -8,13 +8,12 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
-import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
 interface ChatMessagesProps {
   messages: any[];
+  userId: string | null; // Changed to receive userId directly from parent
   userLanguage?: string;
   onNewReceivedMessage?: () => void;
   onTranslation?: (messageId: string, translatedContent: string) => void;
@@ -25,10 +24,13 @@ interface ChatMessagesProps {
   refetch?: () => void;
   isFetchingNextPage?: boolean;
   hasNextPage?: boolean;
+  error?: Error | null;
+  isLoading?: boolean;
 }
 
 export function ChatMessages({ 
   messages = [], 
+  userId, // Accept userId directly from props
   userLanguage = 'en',
   onNewReceivedMessage,
   onTranslation,
@@ -38,11 +40,10 @@ export function ChatMessages({
   cancelReply,
   refetch,
   isFetchingNextPage = false,
-  hasNextPage = false
+  hasNextPage = false,
+  error = null,
+  isLoading = false
 }: ChatMessagesProps) {
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-  const [userIdLoading, setUserIdLoading] = useState(true);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   
   console.log('ChatMessages render:', {
@@ -50,8 +51,8 @@ export function ChatMessages({
     isFetchingNextPage,
     hasNextPage,
     refetchAvailable: !!refetch,
-    currentUserId,
-    userIdLoading
+    userId,
+    isLoading
   });
   
   const { 
@@ -65,44 +66,11 @@ export function ChatMessages({
     isFetchingNextPage
   });
 
-  const handleUserIdChange = (userId: string | null) => {
-    console.log("User ID changed to:", userId);
-    setCurrentUserId(userId);
-    setUserIdLoading(false);
-  };
-
-  const handleError = (err: Error) => {
-    console.error("ChatMessages error:", err);
-    setError(err);
-    setUserIdLoading(false);
-  };
-
   const handleRetry = () => {
     console.log("Retrying message load");
-    setError(null);
-    setUserIdLoading(true);
     // Force re-fetch
     if (refetch) {
       refetch();
-    }
-    // Re-check authentication
-    checkAuthentication();
-  };
-
-  const checkAuthentication = async () => {
-    try {
-      const { data, error: authError } = await supabase.auth.getUser();
-      
-      if (authError) {
-        console.error("Auth error in ChatMessages:", authError);
-        handleError(authError);
-        return;
-      }
-      
-      handleUserIdChange(data?.user?.id || null);
-    } catch (err) {
-      console.error("Error checking auth in ChatMessages:", err);
-      handleError(err instanceof Error ? err : new Error("Failed to check authentication"));
     }
   };
 
@@ -149,8 +117,8 @@ export function ChatMessages({
     );
   }
 
-  // If user ID is still loading, show a loading state
-  if (userIdLoading) {
+  // If userId is null or still loading, show a loading state
+  if (isLoading || userId === null) {
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
         <div className="space-y-4">
@@ -176,11 +144,7 @@ export function ChatMessages({
 
   return (
     <ErrorBoundary>
-      <MessageUserAuth 
-        onUserIdChange={handleUserIdChange}
-        onError={handleError}
-      />
-      {!userIdLoading && currentUserId !== null && (
+      {userId !== null && (
         <TranslationProvider>
           <div 
             ref={scrollContainerRef}
@@ -198,7 +162,7 @@ export function ChatMessages({
             <div className="px-4 py-2 space-y-4">
               <TranslationConsumer 
                 messages={messages} 
-                currentUserId={currentUserId}
+                currentUserId={userId}
                 userLanguage={userLanguage}
                 onNewReceivedMessage={onNewReceivedMessage}
                 onTranslation={onTranslation}
