@@ -51,16 +51,18 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
     
     // Also subscribe to auth changes to keep user ID updated
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event);
+      console.log("Auth state changed in MessageUserAuth:", event);
       const userId = session?.user?.id || null;
       console.log("New user ID from auth state change:", userId);
       
       if (isMounted) {
         onUserIdChange(userId);
+        setIsLoading(false);
       }
     });
     
     return () => {
+      console.log("MessageUserAuth: Cleaning up");
       isMounted = false;
       authListener.subscription.unsubscribe();
     };

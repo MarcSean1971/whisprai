@@ -3,13 +3,15 @@ import { useState, useRef, useEffect } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { TranslationProvider } from "@/contexts/TranslationContext";
 import { MessageReplyInput } from "./message/MessageReplyInput";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -69,6 +71,41 @@ export function ChatMessages({
     setUserIdLoading(false);
   };
 
+  const handleError = (err: Error) => {
+    console.error("ChatMessages error:", err);
+    setError(err);
+    setUserIdLoading(false);
+  };
+
+  const handleRetry = () => {
+    console.log("Retrying message load");
+    setError(null);
+    setUserIdLoading(true);
+    // Force re-fetch
+    if (refetch) {
+      refetch();
+    }
+    // Re-check authentication
+    checkAuthentication();
+  };
+
+  const checkAuthentication = async () => {
+    try {
+      const { data, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error("Auth error in ChatMessages:", authError);
+        handleError(authError);
+        return;
+      }
+      
+      handleUserIdChange(data?.user?.id || null);
+    } catch (err) {
+      console.error("Error checking auth in ChatMessages:", err);
+      handleError(err instanceof Error ? err : new Error("Failed to check authentication"));
+    }
+  };
+
   const [safeAreaPaddingBottom, setSafeAreaPaddingBottom] = useState('7rem');
   
   useEffect(() => {
@@ -94,18 +131,18 @@ export function ChatMessages({
 
   if (error) {
     return (
-      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
+      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center p-4">
         <EmptyState
           icon={<AlertCircle className="h-10 w-10 text-destructive" />}
           title="Error loading messages"
           description={error.message}
           action={
-            <button
+            <Button
+              onClick={handleRetry}
               className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-              onClick={() => window.location.reload()}
             >
-              Reload
-            </button>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Try Again
+            </Button>
           }
         />
       </div>
@@ -116,7 +153,10 @@ export function ChatMessages({
   if (userIdLoading) {
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
-        <MessageSkeleton />
+        <div className="space-y-4">
+          <MessageSkeleton />
+          <MessageSkeleton />
+        </div>
       </div>
     );
   }
@@ -138,7 +178,7 @@ export function ChatMessages({
     <ErrorBoundary>
       <MessageUserAuth 
         onUserIdChange={handleUserIdChange}
-        onError={setError}
+        onError={handleError}
       />
       {!userIdLoading && currentUserId !== null && (
         <TranslationProvider>

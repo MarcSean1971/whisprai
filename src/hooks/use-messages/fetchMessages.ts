@@ -20,9 +20,12 @@ export async function fetchMessages(
   if (!conversationId) throw new Error("No conversation ID provided");
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("User not authenticated");
+  if (!user) {
+    console.error("User not authenticated when fetching messages");
+    throw new Error("User not authenticated");
+  }
   
-  console.log('Current user ID for message ownership:', user.id);
+  console.log('Current user ID for message filtering:', user.id);
 
   // Start building the query
   let query = supabase
@@ -32,10 +35,17 @@ export async function fetchMessages(
   
   // Fix: Use proper query structure with separate or conditions
   query = query.or('private_room.is.null');
+  
+  // Only add user filters if we have a user ID
   if (user.id) {
-    query = query.or(
-      `and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
-    );
+    try {
+      query = query.or(
+        `and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
+      );
+    } catch (err) {
+      console.error("Error adding user filtering:", err);
+      // Fallback to just showing public messages if the filter fails
+    }
   }
   
   // Add pagination
@@ -46,11 +56,12 @@ export async function fetchMessages(
     query = query.lt("created_at", cursor);
   }
 
+  console.log('Executing messages query');
   const { data: messages, error: messagesError } = await query;
 
   if (messagesError) {
     console.error("Error fetching messages:", messagesError);
-    toast.error("Failed to load messages");
+    toast.error("Failed to load messages: " + messagesError.message);
     throw messagesError;
   }
 
@@ -66,21 +77,37 @@ export async function fetchMessages(
     messages[messages.length - 1].created_at : 
     undefined;
 
-  // Fetch user profiles
+  // Fetch user profiles for message senders
   const senderIds: string[] = messages
     .map((m: any) => m.sender_id)
     .filter(Boolean)
     .filter((v, i, a) => a.indexOf(v) === i);
 
-  const profiles = await getProfiles(senderIds);
-
-  // Fetch parent messages
+  // Fetch parent messages for replies
   const parentIds: string[] = messages
     .map((m: any) => m.parent_id)
     .filter(Boolean)
     .filter((v, i, a) => a.indexOf(v) === i);
 
-  const parentMessages = await getParentMessages(parentIds);
+  console.log('Fetching supplementary data:', {
+    uniqueSenderIds: senderIds.length,
+    uniqueParentIds: parentIds.length
+  });
+
+  let profiles = {};
+  let parentMessages = {};
+  
+  try {
+    profiles = await getProfiles(senderIds);
+  } catch (err) {
+    console.error("Error fetching profiles:", err);
+  }
+  
+  try {
+    parentMessages = await getParentMessages(parentIds);
+  } catch (err) {
+    console.error("Error fetching parent messages:", err);
+  }
 
   // Format result as array of Message and reverse to display correctly
   const formattedMessages = messages
@@ -91,11 +118,6 @@ export async function fetchMessages(
       }
       
       const isOwnMessage = message.sender_id === user.id;
-      console.log(`Message ${message.id} ownership:`, { 
-        isOwn: isOwnMessage,
-        messageSenderId: message.sender_id,
-        currentUserId: user.id 
-      });
       
       return {
         id: message.id,
@@ -130,8 +152,8 @@ export async function fetchMessages(
   console.log('Returning formatted messages:', {
     count: formattedMessages.length,
     nextCursor,
-    oldestMessageDate: formattedMessages.length > 0 ? formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages',
-    firstMessageSenderId: formattedMessages.length > 0 ? formattedMessages[0]?.sender_id : 'no messages'
+    oldestMessageDate: formattedMessages.length > 0 ? 
+      formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages'
   });
 
   return { 
