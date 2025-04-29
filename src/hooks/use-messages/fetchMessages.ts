@@ -30,10 +30,21 @@ export async function fetchMessages(
     .select("*, parent_id")
     .eq("conversation_id", conversationId);
   
-  // Handle private room filtering
-  query = query.or(
-    `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
-  );
+  // Handle private room filtering - FIX: use proper query builder methods
+  query = query.or([
+    'private_room.is.null',
+    {
+      and: [
+        { private_room: 'AI' },
+        {
+          or: [
+            { sender_id: user.id },
+            { private_recipient: user.id }
+          ]
+        }
+      ]
+    }
+  ]);
   
   // Add pagination
   query = query.order("created_at", { ascending: false })

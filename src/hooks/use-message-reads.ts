@@ -82,6 +82,7 @@ export function useMessageReads(conversationId?: string) {
           
         if (insertError) {
           console.error('Error marking messages as read:', insertError);
+          toast.error('Failed to mark messages as read: ' + insertError.message);
           return;
         }
         
@@ -91,6 +92,7 @@ export function useMessageReads(conversationId?: string) {
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       } catch (error) {
         console.error('Error in markAllAsRead:', error);
+        toast.error('Failed to mark messages as read');
       }
     }
   });

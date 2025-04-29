@@ -64,5 +64,5 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
     };
   }, [onUserIdChange, onError]);
 
-  return isLoading; // Return loading state so parent components can check it
+  return isLoading;
 }
