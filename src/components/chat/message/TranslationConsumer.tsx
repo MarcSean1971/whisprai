@@ -5,7 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { AlertCircle } from "lucide-react";
 import { MessageReplyInput } from "./MessageReplyInput";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { memo, useMemo } from "react";
+import { memo, useEffect, useMemo } from "react";
 
 interface TranslationConsumerProps {
   messages: any[];
@@ -43,6 +43,12 @@ export const TranslationConsumer = memo(function TranslationConsumer({
     onNewReceivedMessage,
     onTranslation
   );
+
+  // Log current user ID to help debug message ownership issues
+  useEffect(() => {
+    console.log('TranslationConsumer currentUserId:', currentUserId);
+    console.log('TranslationConsumer messages count:', messages.length);
+  }, [currentUserId, messages.length]);
 
   // Group messages by id to ensure we don't process the same message twice
   const messagesById = useMemo(() => {

@@ -7,35 +7,36 @@ export function useMessagesRealtime(conversationId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!conversationId) {
+      console.log('No conversation ID provided for realtime subscription');
+      return;
+    }
+
+    console.log(`Setting up realtime subscription for conversation: ${conversationId}`);
+    
     // Create a unique channel name
-    const channelName = conversationId 
-      ? `messages:${conversationId}` 
-      : 'messages:global';
+    const channelName = `messages:${conversationId}`;
       
-    // Subscribe to messages
+    // Subscribe to messages with proper filter syntax
     const messagesChannel = supabase
       .channel(channelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'messages',
-        ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
+        filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         console.log('Messages real-time update:', payload);
         // Invalidate related queries
-        if (conversationId) {
-          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
-        }
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       })
       .subscribe((status) => {
         console.log(`Messages channel ${channelName} status:`, status);
       });
 
-    // Subscribe to message_reads changes
-    const readsChannelName = conversationId 
-      ? `reads:${conversationId}` 
-      : 'reads:global';
+    // Subscribe to message_reads changes with proper filter syntax
+    const readsChannelName = `reads:${conversationId}`;
       
     const readsChannel = supabase
       .channel(readsChannelName)
@@ -43,7 +44,7 @@ export function useMessagesRealtime(conversationId?: string) {
         event: '*',
         schema: 'public',
         table: 'message_reads',
-        ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
+        filter: `conversation_id=eq.${conversationId}`
       }, (payload) => {
         console.log('Message reads real-time update:', payload);
         // Invalidate related queries
@@ -54,6 +55,7 @@ export function useMessagesRealtime(conversationId?: string) {
       });
 
     return () => {
+      console.log(`Cleaning up realtime subscriptions for conversation: ${conversationId}`);
       supabase.removeChannel(messagesChannel);
       supabase.removeChannel(readsChannel);
     };

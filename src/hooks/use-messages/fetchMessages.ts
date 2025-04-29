@@ -29,9 +29,7 @@ export async function fetchMessages(
     .eq("conversation_id", conversationId);
   
   // Handle private room filtering with proper query builder methods
-  query = query.or(
-    `private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
-  );
+  query = query.or(`private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`);
   
   query = query.order("created_at", { ascending: false })
     .limit(pageSize);

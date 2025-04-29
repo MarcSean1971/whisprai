@@ -9,13 +9,19 @@ export function useMessageReads(conversationId?: string) {
   
   const { mutate: markAllAsRead } = useMutation({
     mutationFn: async () => {
-      if (!conversationId) return;
+      if (!conversationId) {
+        console.log("No conversation ID provided for marking messages as read");
+        return;
+      }
       
       try {
+        console.log(`Marking all messages as read in conversation: ${conversationId}`);
+        
         // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
+          console.error("Not authenticated when trying to mark messages as read:", userError);
           throw new Error('Not authenticated');
         }
         
@@ -27,11 +33,12 @@ export function useMessageReads(conversationId?: string) {
           .neq('sender_id', user.id);
           
         if (messagesError) {
-          console.error('Error fetching messages:', messagesError);
+          console.error('Error fetching messages for read marking:', messagesError);
           return;
         }
         
         if (!messages || messages.length === 0) {
+          console.log('No messages to mark as read');
           return; // No messages to mark as read
         }
         
@@ -52,8 +59,11 @@ export function useMessageReads(conversationId?: string) {
         const unreadMessages = messages.filter(msg => !readMessageIds.has(msg.id));
         
         if (unreadMessages.length === 0) {
+          console.log('All messages are already marked as read');
           return; // All messages are already marked as read
         }
+        
+        console.log(`Marking ${unreadMessages.length} messages as read`);
         
         // Mark all unread messages as read
         const messageReads = unreadMessages.map(message => ({
@@ -75,6 +85,8 @@ export function useMessageReads(conversationId?: string) {
           return;
         }
         
+        console.log('Successfully marked messages as read');
+        
         // Invalidate user conversations to update unread counts
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       } catch (error) {
@@ -86,6 +98,7 @@ export function useMessageReads(conversationId?: string) {
   // Auto-mark messages as read when entering a conversation
   useEffect(() => {
     if (conversationId) {
+      console.log(`Conversation ID changed to ${conversationId}, marking messages as read`);
       markAllAsRead();
     }
   }, [conversationId]);

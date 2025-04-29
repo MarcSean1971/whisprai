@@ -25,6 +25,10 @@ export function MessageList({
     console.log('Message was deleted, UI will update via React Query cache');
   };
 
+  // Log current user ID to help debug message ownership issues
+  console.log('MessageList currentUserId:', currentUserId);
+  console.log('MessageList messages count:', messages.length);
+  
   // Validate messages array
   if (!Array.isArray(messages)) {
     console.error("Expected messages to be an array but got:", typeof messages);
