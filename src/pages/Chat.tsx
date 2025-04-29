@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -96,13 +95,6 @@ function ChatContent({ conversationId }: { conversationId: string }) {
     }));
   }, []);
 
-  const refetch = () => {
-    if (hasNextPage) {
-      console.log('Fetching next page of messages');
-      fetchNextPage();
-    }
-  };
-
   useEffect(() => {
     if (messages && messages.length > 0 && !isLoading) {
       markAllAsRead();
@@ -123,7 +115,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
             title="Error loading chat"
             description={error?.message || "Failed to load the chat. Please try again."}
             action={
-              <Button onClick={refetch} variant="outline">
+              <Button onClick={() => fetchNextPage()} variant="outline">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Retry
               </Button>
@@ -180,7 +172,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
               replyToMessageId={replyToMessageId}
               sendReply={sendReply}
               cancelReply={cancelReply}
-              refetch={refetch}
+              fetchNextPage={fetchNextPage}
               isFetchingNextPage={isFetchingNextPage}
               hasNextPage={hasNextPage}
               error={error}

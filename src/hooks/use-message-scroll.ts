@@ -3,14 +3,14 @@ import { useEffect, useRef } from "react";
 
 interface UseMessageScrollProps {
   messages: any[];
-  refetch?: () => void;
+  fetchNextPage?: () => Promise<unknown>;
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
 }
 
 export function useMessageScroll({ 
   messages, 
-  refetch, 
+  fetchNextPage, 
   hasNextPage = false,
   isFetchingNextPage = false 
 }: UseMessageScrollProps) {
@@ -94,19 +94,19 @@ export function useMessageScroll({
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
-    if (!refetch || !hasNextPage || isFetchingNextPage) return;
+    if (!fetchNextPage || !hasNextPage || isFetchingNextPage) return;
 
     console.log('Setting up Intersection Observer', {
       hasNextPage,
       isFetchingNextPage,
-      refetchAvailable: !!refetch
+      fetchNextPageAvailable: !!fetchNextPage
     });
 
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
           console.log('Loading more messages - intersection detected');
-          refetch();
+          fetchNextPage();
         }
       },
       { 
@@ -126,7 +126,7 @@ export function useMessageScroll({
         observer.unobserve(currentLoadMoreRef);
       }
     };
-  }, [refetch, hasNextPage, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage]);
 
   return {
     scrollContainerRef,

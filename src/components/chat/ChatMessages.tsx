@@ -21,7 +21,7 @@ interface ChatMessagesProps {
   replyToMessageId?: string | null;
   sendReply?: (content: string) => Promise<boolean>;
   cancelReply?: () => void;
-  refetch?: () => void;
+  fetchNextPage?: () => Promise<unknown>;
   isFetchingNextPage?: boolean;
   hasNextPage?: boolean;
   error?: Error | null;
@@ -38,7 +38,7 @@ export function ChatMessages({
   replyToMessageId,
   sendReply,
   cancelReply,
-  refetch,
+  fetchNextPage,
   isFetchingNextPage = false,
   hasNextPage = false,
   error = null,
@@ -50,7 +50,7 @@ export function ChatMessages({
     messagesCount: messages.length,
     isFetchingNextPage,
     hasNextPage,
-    refetchAvailable: !!refetch,
+    fetchNextPageAvailable: !!fetchNextPage,
     userId,
     isLoading
   });
@@ -61,7 +61,7 @@ export function ChatMessages({
     messagesEndRef
   } = useMessageScroll({
     messages,
-    refetch,
+    fetchNextPage,
     hasNextPage,
     isFetchingNextPage
   });
@@ -69,8 +69,8 @@ export function ChatMessages({
   const handleRetry = () => {
     console.log("Retrying message load");
     // Force re-fetch
-    if (refetch) {
-      refetch();
+    if (fetchNextPage) {
+      fetchNextPage();
     }
   };
 
@@ -170,7 +170,7 @@ export function ChatMessages({
                 replyToMessageId={replyToMessageId}
                 sendReply={sendReply}
                 cancelReply={cancelReply}
-                refetch={refetch}
+                refetch={fetchNextPage}
                 messageRefs={messageRefs}
                 scrollToMessage={scrollToMessage}
               />
