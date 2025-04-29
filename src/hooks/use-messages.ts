@@ -17,6 +17,7 @@ interface UseMessagesReturn {
   fetchNextPage: () => Promise<unknown>;
   hasNextPage: boolean;
   isFetchingNextPage: boolean;
+  userId: string | null; // Added userId to the return type
 }
 
 export function useMessages(conversationId: string): UseMessagesReturn {
@@ -204,6 +205,7 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     isLoading: !isAuthChecked || result.isLoading,
     fetchNextPage: result.fetchNextPage,
     hasNextPage: result.hasNextPage ?? false,
-    isFetchingNextPage: result.isFetchingNextPage
+    isFetchingNextPage: result.isFetchingNextPage,
+    userId // Return userId so it can be passed to ChatMessages
   };
 }
