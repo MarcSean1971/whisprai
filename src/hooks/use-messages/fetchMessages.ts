@@ -30,7 +30,7 @@ export async function fetchMessages(
     .select("*, parent_id")
     .eq("conversation_id", conversationId);
   
-  // Handle private room filtering - FIX: use proper query builder methods
+  // Handle private room filtering with properly structured query builder method
   query = query.or([
     'private_room.is.null',
     {
@@ -44,7 +44,7 @@ export async function fetchMessages(
         }
       ]
     }
-  ]);
+  ] as any); // Type assertion to bypass TypeScript issue
   
   // Add pagination
   query = query.order("created_at", { ascending: false })

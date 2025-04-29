@@ -2,6 +2,7 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 export function useMessagesRealtime(conversationId?: string) {
   const queryClient = useQueryClient();
@@ -34,6 +35,10 @@ export function useMessagesRealtime(conversationId?: string) {
         })
         .subscribe((status) => {
           console.log(`Messages channel ${channelName} status:`, status);
+          if (status === 'CHANNEL_ERROR') {
+            console.error('Error subscribing to messages channel');
+            toast.error('Connection error. Messages may not update in real-time.');
+          }
         });
 
       // Subscribe to message_reads changes with proper filter syntax
@@ -53,6 +58,9 @@ export function useMessagesRealtime(conversationId?: string) {
         })
         .subscribe((status) => {
           console.log(`Message reads channel ${readsChannelName} status:`, status);
+          if (status === 'CHANNEL_ERROR') {
+            console.error('Error subscribing to message reads channel');
+          }
         });
 
       return () => {
@@ -62,6 +70,7 @@ export function useMessagesRealtime(conversationId?: string) {
       };
     } catch (error) {
       console.error(`Error setting up realtime subscriptions:`, error);
+      toast.error('Failed to setup real-time updates');
     }
   }, [conversationId, queryClient]);
 }

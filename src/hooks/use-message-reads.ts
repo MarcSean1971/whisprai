@@ -34,6 +34,7 @@ export function useMessageReads(conversationId?: string) {
           
         if (messagesError) {
           console.error('Error fetching messages for read marking:', messagesError);
+          toast.error('Error loading messages: ' + messagesError.message);
           return;
         }
         
@@ -51,6 +52,7 @@ export function useMessageReads(conversationId?: string) {
           
         if (readError) {
           console.error('Error fetching read messages:', readError);
+          toast.error('Error loading read status: ' + readError.message);
           return;
         }
         

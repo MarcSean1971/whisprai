@@ -1,6 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface MessageUserAuthProps {
   onUserIdChange: (userId: string | null) => void;
@@ -41,6 +42,7 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
         if (isMounted) {
           onError(err instanceof Error ? err : new Error('Failed to get user information'));
           setIsLoading(false);
+          toast.error("Failed to get user information. Please try refreshing the page.");
         }
       }
     };
