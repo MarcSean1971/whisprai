@@ -41,9 +41,8 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        // Fetch unread message counts for each conversation
+        // Fetch unread message counts for each conversation using proper parameter binding
         const unreadCountsPromises = conversations.map(async (conversation) => {
-          // Get unread messages count using proper query structure
           const { count, error: countError } = await supabase
             .from('messages')
             .select('id', { count: 'exact', head: true })

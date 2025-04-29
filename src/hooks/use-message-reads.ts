@@ -19,7 +19,7 @@ export function useMessageReads(conversationId?: string) {
           throw new Error('Not authenticated');
         }
         
-        // Get unread messages in this conversation using a proper subquery approach
+        // Get unread messages in this conversation using proper query methods
         const { data: unreadMessageIds, error: messagesError } = await supabase
           .from('messages')
           .select('id')
@@ -30,8 +30,7 @@ export function useMessageReads(conversationId?: string) {
             .select('message_id')
             .eq('user_id', user.id)
             .eq('conversation_id', conversationId)
-          )
-          .order('created_at', { ascending: false });
+          );
           
         if (messagesError) {
           console.error('Error fetching unread messages:', messagesError);
