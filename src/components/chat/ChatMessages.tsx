@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { MessageSkeleton } from "./message/MessageSkeleton";
 import { TranslationProvider } from "@/contexts/TranslationContext";
@@ -41,12 +42,14 @@ export function ChatMessages({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [userIdLoaded, setUserIdLoaded] = useState(false);
   
   console.log('ChatMessages render:', {
     messagesCount: messages.length,
     isFetchingNextPage,
     hasNextPage,
-    refetchAvailable: !!refetch
+    refetchAvailable: !!refetch,
+    currentUserId
   });
   
   const { 
@@ -59,6 +62,12 @@ export function ChatMessages({
     hasNextPage,
     isFetchingNextPage
   });
+
+  const handleUserIdChange = (userId: string | null) => {
+    console.log("User ID changed to:", userId);
+    setCurrentUserId(userId);
+    setUserIdLoaded(true);
+  };
 
   const [safeAreaPaddingBottom, setSafeAreaPaddingBottom] = useState('7rem');
   
@@ -103,10 +112,19 @@ export function ChatMessages({
     );
   }
 
+  // If user ID hasn't loaded yet and we have messages, show loading state
+  if (!userIdLoaded && messages.length > 0) {
+    return (
+      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
+        <MessageSkeleton count={3} />
+      </div>
+    );
+  }
+
   return (
     <ErrorBoundary>
       <MessageUserAuth 
-        onUserIdChange={setCurrentUserId}
+        onUserIdChange={handleUserIdChange}
         onError={setError}
       />
       <TranslationProvider>

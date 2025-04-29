@@ -46,8 +46,12 @@ export const TranslationConsumer = memo(function TranslationConsumer({
 
   // Log current user ID to help debug message ownership issues
   useEffect(() => {
-    console.log('TranslationConsumer currentUserId:', currentUserId);
-    console.log('TranslationConsumer messages count:', messages.length);
+    if (currentUserId) {
+      console.log('TranslationConsumer currentUserId available:', currentUserId);
+      console.log('TranslationConsumer messages count:', messages.length);
+    } else {
+      console.warn('TranslationConsumer: currentUserId is null, messages might display incorrectly');
+    }
   }, [currentUserId, messages.length]);
 
   // Group messages by id to ensure we don't process the same message twice

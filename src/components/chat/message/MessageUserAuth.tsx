@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,8 +23,9 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
           throw error;
         }
         
-        console.log("MessageUserAuth: User ID fetched successfully:", data.user?.id);
-        onUserIdChange(data.user?.id || null);
+        const userId = data.user?.id || null;
+        console.log("MessageUserAuth: User ID fetched successfully:", userId);
+        onUserIdChange(userId);
       } catch (err) {
         console.error('Error fetching user ID:', err);
         onError(err instanceof Error ? err : new Error('Failed to get user information'));
@@ -37,7 +39,9 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
     // Also subscribe to auth changes to keep user ID updated
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event);
-      onUserIdChange(session?.user?.id || null);
+      const userId = session?.user?.id || null;
+      console.log("New user ID from auth state change:", userId);
+      onUserIdChange(userId);
     });
     
     return () => {

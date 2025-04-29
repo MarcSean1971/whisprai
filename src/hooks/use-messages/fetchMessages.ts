@@ -21,6 +21,8 @@ export async function fetchMessages(
 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("User not authenticated");
+  
+  console.log('Current user ID for message ownership:', user.id);
 
   // Use proper query builder syntax with proper parameter binding
   let query = supabase
@@ -29,7 +31,11 @@ export async function fetchMessages(
     .eq("conversation_id", conversationId);
   
   // Handle private room filtering with proper query builder methods
-  query = query.or(`private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`);
+  if (user) {
+    query = query.or(
+      `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
+    );
+  }
   
   query = query.order("created_at", { ascending: false })
     .limit(pageSize);
@@ -81,6 +87,14 @@ export async function fetchMessages(
         console.error("Invalid message structure:", message);
         return null;
       }
+      
+      const isOwnMessage = message.sender_id === user.id;
+      console.log(`Message ${message.id} ownership:`, { 
+        isOwn: isOwnMessage,
+        messageSenderId: message.sender_id,
+        currentUserId: user.id 
+      });
+      
       return {
         id: message.id,
         content: message.content,
