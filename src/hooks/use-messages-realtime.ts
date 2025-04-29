@@ -27,7 +27,7 @@ export function useMessagesRealtime(conversationId?: string) {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`
         }, (payload) => {
-          console.log('Messages real-time update:', payload);
+          console.log('Messages real-time update received:', payload);
           // Invalidate related queries
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
           queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
@@ -47,7 +47,7 @@ export function useMessagesRealtime(conversationId?: string) {
           table: 'message_reads',
           filter: `conversation_id=eq.${conversationId}`
         }, (payload) => {
-          console.log('Message reads real-time update:', payload);
+          console.log('Message reads real-time update received:', payload);
           // Invalidate related queries
           queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
         })

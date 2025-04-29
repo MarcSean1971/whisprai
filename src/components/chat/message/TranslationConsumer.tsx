@@ -46,13 +46,14 @@ export const TranslationConsumer = memo(function TranslationConsumer({
 
   // Log current user ID to help debug message ownership issues
   useEffect(() => {
-    if (currentUserId) {
-      console.log('TranslationConsumer currentUserId available:', currentUserId);
-      console.log('TranslationConsumer messages count:', messages.length);
-    } else {
-      console.warn('TranslationConsumer: currentUserId is null, messages might display incorrectly');
+    console.log('TranslationConsumer currentUserId:', currentUserId);
+    console.log('TranslationConsumer messages count:', messages.length);
+    
+    if (messages.length > 0) {
+      console.log('First message sender_id:', messages[0]?.sender_id);
+      console.log('Last message sender_id:', messages[messages.length-1]?.sender_id);
     }
-  }, [currentUserId, messages.length]);
+  }, [currentUserId, messages.length, messages]);
 
   // Group messages by id to ensure we don't process the same message twice
   const messagesById = useMemo(() => {

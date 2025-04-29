@@ -34,12 +34,6 @@ export function MessageList({
     console.error("Expected messages to be an array but got:", typeof messages);
     return null;
   }
-  
-  // Don't render messages if we don't have currentUserId yet
-  if (currentUserId === null && messages.some(m => m?.sender_id)) {
-    console.warn("MessageList: Not rendering messages because currentUserId is null");
-    return null;
-  }
 
   return messages.map((message, index) => {
     // Skip invalid message objects
@@ -50,7 +44,7 @@ export function MessageList({
 
     try {
       // Determine if this message is from the current user
-      const isOwn = currentUserId !== null && message.sender_id === currentUserId;
+      const isOwn = !!currentUserId && message.sender_id === currentUserId;
       const isAI = message.private_room === 'AI';
       const isAIPrompt = message.content.toLowerCase().startsWith('ai:') || message.content.toLowerCase().startsWith('a:');
       

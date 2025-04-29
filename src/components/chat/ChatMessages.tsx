@@ -48,7 +48,8 @@ export function ChatMessages({
     isFetchingNextPage,
     hasNextPage,
     refetchAvailable: !!refetch,
-    currentUserId
+    currentUserId,
+    userIdLoaded
   });
   
   const { 
@@ -116,6 +117,18 @@ export function ChatMessages({
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
         <MessageSkeleton />
+      </div>
+    );
+  }
+
+  if (messages.length === 0) {
+    return (
+      <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
+        <EmptyState
+          icon={<AlertCircle className="h-10 w-10 text-muted-foreground" />}
+          title="No messages yet"
+          description="Start a conversation by sending a message below."
+        />
       </div>
     );
   }

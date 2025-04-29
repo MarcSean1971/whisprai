@@ -45,6 +45,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   const messages = (result.data?.pages.flat() || []).reverse();
   console.log('Messages loaded:', {
     totalMessages: messages.length,
+    pagesCount: result.data?.pages.length || 0,
+    messagesPerPage: result.data?.pages.map(p => p.length) || [],
     hasNextPage: result.hasNextPage,
     isFetchingNextPage: result.isFetchingNextPage
   });
@@ -150,4 +152,3 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     isFetchingNextPage: result.isFetchingNextPage
   };
 }
-

@@ -11,6 +11,8 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchUserId = async () => {
       try {
         setIsLoading(true);
@@ -20,17 +22,27 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
         
         if (error) {
           console.error("MessageUserAuth: Error fetching user ID:", error);
-          throw error;
+          if (isMounted) {
+            onError(error);
+          }
+          return;
         }
         
-        const userId = data.user?.id || null;
+        const userId = data?.user?.id || null;
         console.log("MessageUserAuth: User ID fetched successfully:", userId);
-        onUserIdChange(userId);
+        
+        if (isMounted) {
+          onUserIdChange(userId);
+        }
       } catch (err) {
         console.error('Error fetching user ID:', err);
-        onError(err instanceof Error ? err : new Error('Failed to get user information'));
+        if (isMounted) {
+          onError(err instanceof Error ? err : new Error('Failed to get user information'));
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
@@ -41,10 +53,14 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
       console.log("Auth state changed:", event);
       const userId = session?.user?.id || null;
       console.log("New user ID from auth state change:", userId);
-      onUserIdChange(userId);
+      
+      if (isMounted) {
+        onUserIdChange(userId);
+      }
     });
     
     return () => {
+      isMounted = false;
       authListener.subscription.unsubscribe();
     };
   }, [onUserIdChange, onError]);

@@ -32,9 +32,8 @@ export async function fetchMessages(
   
   // Handle private room filtering with proper query builder methods
   if (user) {
-    query = query.or(
-      `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
-    );
+    // Use proper filter for private rooms
+    query = query.or(`private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`);
   }
   
   query = query.order("created_at", { ascending: false })
@@ -128,7 +127,7 @@ export async function fetchMessages(
   console.log('Returning formatted messages:', {
     count: formattedMessages.length,
     nextCursor,
-    oldestMessageDate: formattedMessages[formattedMessages.length - 1]?.created_at
+    oldestMessageDate: formattedMessages.length > 0 ? formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages'
   });
 
   return { 
