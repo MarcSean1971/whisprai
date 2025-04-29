@@ -27,12 +27,14 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   const { subscriptionError } = useMessageSubscription(conversationId, userId, isAuthChecked, queryClient);
 
   // Log auth status for debugging
-  console.log('useMessages hook auth state:', { 
-    conversationId,
-    isAuthChecked, 
-    userId, 
-    hasAuthError: !!authError 
-  });
+  useEffect(() => {
+    console.log('useMessages hook auth state:', { 
+      conversationId,
+      isAuthChecked, 
+      userId, 
+      hasAuthError: !!authError 
+    });
+  }, [conversationId, isAuthChecked, userId, authError]);
 
   const result = useInfiniteQuery({
     queryKey: ['messages', conversationId],
@@ -49,7 +51,7 @@ export function useMessages(conversationId: string): UseMessagesReturn {
       pageParams: data.pageParams,
     }),
     // Don't fetch if we haven't checked auth yet or if there's no userId
-    enabled: isAuthChecked && !!userId,
+    enabled: isAuthChecked && !!userId && !!conversationId,
     retry: 3,
     retryDelay: 1000,
   });
@@ -58,23 +60,28 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   const messages = (result.data?.pages.flat() || []).reverse();
   
   // Detailed logging for debugging
-  console.log('Messages loaded:', {
-    totalMessages: messages.length,
-    pagesCount: result.data?.pages.length || 0,
-    userId,
-    isAuthChecked,
-    hasNextPage: result.hasNextPage,
-    isFetchingNextPage: result.isFetchingNextPage,
-    errorPresent: !!result.error || !!subscriptionError || !!authError
-  });
+  useEffect(() => {
+    console.log('Messages loaded:', {
+      totalMessages: messages.length,
+      pagesCount: result.data?.pages.length || 0,
+      userId,
+      isAuthChecked,
+      hasNextPage: result.hasNextPage,
+      isFetchingNextPage: result.isFetchingNextPage,
+      errorPresent: !!result.error || !!subscriptionError || !!authError
+    });
+  }, [messages.length, result.data?.pages.length, userId, isAuthChecked, 
+      result.hasNextPage, result.isFetchingNextPage, result.error, subscriptionError, authError]);
 
   // Combine subscription errors with query errors
   const error = result.error || subscriptionError || authError;
   
-  if (error && !result.isLoading) {
-    console.error('Error in useMessages hook:', error);
-    toast.error('Failed to load messages: ' + error.message);
-  }
+  useEffect(() => {
+    if (error && !result.isLoading) {
+      console.error('Error in useMessages hook:', error);
+      toast.error('Failed to load messages: ' + error.message);
+    }
+  }, [error, result.isLoading]);
 
   return {
     messages,

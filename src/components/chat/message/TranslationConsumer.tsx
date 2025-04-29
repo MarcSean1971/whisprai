@@ -46,14 +46,15 @@ export const TranslationConsumer = memo(function TranslationConsumer({
 
   // Log current user ID to help debug message ownership issues
   useEffect(() => {
-    console.log('TranslationConsumer currentUserId:', currentUserId);
-    console.log('TranslationConsumer messages count:', messages.length);
-    
-    if (messages.length > 0) {
-      console.log('First message sender_id:', messages[0]?.sender_id);
-      console.log('Last message sender_id:', messages[messages.length-1]?.sender_id);
+    if (messages.length > 0 || currentUserId === null) {
+      console.log('TranslationConsumer state:', {
+        currentUserId,
+        messagesCount: messages.length,
+        firstSenderId: messages[0]?.sender_id,
+        lastSenderId: messages[messages.length-1]?.sender_id
+      });
     }
-  }, [currentUserId, messages.length, messages]);
+  }, [currentUserId, messages]);
 
   // Early guard: if userId is null, show the warning
   if (currentUserId === null) {
@@ -82,15 +83,21 @@ export const TranslationConsumer = memo(function TranslationConsumer({
     return msgMap;
   }, [messages]);
 
-  function shouldShowReplyInput(message: any) {
-    if (replyToMessageId !== message.id) return false;
+  const shouldShowReplyInput = useCallback((messageId: string) => {
+    if (replyToMessageId !== messageId) return false;
+    
+    // Find the target message
     const target = messages.find((m: any) => m.id === replyToMessageId);
-    if (target && target.parent && target.parent.id) {
+    if (!target) return false;
+    
+    // Check if it has a parent that's visible
+    if (target.parent && target.parent.id) {
       const parentIsVisible = messages.some((m: any) => m.id === target.parent.id);
       if (parentIsVisible) return false;
     }
+    
     return true;
-  }
+  }, [replyToMessageId, messages]);
 
   if (!Array.isArray(messages) || messages.length === 0) {
     return (
@@ -128,7 +135,7 @@ export const TranslationConsumer = memo(function TranslationConsumer({
                   scrollToMessage={scrollToMessage}
                 />
               </div>
-              {sendReply && cancelReply && shouldShowReplyInput(message) && (
+              {sendReply && cancelReply && shouldShowReplyInput(message.id) && (
                 <div className="ml-10 mb-4">
                   <MessageReplyInput
                     onSubmit={async (content: string) => {
@@ -146,5 +153,13 @@ export const TranslationConsumer = memo(function TranslationConsumer({
         );
       })}
     </>
+  );
+}, (prevProps, nextProps) => {
+  // Custom memoization to avoid unnecessary re-renders
+  return (
+    prevProps.currentUserId === nextProps.currentUserId &&
+    prevProps.replyToMessageId === nextProps.replyToMessageId &&
+    prevProps.messages.length === nextProps.messages.length &&
+    prevProps.userLanguage === nextProps.userLanguage
   );
 });
