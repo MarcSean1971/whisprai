@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,6 +24,7 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
           console.error("MessageUserAuth: Error fetching user ID:", error);
           if (isMounted) {
             onError(error);
+            setIsLoading(false);
           }
           return;
         }
@@ -31,7 +33,6 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
         console.log("MessageUserAuth: User ID fetched successfully:", userId);
         
         if (isMounted) {
-          // Only call onUserIdChange if we have a meaningful change to report
           onUserIdChange(userId);
           setIsLoading(false);
         }
@@ -63,6 +64,5 @@ export function MessageUserAuth({ onUserIdChange, onError }: MessageUserAuthProp
     };
   }, [onUserIdChange, onError]);
 
-  // Return isLoading so parent components can know if user authentication is still in progress
-  return null;
+  return isLoading; // Return loading state so parent components can check it
 }

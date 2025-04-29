@@ -40,8 +40,8 @@ export function ChatMessages({
 }: ChatMessagesProps) {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [userIdLoading, setUserIdLoading] = useState(true);
   const messageRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const [userIdLoaded, setUserIdLoaded] = useState(false);
   
   console.log('ChatMessages render:', {
     messagesCount: messages.length,
@@ -49,7 +49,7 @@ export function ChatMessages({
     hasNextPage,
     refetchAvailable: !!refetch,
     currentUserId,
-    userIdLoaded
+    userIdLoading
   });
   
   const { 
@@ -66,7 +66,7 @@ export function ChatMessages({
   const handleUserIdChange = (userId: string | null) => {
     console.log("User ID changed to:", userId);
     setCurrentUserId(userId);
-    setUserIdLoaded(true);
+    setUserIdLoading(false);
   };
 
   const [safeAreaPaddingBottom, setSafeAreaPaddingBottom] = useState('7rem');
@@ -112,8 +112,8 @@ export function ChatMessages({
     );
   }
 
-  // If user ID hasn't loaded yet and we have messages, show loading state
-  if (!userIdLoaded && messages.length > 0) {
+  // If user ID is still loading, show a loading state
+  if (userIdLoading) {
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
         <MessageSkeleton />
@@ -121,6 +121,7 @@ export function ChatMessages({
     );
   }
 
+  // If we have no messages after loading user ID, show empty state
   if (messages.length === 0) {
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
@@ -139,39 +140,41 @@ export function ChatMessages({
         onUserIdChange={handleUserIdChange}
         onError={setError}
       />
-      <TranslationProvider>
-        <div 
-          ref={scrollContainerRef}
-          className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
-          style={{
-            paddingBottom: safeAreaPaddingBottom
-          }}
-        >
-          <div ref={loadMoreRef} className="h-4" />
-          <LoadMoreMessages 
-            isLoading={isFetchingNextPage || false} 
-            hasNextPage={hasNextPage || false} 
-          />
-          <div className="flex-1" />
-          <div className="px-4 py-2 space-y-4">
-            <TranslationConsumer 
-              messages={messages} 
-              currentUserId={currentUserId}
-              userLanguage={userLanguage}
-              onNewReceivedMessage={onNewReceivedMessage}
-              onTranslation={onTranslation}
-              onReply={onReply}
-              replyToMessageId={replyToMessageId}
-              sendReply={sendReply}
-              cancelReply={cancelReply}
-              refetch={refetch}
-              messageRefs={messageRefs}
-              scrollToMessage={scrollToMessage}
+      {!userIdLoading && currentUserId !== null && (
+        <TranslationProvider>
+          <div 
+            ref={scrollContainerRef}
+            className="absolute inset-0 overflow-y-auto no-scrollbar overscroll-none flex flex-col z-10"
+            style={{
+              paddingBottom: safeAreaPaddingBottom
+            }}
+          >
+            <div ref={loadMoreRef} className="h-4" />
+            <LoadMoreMessages 
+              isLoading={isFetchingNextPage || false} 
+              hasNextPage={hasNextPage || false} 
             />
+            <div className="flex-1" />
+            <div className="px-4 py-2 space-y-4">
+              <TranslationConsumer 
+                messages={messages} 
+                currentUserId={currentUserId}
+                userLanguage={userLanguage}
+                onNewReceivedMessage={onNewReceivedMessage}
+                onTranslation={onTranslation}
+                onReply={onReply}
+                replyToMessageId={replyToMessageId}
+                sendReply={sendReply}
+                cancelReply={cancelReply}
+                refetch={refetch}
+                messageRefs={messageRefs}
+                scrollToMessage={scrollToMessage}
+              />
+            </div>
+            <div ref={messagesEndRef} className="h-1" />
           </div>
-          <div ref={messagesEndRef} className="h-1" />
-        </div>
-      </TranslationProvider>
+        </TranslationProvider>
+      )}
     </ErrorBoundary>
   );
 }

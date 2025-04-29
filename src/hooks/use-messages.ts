@@ -24,6 +24,46 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   const [subscriptionError, setSubscriptionError] = useState<Error | null>(null);
   const messagesChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
+  // First, check if the user is authenticated before even attempting to fetch
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error('Auth check failed:', error);
+          toast.error('Authentication error: ' + error.message);
+        } else {
+          setUserId(data.user?.id || null);
+          console.log('User authenticated in useMessages:', data.user?.id);
+        }
+      } catch (err) {
+        console.error('Error checking auth:', err);
+      } finally {
+        setIsAuthChecked(true);
+      }
+    };
+    
+    checkAuth();
+    
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed in useMessages:', event);
+      const newUserId = session?.user?.id || null;
+      setUserId(newUserId);
+      
+      // If auth state changes, invalidate messages to refetch with new user context
+      if (conversationId) {
+        queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+      }
+    });
+    
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [conversationId, queryClient]);
+
   const result = useInfiniteQuery({
     queryKey: ['messages', conversationId],
     queryFn: ({ pageParam }) => {
@@ -39,8 +79,10 @@ export function useMessages(conversationId: string): UseMessagesReturn {
       pages: data.pages.map(page => page.messages),
       pageParams: data.pageParams,
     }),
-    // Add retry option for better reliability
-    retry: 2,
+    // Don't fetch if we haven't checked auth yet or if there's no userId
+    enabled: isAuthChecked && !!userId,
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Flatten messages and reverse to show newest at bottom
@@ -48,7 +90,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
   console.log('Messages loaded:', {
     totalMessages: messages.length,
     pagesCount: result.data?.pages.length || 0,
-    messagesPerPage: result.data?.pages.map(p => p.length) || [],
+    userId,
+    isAuthChecked,
     hasNextPage: result.hasNextPage,
     isFetchingNextPage: result.isFetchingNextPage
   });
@@ -79,17 +122,28 @@ export function useMessages(conversationId: string): UseMessagesReturn {
     };
   }, [conversationId, queryClient]);
 
+  // Set up realtime subscription when user is authenticated and we have a conversation ID
   useEffect(() => {
-    if (!conversationId) {
-      console.warn('No conversation ID provided');
+    if (!conversationId || !userId || !isAuthChecked) {
+      console.log('Prerequisites not met for realtime subscription:', {
+        conversationId,
+        userId,
+        isAuthChecked
+      });
       return;
     }
+    
+    console.log('Setting up realtime subscription for messages:', {
+      conversationId,
+      userId
+    });
+    
     let messagesChannel: ReturnType<typeof supabase.channel>;
     setSubscriptionError(null); // Clear previous error before (re)subscribing
 
     try {
       messagesChannel = supabase
-        .channel(`messages:${conversationId}`)
+        .channel(`messages:${conversationId}:${userId}`)
         .on(
           'postgres_changes',
           {
@@ -109,7 +163,7 @@ export function useMessages(conversationId: string): UseMessagesReturn {
           }
         )
         .subscribe((status: any) => {
-          console.log(`Subscription status for messages:${conversationId}:`, status);
+          console.log(`Subscription status for messages:${conversationId}:${userId}:`, status);
           if (status === 'CHANNEL_ERROR') {
             setSubscriptionError(new Error('Failed to subscribe to message updates'));
             toast.error('Failed to subscribe to message updates. Try refreshing.');
@@ -134,21 +188,20 @@ export function useMessages(conversationId: string): UseMessagesReturn {
         }
       }
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, userId, isAuthChecked, queryClient]);
 
   // Combine subscription errors with query errors
   const error = result.error || subscriptionError;
   
   if (error && !result.isLoading) {
     console.error('Error in useMessages hook:', error);
-    // Only toast if not already shown
-    toast.error(error.message || 'Failed to load messages');
+    toast.error('Failed to load messages: ' + error.message);
   }
 
   return {
     messages,
     error,
-    isLoading: result.isLoading,
+    isLoading: !isAuthChecked || result.isLoading,
     fetchNextPage: result.fetchNextPage,
     hasNextPage: result.hasNextPage ?? false,
     isFetchingNextPage: result.isFetchingNextPage

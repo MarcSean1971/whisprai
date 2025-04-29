@@ -35,6 +35,11 @@ export function MessageList({
     return null;
   }
 
+  // Validate currentUserId
+  if (currentUserId === null) {
+    console.error("Current user ID is null in MessageList");
+  }
+
   return messages.map((message, index) => {
     // Skip invalid message objects
     if (!message || !message.id || !message.content || !message.created_at) {
@@ -44,15 +49,15 @@ export function MessageList({
 
     try {
       // Determine if this message is from the current user
-      // Use triple equals for strict comparison of sender_id and currentUserId
-      const isOwn = !!currentUserId && message.sender_id === currentUserId;
+      const isOwn = Boolean(currentUserId) && message.sender_id === currentUserId;
       const isAI = message.private_room === 'AI';
       const isAIPrompt = message.content.toLowerCase().startsWith('ai:') || message.content.toLowerCase().startsWith('a:');
       
       console.log(`Message ${message.id} rendering:`, { 
         isOwn, 
         currentUserId, 
-        messageSenderId: message.sender_id 
+        messageSenderId: message.sender_id,
+        senderMatch: message.sender_id === currentUserId
       });
       
       const showSender = !isOwn && !isAI && !isAIPrompt && 
