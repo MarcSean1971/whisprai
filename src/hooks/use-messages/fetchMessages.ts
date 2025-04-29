@@ -24,7 +24,7 @@ export async function fetchMessages(
   
   console.log('Current user ID for message ownership:', user.id);
 
-  // Use proper query builder syntax with proper parameter binding
+  // Start building the query
   let query = supabase
     .from("messages")
     .select("*, parent_id")
@@ -32,10 +32,12 @@ export async function fetchMessages(
   
   // Handle private room filtering with proper query builder methods
   if (user) {
-    // Use proper filter for private rooms
-    query = query.or(`private_room.is.null, and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`);
+    query = query.or(
+      `private_room.is.null,and(private_room.eq.AI,or(sender_id.eq.${user.id},private_recipient.eq.${user.id}))`
+    );
   }
   
+  // Add pagination
   query = query.order("created_at", { ascending: false })
     .limit(pageSize);
 

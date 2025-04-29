@@ -39,6 +39,8 @@ export function useMessages(conversationId: string): UseMessagesReturn {
       pages: data.pages.map(page => page.messages),
       pageParams: data.pageParams,
     }),
+    // Add retry option for better reliability
+    retry: 2,
   });
 
   // Flatten messages and reverse to show newest at bottom

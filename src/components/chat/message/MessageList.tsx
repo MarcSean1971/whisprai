@@ -44,6 +44,7 @@ export function MessageList({
 
     try {
       // Determine if this message is from the current user
+      // Use triple equals for strict comparison of sender_id and currentUserId
       const isOwn = !!currentUserId && message.sender_id === currentUserId;
       const isAI = message.private_room === 'AI';
       const isAIPrompt = message.content.toLowerCase().startsWith('ai:') || message.content.toLowerCase().startsWith('a:');
