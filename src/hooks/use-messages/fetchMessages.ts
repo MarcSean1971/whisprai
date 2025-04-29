@@ -56,7 +56,7 @@ export async function fetchMessages(
     
     // Add pagination
     query = query.order("created_at", { ascending: false })
-      .limit(pageSize);
+      .limit(pageSize + 1); // We fetch one extra to check if there are more pages
 
     if (cursor) {
       query = query.lt("created_at", cursor);
@@ -78,19 +78,26 @@ export async function fetchMessages(
 
     console.log(`Fetched ${messages.length} messages`);
 
+    // Check if we got more items than the requested page size
+    // If yes, we have more pages. We remove the extra item before returning
+    const hasMore = messages.length > pageSize;
+    const messagesForPage = hasMore ? messages.slice(0, pageSize) : messages;
+
     // Get the next cursor from the oldest message
-    const nextCursor = messages.length === pageSize ? 
-      messages[messages.length - 1].created_at : 
+    const nextCursor = hasMore ? 
+      messagesForPage[messagesForPage.length - 1].created_at : 
       undefined;
 
+    console.log(`HasMore: ${hasMore}, messages for page: ${messagesForPage.length}, nextCursor: ${nextCursor}`);
+
     // Fetch user profiles for message senders
-    const senderIds: string[] = messages
+    const senderIds: string[] = messagesForPage
       .map((m: any) => m.sender_id)
       .filter(Boolean)
       .filter((v, i, a) => a.indexOf(v) === i);
 
     // Fetch parent messages for replies
-    const parentIds: string[] = messages
+    const parentIds: string[] = messagesForPage
       .map((m: any) => m.parent_id)
       .filter(Boolean)
       .filter((v, i, a) => a.indexOf(v) === i);
@@ -116,7 +123,7 @@ export async function fetchMessages(
     }
 
     // Format result as array of Message and reverse to display correctly
-    const formattedMessages = messages
+    const formattedMessages = messagesForPage
       .map((message: any) => {
         if (!message.id || !message.content || !message.created_at || !message.conversation_id) {
           console.error("Invalid message structure:", message);
@@ -158,13 +165,14 @@ export async function fetchMessages(
     console.log('Returning formatted messages:', {
       count: formattedMessages.length,
       nextCursor,
+      hasMore,
       oldestMessageDate: formattedMessages.length > 0 ? 
         formattedMessages[formattedMessages.length - 1]?.created_at : 'no messages'
     });
 
     return { 
       messages: formattedMessages,
-      nextCursor 
+      nextCursor: hasMore ? nextCursor : undefined // Only include nextCursor if there are more pages
     };
   } catch (error) {
     console.error('Error in fetchMessages:', error);
