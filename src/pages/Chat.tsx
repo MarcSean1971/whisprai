@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { EmptyState } from "@/components/EmptyState";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { useMessageReads } from "@/hooks/use-message-reads";
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   const { replyToMessageId, startReply, cancelReply, sendReply } = useMessageReply(conversationId);
   const [translatedContents, setTranslatedContents] = useState<Record<string, string>>({});
   const isMobile = useIsMobile();
+  const { markAllAsRead } = useMessageReads(conversationId);
   
   const { 
     suggestions, 
@@ -72,7 +74,8 @@ function ChatContent({ conversationId }: { conversationId: string }) {
   const handleNewReceivedMessage = useCallback(() => {
     console.log("New message received, translations available:", translatedContents);
     generateSuggestions();
-  }, [generateSuggestions, translatedContents]);
+    markAllAsRead();
+  }, [generateSuggestions, translatedContents, markAllAsRead]);
 
   const handleTranslation = useCallback((messageId: string, translatedContent: string) => {
     console.log("Translation received:", { messageId, translatedContent });
@@ -88,6 +91,12 @@ function ChatContent({ conversationId }: { conversationId: string }) {
       fetchNextPage();
     }
   };
+
+  useEffect(() => {
+    if (messages && messages.length > 0 && !isLoading) {
+      markAllAsRead();
+    }
+  }, [messages, isLoading, markAllAsRead]);
 
   if (error) {
     return (

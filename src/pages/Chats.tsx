@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "@/components/home/Header";
 import { BottomNavigation } from "@/components/home/BottomNavigation";
 import { NewMessageButton } from "@/components/home/NewMessageButton";
@@ -12,6 +12,7 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { EmptyState } from "@/components/EmptyState";
 import { TabsSection } from "@/components/home/TabsSection";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useMessagesRealtime } from "@/hooks/use-messages-realtime";
 
 export default function Chats() {
   const navigate = useNavigate();
@@ -20,6 +21,9 @@ export default function Chats() {
   const { isAdmin } = useAdmin();
   const { data: conversations, isLoading, error, refetch } = useUserConversations();
   const { isLoading: isAuthLoading, isAuthenticated } = useAuthProtection();
+  
+  // Enable realtime updates for all conversations
+  useMessagesRealtime();
   
   // Only show loading state when auth is being checked
   if (isAuthLoading) {

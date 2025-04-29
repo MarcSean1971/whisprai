@@ -41,6 +41,34 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
+        // Fetch unread message counts for each conversation
+        const unreadCountsPromises = conversations.map(async (conversation) => {
+          const { count, error: countError } = await supabase
+            .from('messages')
+            .select('id', { count: 'exact', head: true })
+            .eq('conversation_id', conversation.id)
+            .not('sender_id', 'eq', user.id) // Only count messages not sent by current user
+            .not('id', 'in', `(
+              SELECT message_id FROM message_reads 
+              WHERE user_id='${user.id}' AND conversation_id='${conversation.id}'
+            )`);
+            
+          if (countError) {
+            console.error(`Error counting unread messages for conversation ${conversation.id}:`, countError);
+            return { conversationId: conversation.id, unreadCount: 0 };
+          }
+          
+          return { 
+            conversationId: conversation.id, 
+            unreadCount: count || 0 
+          };
+        });
+        
+        const unreadCounts = await Promise.all(unreadCountsPromises);
+        const unreadCountMap = Object.fromEntries(
+          unreadCounts.map(item => [item.conversationId, item.unreadCount])
+        );
+
         return conversations.map(conversation => {
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -73,7 +101,8 @@ export function useUserConversations() {
               sender_id: lastMessage.sender_id
             } : null,
             created_at: conversation.created_at,
-            updated_at: conversation.updated_at
+            updated_at: conversation.updated_at,
+            unreadCount: unreadCountMap[conversation.id] || 0
           };
         });
       } catch (error) {

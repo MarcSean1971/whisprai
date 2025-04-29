@@ -70,6 +70,7 @@ export function TabsSection({
                   avatar={conversation.avatar}
                   lastMessage={conversation.lastMessage}
                   timestamp={timestamp}
+                  unreadCount={conversation.unreadCount || 0}
                   isGroup={conversation.is_group}
                   participants={conversation.participants}
                   onClick={() => onConversationClick(conversation.id)}

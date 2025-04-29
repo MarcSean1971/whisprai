@@ -1,9 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAdmin } from "@/hooks/use-admin";
 import { useUserConversations } from "@/hooks/use-user-conversations";
+import { useMessagesRealtime } from "@/hooks/use-messages-realtime";
 
 // Components
 import { Header } from "@/components/home/Header";
@@ -19,6 +21,9 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'chats' | 'contacts'>('chats');
   const { isAdmin } = useAdmin();
   const { data: conversations, isLoading, error } = useUserConversations();
+  
+  // Enable realtime updates for conversations
+  useMessagesRealtime();
   
   const filteredConversations = searchQuery && conversations
     ? conversations.filter(convo => 
@@ -87,7 +92,7 @@ export default function Home() {
             onClearSearch={handleClearSearch}
             onTabChange={(value) => setActiveTab(value as 'chats' | 'contacts')}
             isLoading={isLoading}
-            error={error}
+            error={error instanceof Error ? error : null}
           />
         )}
       </div>
