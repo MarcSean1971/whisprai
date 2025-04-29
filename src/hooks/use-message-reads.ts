@@ -19,16 +19,18 @@ export function useMessageReads(conversationId?: string) {
           throw new Error('Not authenticated');
         }
         
-        // Get unread messages in this conversation
-        const { data: messages, error: messagesError } = await supabase
+        // Get unread messages in this conversation using a proper subquery approach
+        const { data: unreadMessageIds, error: messagesError } = await supabase
           .from('messages')
           .select('id')
           .eq('conversation_id', conversationId)
-          .not('sender_id', 'eq', user.id) // Only messages not sent by current user
-          .not('id', 'in', `(
-            SELECT message_id FROM message_reads 
-            WHERE user_id='${user.id}' AND conversation_id='${conversationId}'
-          )`)
+          .neq('sender_id', user.id) // Only messages not sent by current user
+          .not('id', 'in', supabase
+            .from('message_reads')
+            .select('message_id')
+            .eq('user_id', user.id)
+            .eq('conversation_id', conversationId)
+          )
           .order('created_at', { ascending: false });
           
         if (messagesError) {
@@ -36,12 +38,12 @@ export function useMessageReads(conversationId?: string) {
           return;
         }
         
-        if (!messages || messages.length === 0) {
+        if (!unreadMessageIds || unreadMessageIds.length === 0) {
           return; // No unread messages
         }
         
         // Mark all messages as read
-        const messageReads = messages.map(message => ({
+        const messageReads = unreadMessageIds.map(message => ({
           user_id: user.id,
           message_id: message.id,
           conversation_id: conversationId,

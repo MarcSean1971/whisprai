@@ -7,32 +7,45 @@ export function useMessagesRealtime(conversationId?: string) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!conversationId) return;
-
-    // Subscribe to new messages
+    // If no conversation ID is provided, we'll just listen for any message updates
+    // This is used in the main conversation list to update unread counts
+    
+    // Create a unique channel name
+    const channelName = conversationId 
+      ? `messages:${conversationId}` 
+      : 'messages:global';
+      
+    // Subscribe to messages
     const messagesChannel = supabase
-      .channel(`messages:${conversationId}`)
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'messages',
-        filter: `conversation_id=eq.${conversationId}`
+        ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
       }, (_) => {
-        // Invalidate conversation queries to update unread counts
+        // Invalidate related queries
+        if (conversationId) {
+          queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
+        }
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       })
       .subscribe();
 
     // Subscribe to message_reads changes
+    const readsChannelName = conversationId 
+      ? `reads:${conversationId}` 
+      : 'reads:global';
+      
     const readsChannel = supabase
-      .channel(`reads:${conversationId}`)
+      .channel(readsChannelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'message_reads',
-        filter: `conversation_id=eq.${conversationId}`
+        ...(conversationId ? { filter: `conversation_id=eq.${conversationId}` } : {})
       }, (_) => {
-        // Invalidate conversation queries to update unread counts
+        // Invalidate related queries
         queryClient.invalidateQueries({ queryKey: ['user-conversations'] });
       })
       .subscribe();

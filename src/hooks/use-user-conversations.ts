@@ -43,15 +43,18 @@ export function useUserConversations() {
 
         // Fetch unread message counts for each conversation
         const unreadCountsPromises = conversations.map(async (conversation) => {
+          // Get unread messages count using proper query structure
           const { count, error: countError } = await supabase
             .from('messages')
             .select('id', { count: 'exact', head: true })
             .eq('conversation_id', conversation.id)
-            .not('sender_id', 'eq', user.id) // Only count messages not sent by current user
-            .not('id', 'in', `(
-              SELECT message_id FROM message_reads 
-              WHERE user_id='${user.id}' AND conversation_id='${conversation.id}'
-            )`);
+            .neq('sender_id', user.id) // Only count messages not sent by current user
+            .not('id', 'in', supabase
+              .from('message_reads')
+              .select('message_id')
+              .eq('user_id', user.id)
+              .eq('conversation_id', conversation.id)
+            );
             
           if (countError) {
             console.error(`Error counting unread messages for conversation ${conversation.id}:`, countError);
