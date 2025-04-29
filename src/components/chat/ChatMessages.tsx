@@ -10,7 +10,6 @@ import { useMessageScroll } from "@/hooks/use-message-scroll";
 import { LoadMoreMessages } from "./message/LoadMoreMessages";
 import { MessageUserAuth } from "./message/MessageUserAuth";
 import { TranslationConsumer } from "./message/TranslationConsumer";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatMessagesProps {
   messages: any[];
@@ -116,7 +115,7 @@ export function ChatMessages({
   if (!userIdLoaded && messages.length > 0) {
     return (
       <div className="absolute inset-0 overflow-y-auto flex items-center justify-center">
-        <MessageSkeleton count={3} />
+        <MessageSkeleton />
       </div>
     );
   }
