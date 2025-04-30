@@ -1,5 +1,5 @@
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { AvatarStack } from "@/components/ui/avatar-stack";
 import { PinIcon, Image as ImageIcon, Paperclip, MapPin, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,6 @@ interface ConversationItemProps {
   avatar?: string;
   lastMessage?: Message;
   timestamp?: string;
-  unreadCount?: number;
   isPinned?: boolean;
   isGroup?: boolean;
   isActive?: boolean;
@@ -47,7 +46,6 @@ export function ConversationItem({
   avatar,
   lastMessage,
   timestamp,
-  unreadCount = 0,
   isPinned = false,
   isGroup = false,
   isActive = false,
@@ -59,7 +57,6 @@ export function ConversationItem({
       className={cn(
         "flex items-center p-3 rounded-lg cursor-pointer transition-colors",
         isActive ? "bg-primary/10" : "hover:bg-secondary",
-        unreadCount > 0 && "font-medium"
       )}
       onClick={onClick}
     >
@@ -101,14 +98,6 @@ export function ConversationItem({
                 : ""}
               {getMessagePreview(lastMessage)}
             </p>
-            {unreadCount > 0 && (
-              <Badge 
-                variant="default" 
-                className="ml-auto flex-shrink-0 bg-primary text-primary-foreground rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center text-xs"
-              >
-                {unreadCount}
-              </Badge>
-            )}
           </div>
         )}
       </div>

@@ -41,51 +41,6 @@ export function useUserConversations() {
           throw conversationsError;
         }
 
-        // Fetch unread message counts for each conversation
-        const unreadCountsPromises = conversations.map(async (conversation) => {
-          // Get all messages in this conversation not sent by current user
-          const { data: allMessages, error: messagesError } = await supabase
-            .from('messages')
-            .select('id')
-            .eq('conversation_id', conversation.id)
-            .neq('sender_id', user.id);
-            
-          if (messagesError) {
-            console.error(`Error fetching messages for conversation ${conversation.id}:`, messagesError);
-            return { conversationId: conversation.id, unreadCount: 0 };
-          }
-          
-          if (!allMessages || allMessages.length === 0) {
-            return { conversationId: conversation.id, unreadCount: 0 };
-          }
-            
-          // Get already read message IDs
-          const { data: readMessages, error: readError } = await supabase
-            .from('message_reads')
-            .select('message_id')
-            .eq('user_id', user.id)
-            .eq('conversation_id', conversation.id);
-            
-          if (readError) {
-            console.error(`Error fetching read messages for conversation ${conversation.id}:`, readError);
-            return { conversationId: conversation.id, unreadCount: 0 };
-          }
-          
-          // Find messages that haven't been marked as read yet
-          const readMessageIds = new Set((readMessages || []).map(m => m.message_id));
-          const unreadCount = allMessages.filter(msg => !readMessageIds.has(msg.id)).length;
-          
-          return { 
-            conversationId: conversation.id, 
-            unreadCount
-          };
-        });
-        
-        const unreadCounts = await Promise.all(unreadCountsPromises);
-        const unreadCountMap = Object.fromEntries(
-          unreadCounts.map(item => [item.conversationId, item.unreadCount])
-        );
-
         return conversations.map(conversation => {
           const sortedMessages = conversation.messages.sort(
             (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -118,8 +73,7 @@ export function useUserConversations() {
               sender_id: lastMessage.sender_id
             } : null,
             created_at: conversation.created_at,
-            updated_at: conversation.updated_at,
-            unreadCount: unreadCountMap[conversation.id] || 0
+            updated_at: conversation.updated_at
           };
         });
       } catch (error) {
